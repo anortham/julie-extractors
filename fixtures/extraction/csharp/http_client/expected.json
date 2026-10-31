@@ -365,7 +365,10 @@
       "end_byte": 321,
       "containing_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/http_client/source.cs:HttpRequestMessage:call:10:22",
@@ -470,6 +473,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HttpMethod"
       }
     },
@@ -575,7 +579,10 @@
       "end_byte": 149,
       "containing_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/http_client/source.cs:client:variable_ref:9:14",
@@ -591,7 +598,10 @@
       "end_byte": 210,
       "containing_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/http_client/source.cs:payload:variable_ref:9:70",
@@ -607,7 +617,10 @@
       "end_byte": 267,
       "containing_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

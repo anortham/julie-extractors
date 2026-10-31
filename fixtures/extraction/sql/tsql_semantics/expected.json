@@ -549,7 +549,10 @@
       "end_byte": 652,
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:@Batch:variable_ref:29:45",
@@ -565,7 +568,10 @@
       "end_byte": 715,
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:@Batch:variable_ref:31:55",
@@ -581,7 +587,10 @@
       "end_byte": 786,
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:FakeTable:call:14:15",
@@ -617,7 +626,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:23:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Id:member_access:35:29",
@@ -636,6 +648,7 @@
       "confidence": "1.000",
       "receiver_type": "Orders",
       "metadata": {
+        "access": "read",
         "receiver": "t"
       }
     },
@@ -656,6 +669,7 @@
       "confidence": "1.000",
       "receiver_type": "Incoming",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -674,7 +688,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Id:member_access:37:59",
@@ -693,6 +710,7 @@
       "confidence": "1.000",
       "receiver_type": "Incoming",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -842,7 +860,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:23:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Status:member_access:37:34",
@@ -859,7 +880,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Status:member_access:37:65",
@@ -878,6 +902,7 @@
       "confidence": "1.000",
       "receiver_type": "Incoming",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -896,7 +921,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:IX_Orders_Status:7:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:27:53",
@@ -915,6 +943,7 @@
       "confidence": "1.000",
       "receiver_type": "Orders",
       "metadata": {
+        "access": "read",
         "receiver": "o"
       }
     },
@@ -933,7 +962,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:23:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:31:40",
@@ -950,7 +982,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:23:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:36:29",
@@ -966,7 +1001,10 @@
       "end_byte": 912,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:36:39",
@@ -985,6 +1023,7 @@
       "confidence": "1.000",
       "receiver_type": "Incoming",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -1003,7 +1042,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:37:75",
@@ -1022,6 +1064,7 @@
       "confidence": "1.000",
       "receiver_type": "Incoming",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -1040,7 +1083,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:IX_Orders_Status:7:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:7:85",
@@ -1057,7 +1103,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:IX_Orders_Status:7:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:call:20:13",

@@ -1606,6 +1606,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/html/structural_facts/source.html:open:variable_ref:21:32",
+      "name": "open",
+      "kind": "variable_ref",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 21,
+      "start_column": 32,
+      "end_line": 21,
+      "end_column": 36,
+      "start_byte": 588,
+      "end_byte": 592,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:button:21:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/html/structural_facts/source.html:open:variable_ref:21:40",
       "name": "open",
       "kind": "variable_ref",
@@ -1619,7 +1638,10 @@
       "end_byte": 600,
       "containing_key": "fixtures/extraction/html/structural_facts/source.html:button:21:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/structural_facts/source.html:px-4:member_access:43:22",

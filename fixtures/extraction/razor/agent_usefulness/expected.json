@@ -352,7 +352,10 @@
       "end_byte": 26,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:Dictionary:type_usage:4:12",
@@ -416,7 +419,10 @@
       "end_byte": 543,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:HandleItems:variable_ref:8:60",
@@ -432,7 +438,10 @@
       "end_byte": 501,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:HandleOptions:variable_ref:10:35",
@@ -448,7 +457,10 @@
       "end_byte": 594,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:Id:variable_ref:2:33",
@@ -464,7 +476,10 @@
       "end_byte": 77,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:Id:variable_ref:4:133",
@@ -480,7 +495,10 @@
       "end_byte": 250,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:MapGroup:call:7:24",
@@ -572,7 +590,10 @@
       "end_byte": 557,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:app:variable_ref:7:20",
@@ -588,7 +609,10 @@
       "end_byte": 411,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:app:variable_ref:9:8",
@@ -604,7 +628,10 @@
       "end_byte": 515,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:group:variable_ref:8:8",
@@ -620,7 +647,10 @@
       "end_byte": 443,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:start:variable_ref:2:43",
@@ -636,7 +666,10 @@
       "end_byte": 90,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:tests:variable_ref:2:37",
@@ -652,7 +685,10 @@
       "end_byte": 84,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -1699,6 +1699,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -1718,6 +1719,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -1735,7 +1737,10 @@
       "end_byte": 1058,
       "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:decorate:variable_ref:48:11",
@@ -1751,7 +1756,10 @@
       "end_byte": 1147,
       "containing_key": "fixtures/extraction/python/declarations/source.py:retry:37:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:dict:type_usage:17:21",
@@ -1785,6 +1793,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -1822,7 +1831,10 @@
       "end_byte": 991,
       "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:functools:variable_ref:39:9",
@@ -1838,7 +1850,10 @@
       "end_byte": 982,
       "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:join:call:52:19",
@@ -1875,7 +1890,10 @@
       "end_byte": 1068,
       "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:limit:variable_ref:34:64",
@@ -1891,7 +1909,10 @@
       "end_byte": 920,
       "containing_key": "fixtures/extraction/python/declarations/source.py:ranked:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:lines:member_access:16:13",
@@ -1909,6 +1930,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -1974,7 +1996,10 @@
       "end_byte": 843,
       "containing_key": "fixtures/extraction/python/declarations/source.py:weight:31:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:order:variable_ref:34:55",
@@ -1990,7 +2015,10 @@
       "end_byte": 911,
       "containing_key": "fixtures/extraction/python/declarations/source.py:lambda_34:34:34",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:orders:variable_ref:34:22",
@@ -2006,7 +2034,10 @@
       "end_byte": 879,
       "containing_key": "fixtures/extraction/python/declarations/source.py:ranked:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:os:variable_ref:52:11",
@@ -2022,7 +2053,10 @@
       "end_byte": 1186,
       "containing_key": "fixtures/extraction/python/declarations/source.py:lookup:51:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:path:member_access:52:14",
@@ -2040,6 +2074,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "os"
       }
     },
@@ -2057,7 +2092,10 @@
       "end_byte": 1201,
       "containing_key": "fixtures/extraction/python/declarations/source.py:lookup:51:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:property:variable_ref:24:5",
@@ -2073,7 +2111,10 @@
       "end_byte": 577,
       "containing_key": "fixtures/extraction/python/declarations/source.py:Order:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:repo:member_access:26:20",
@@ -2091,6 +2132,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2129,6 +2171,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -2148,6 +2191,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -2167,6 +2211,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "order"
       }
     },
@@ -2203,7 +2248,10 @@
       "end_byte": 1093,
       "containing_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:wraps:call:39:19",

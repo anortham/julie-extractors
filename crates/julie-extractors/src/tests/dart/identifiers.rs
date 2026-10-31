@@ -257,8 +257,9 @@ class Sample {
 
     // --- Positive cases (rules 1/4) ---
     for expected in [
-        "GraphTraversal",    // static-access receiver
-        "count",             // compound-assignment target
+        "GraphTraversal", // static-access receiver
+        "count",          // compound-assignment target
+        "x",
         "seed",              // initializer + named-argument VALUE read
         "total",             // ternary condition + consequence
         "visibilityUnknown", // bare read in ternary alternative
@@ -281,7 +282,6 @@ class Sample {
 
     // --- Negative cases (rules 2/3/4/5) ---
     for forbidden in [
-        "x",           // declaration name + plain-write LHS
         "unusedParam", // parameter name only
         "GhostToken",  // comment-only mention
         "Sample",      // class declaration name
@@ -336,5 +336,202 @@ class Sample {
     assert_eq!(
         graph_ref.containing_symbol_id, reach_call.containing_symbol_id,
         "receiver variable_ref and its sibling call must share a containing symbol"
+    );
+}
+
+fn variable_access_at(identifiers: &[crate::base::Identifier], start: usize) -> Option<&str> {
+    identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte as usize == start)?
+        .metadata
+        .as_ref()?
+        .get("access")?
+        .as_str()
+}
+
+fn has_variable_ref_at(identifiers: &[crate::base::Identifier], start: usize) -> bool {
+    identifiers.iter().any(|identifier| {
+        identifier.kind == IdentifierKind::VariableRef && identifier.start_byte as usize == start
+    })
+}
+
+#[test]
+fn explicit_reads_do_not_duplicate_dart_call_and_property_names() {
+    let code = r#"
+import 'package:collection/collection.dart' as coll;
+class Box { int value = 0; }
+class User {
+  factory User.fromJson(Map<String, Object?> json) => User._();
+  User._();
+}
+class Cache { Cache._internal(); }
+void inspect(Box box, List<int> values, List<Map<String, Object?>> rows) {
+  final converted = rows.map((row) => User.fromJson(row)).toList();
+  coll.ListEquality<int>().equals([1], [1]);
+  Cache._internal();
+  print(values.length);
+  values[0] = 1;
+  box.value = values[0];
+}
+"#;
+    let mut parser = init_test_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = DartExtractor::new(
+        "dart".to_string(),
+        "test.dart".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    let row_binding = code.find("(row) =>").unwrap() + 1;
+    assert!(!has_variable_ref_at(&identifiers, row_binding));
+    for start in [
+        code.find(".map(").unwrap() + 1,
+        code.find(".fromJson(").unwrap() + 1,
+        code.find("ListEquality").unwrap(),
+        code.rfind("_internal").unwrap(),
+        code.find("values.length").unwrap() + "values.".len(),
+    ] {
+        assert!(!has_variable_ref_at(&identifiers, start));
+    }
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.name == "fromJson"
+                && identifier.kind == IdentifierKind::Call)
+    );
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.name == "length"
+                && identifier.kind == IdentifierKind::MemberAccess)
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("values[0] = 1").unwrap()),
+        Some("read")
+    );
+}
+
+#[test]
+fn variable_access_facts_follow_dart_assignment_and_pattern_syntax() {
+    let code = r#"
+class Box { int value = 0; }
+int consume(int value) => value;
+void update(int output, int input, Box box, List<int> values) {
+  output = input;
+  output += 1;
+  output++;
+  ++output;
+  values[output] = input;
+  box.value = input;
+  box.value++;
+  consume(output);
+  for (final item in values) {
+    consume(item);
+  }
+  try { consume(output); } catch (error) { consume(error); }
+}
+"#;
+    let mut parser = init_test_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = DartExtractor::new(
+        "dart".to_string(),
+        "test.dart".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("output = input").unwrap()),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("output += 1").unwrap()),
+        Some("read_write")
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("output++").unwrap()),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("++output").unwrap() + 2),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("values[output] = input").unwrap() + "values[".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("values[output] = input").unwrap()),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("box.value = input").unwrap() + "box.".len()
+        ),
+        Some("write")
+    );
+    let member_start = (code.find("box.value = input").unwrap() + "box.".len()) as u32;
+    let member_targets: Vec<_> = identifiers
+        .iter()
+        .filter(|identifier| identifier.start_byte == member_start)
+        .collect();
+    assert_eq!(member_targets.len(), 1);
+    assert_eq!(member_targets[0].kind, IdentifierKind::VariableRef);
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("box.value = input").unwrap()),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("box.value++").unwrap() + "box.".len()
+        ),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("consume(output)").unwrap() + "consume(".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("final item").unwrap() + "final ".len()
+        ),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("consume(item)").unwrap() + "consume(".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("catch (error)").unwrap() + "catch (".len()
+        ),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("consume(error)").unwrap() + "consume(".len()
+        ),
+        Some("read")
     );
 }

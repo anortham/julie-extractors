@@ -279,6 +279,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "post"
       }
     },
@@ -296,7 +297,10 @@
       "end_byte": 168,
       "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

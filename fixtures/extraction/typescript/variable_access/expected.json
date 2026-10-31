@@ -1,0 +1,878 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:container:1:51",
+      "name": "container",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 1,
+      "start_column": 51,
+      "end_line": 1,
+      "end_column": 65,
+      "start_byte": 51,
+      "end_byte": 65,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "container: Box",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:index:1:67",
+      "name": "index",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 1,
+      "start_column": 67,
+      "end_line": 1,
+      "end_column": 80,
+      "start_byte": 67,
+      "end_byte": 80,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "index: number",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:initial:1:16",
+      "name": "initial",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 1,
+      "start_column": 16,
+      "end_line": 1,
+      "end_column": 31,
+      "start_byte": 16,
+      "end_byte": 31,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "initial: number",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:initialized:2:10",
+      "name": "initialized",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 2,
+      "start_column": 10,
+      "end_line": 2,
+      "end_column": 31,
+      "start_byte": 94,
+      "end_byte": 115,
+      "body_span": null,
+      "body_hash": null,
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "name": "update",
+      "kind": "function",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 463,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 82,
+        "end_line": 11,
+        "end_column": 1,
+        "start_byte": 82,
+        "end_byte": 463
+      },
+      "body_hash": "a0eac39c973cc79f43b62990d6a1d317",
+      "signature": "update(initial: number, values: number[], container: Box, index: number)",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "parameters": [
+          "initial: number",
+          "values: number[]",
+          "container: Box",
+          "index: number"
+        ],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:values:1:33",
+      "name": "values",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 1,
+      "start_column": 33,
+      "end_line": 1,
+      "end_column": 49,
+      "start_byte": 33,
+      "end_byte": 49,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "values: number[]",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "callee_name": "consume",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "line_number": 10,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "callee_name": "consume",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "line_number": 10,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "callee_name": "consume",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "callee_name": "consume",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "line_number": 9,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+        "callee_name": "consume",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "consume",
+        "terminal_name": "consume",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "span": {
+        "start_line": 10,
+        "start_column": 10,
+        "end_line": 10,
+        "end_column": 28,
+        "start_byte": 404,
+        "end_byte": 422
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+        "callee_name": "consume",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "consume",
+        "terminal_name": "consume",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "span": {
+        "start_line": 10,
+        "start_column": 49,
+        "end_line": 10,
+        "end_column": 64,
+        "start_byte": 443,
+        "end_byte": 458
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+        "callee_name": "consume",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "consume",
+        "terminal_name": "consume",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 4,
+        "end_line": 8,
+        "end_column": 25,
+        "start_byte": 315,
+        "end_byte": 336
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+        "callee_name": "consume",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+        "line_number": 9,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "consume",
+        "terminal_name": "consume",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 35,
+        "end_line": 9,
+        "end_column": 54,
+        "start_byte": 373,
+        "end_byte": 392
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:Box:type_usage:1:62",
+      "name": "Box",
+      "kind": "type_usage",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 1,
+      "start_column": 62,
+      "end_line": 1,
+      "end_column": 65,
+      "start_byte": 62,
+      "end_byte": 65,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:argumentRead:variable_ref:8:12",
+      "name": "argumentRead",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 8,
+      "end_column": 24,
+      "start_byte": 323,
+      "end_byte": 335,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:assignmentRead:variable_ref:3:18",
+      "name": "assignmentRead",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 3,
+      "start_column": 18,
+      "end_line": 3,
+      "end_column": 32,
+      "start_byte": 135,
+      "end_byte": 149,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:caught:variable_ref:10:39",
+      "name": "caught",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 10,
+      "start_column": 39,
+      "end_line": 10,
+      "end_column": 45,
+      "start_byte": 433,
+      "end_byte": 439,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:caught:variable_ref:10:57",
+      "name": "caught",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 10,
+      "start_column": 57,
+      "end_line": 10,
+      "end_column": 63,
+      "start_byte": 451,
+      "end_byte": 457,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:compoundRead:variable_ref:4:23",
+      "name": "compoundRead",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 4,
+      "start_column": 23,
+      "end_line": 4,
+      "end_column": 35,
+      "start_byte": 174,
+      "end_byte": 186,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:compoundTarget:variable_ref:4:4",
+      "name": "compoundTarget",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 18,
+      "start_byte": 155,
+      "end_byte": 169,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:consume:call:10:10",
+      "name": "consume",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 10,
+      "start_column": 10,
+      "end_line": 10,
+      "end_column": 17,
+      "start_byte": 404,
+      "end_byte": 411,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:consume:call:10:49",
+      "name": "consume",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 10,
+      "start_column": 49,
+      "end_line": 10,
+      "end_column": 56,
+      "start_byte": 443,
+      "end_byte": 450,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:consume:call:8:4",
+      "name": "consume",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 11,
+      "start_byte": 315,
+      "end_byte": 322,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:consume:call:9:35",
+      "name": "consume",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 9,
+      "start_column": 35,
+      "end_line": 9,
+      "end_column": 42,
+      "start_byte": 373,
+      "end_byte": 380,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:container:variable_ref:5:4",
+      "name": "container",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 13,
+      "start_byte": 192,
+      "end_byte": 201,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:container:variable_ref:6:4",
+      "name": "container",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 13,
+      "start_byte": 227,
+      "end_byte": 236,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:destructuredSource:variable_ref:7:30",
+      "name": "destructuredSource",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 7,
+      "start_column": 30,
+      "end_line": 7,
+      "end_column": 48,
+      "start_byte": 290,
+      "end_byte": 308,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:destructuredTarget:variable_ref:7:7",
+      "name": "destructuredTarget",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 7,
+      "start_column": 7,
+      "end_line": 7,
+      "end_column": 25,
+      "start_byte": 267,
+      "end_byte": 285,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:elementValue:variable_ref:6:23",
+      "name": "elementValue",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 6,
+      "start_column": 23,
+      "end_line": 6,
+      "end_column": 35,
+      "start_byte": 246,
+      "end_byte": 258,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:field:member_access:5:14",
+      "name": "field",
+      "kind": "member_access",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 5,
+      "start_column": 14,
+      "end_line": 5,
+      "end_column": 19,
+      "start_byte": 202,
+      "end_byte": 207,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write",
+        "receiver": "container"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:index:variable_ref:6:14",
+      "name": "index",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 6,
+      "start_column": 14,
+      "end_line": 6,
+      "end_column": 19,
+      "start_byte": 237,
+      "end_byte": 242,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:initial:variable_ref:2:24",
+      "name": "initial",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 2,
+      "start_column": 24,
+      "end_line": 2,
+      "end_column": 31,
+      "start_byte": 108,
+      "end_byte": 115,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:insideTry:variable_ref:10:18",
+      "name": "insideTry",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 10,
+      "start_column": 18,
+      "end_line": 10,
+      "end_column": 27,
+      "start_byte": 412,
+      "end_byte": 421,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:loopTarget:variable_ref:9:43",
+      "name": "loopTarget",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 9,
+      "start_column": 43,
+      "end_line": 9,
+      "end_column": 53,
+      "start_byte": 381,
+      "end_byte": 391,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:loopTarget:variable_ref:9:9",
+      "name": "loopTarget",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 9,
+      "start_column": 9,
+      "end_line": 9,
+      "end_column": 19,
+      "start_byte": 347,
+      "end_byte": 357,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:loopValues:variable_ref:9:23",
+      "name": "loopValues",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 9,
+      "start_column": 23,
+      "end_line": 9,
+      "end_column": 33,
+      "start_byte": 361,
+      "end_byte": 371,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:memberValue:variable_ref:5:22",
+      "name": "memberValue",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 5,
+      "start_column": 22,
+      "end_line": 5,
+      "end_column": 33,
+      "start_byte": 210,
+      "end_byte": 221,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/typescript/variable_access/source.ts:plainTarget:variable_ref:3:4",
+      "name": "plainTarget",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "start_line": 3,
+      "start_column": 4,
+      "end_line": 3,
+      "end_column": 15,
+      "start_byte": 121,
+      "end_byte": 132,
+      "containing_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/typescript/variable_access/source.ts:container:1:51",
+      "resolved_type": "Box",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/variable_access/source.ts:index:1:67",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/variable_access/source.ts:initial:1:16",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/variable_access/source.ts:values:1:33",
+      "resolved_type": "number[]",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "covered_lines": 12,
+      "covered_bytes": 464,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 1,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 464,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/variable_access/source.ts:update:1:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/variable_access/source.ts",
+      "covered_lines": 11,
+      "covered_bytes": 381,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 1,
+      "parameter_count": 4,
+      "start_line": 1,
+      "start_column": 82,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 82,
+      "end_byte": 463,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

@@ -1595,6 +1595,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1614,6 +1615,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1633,6 +1635,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1652,6 +1655,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1671,6 +1675,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1690,6 +1695,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "other"
       }
     },
@@ -1709,6 +1715,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1728,6 +1735,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1892,7 +1900,10 @@
       "end_byte": 1068,
       "containing_key": "fixtures/extraction/rust/reqwest_fields/source.rs:load:59:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/reqwest_fields/source.rs:post:call:61:25",

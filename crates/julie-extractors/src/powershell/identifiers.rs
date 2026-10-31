@@ -27,8 +27,7 @@ pub(super) fn extract_identifiers(
             )
     }));
 
-    // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, symbols, 0);
 
     // Return the collected identifiers
     base.identifiers.clone()
@@ -39,22 +38,21 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, containing_symbols);
+    extract_identifier_from_node(base, node, containing_symbols, symbols);
 
-    // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -63,6 +61,7 @@ fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         // PowerShell commands and cmdlet calls: Get-Process, Write-Host, etc.
@@ -219,24 +218,29 @@ fn extract_identifier_from_node(
             base.record_type_arguments(&identifier, arguments);
         }
 
-        // `variable_ref` complement arm (locked contract in csharp/identifiers.rs).
-        // Names use `helpers::variable_name`, the same normalization as Variable
-        // symbols, because code-kb matches identifiers.name = symbols.name exactly.
         "variable" => {
-            if !is_powershell_variable_read(node) {
-                return;
-            }
             let raw = base.get_node_text(&node);
-            // Rule 5: environment variables (`$env:PATH`) are engine-owned.
             if super::helpers::is_environment_reference(&raw) {
                 return;
             }
             let name = super::helpers::variable_name(&raw);
-            // Rule 5: automatic variables and engine constants are not user symbols.
             if is_powershell_automatic_or_constant(&name) {
                 return;
             }
+            let rules = crate::base::variable_access::rules_for_language("powershell")
+                .expect("PowerShell variable access rules are registered");
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let write_reference = crate::base::variable_access::should_emit_write_reference(
+                node,
+                &name,
+                &base.content,
+                rules,
+                symbols,
+            );
+            let variable_read = is_powershell_variable_read(node);
+            if !variable_read && (!write_reference || base.has_identifier_at_node(&node)) {
+                return;
+            }
             base.create_identifier(
                 &node,
                 name,

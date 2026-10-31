@@ -564,7 +564,10 @@
       "end_byte": 432,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:Error:type_usage:16:53",
@@ -714,7 +717,10 @@
       "end_byte": 451,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:delete:call:11:27",
@@ -886,7 +892,10 @@
       "end_byte": 509,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:reqwest:variable_ref:17:4",
@@ -902,7 +911,10 @@
       "end_byte": 716,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:reqwest:variable_ref:18:4",
@@ -918,7 +930,10 @@
       "end_byte": 788,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:reqwest:variable_ref:8:4",
@@ -934,7 +949,10 @@
       "end_byte": 362,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:to_owned:call:18:32",

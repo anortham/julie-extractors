@@ -816,7 +816,10 @@
       "end_byte": 272,
       "containing_key": "fixtures/extraction/go/reference_targets/source.go:genericSiblingCaller:21:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/reference_targets/source.go:genericTarget:variable_ref:26:1",
@@ -832,7 +835,10 @@
       "end_byte": 337,
       "containing_key": "fixtures/extraction/go/reference_targets/source.go:genericShadow:25:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/reference_targets/source.go:hidden:call:14:1",
@@ -944,7 +950,10 @@
       "end_byte": 496,
       "containing_key": "fixtures/extraction/go/reference_targets/source.go:receiverPending:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

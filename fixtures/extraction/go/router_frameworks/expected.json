@@ -1968,6 +1968,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "http"
       }
     },
@@ -2231,6 +2232,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "http"
       }
     },
@@ -2250,6 +2252,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "http"
       }
     },
@@ -2269,6 +2272,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "http"
       }
     },
@@ -2787,7 +2791,10 @@
       "end_byte": 365,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:api:variable_ref:27:1",
@@ -2803,7 +2810,10 @@
       "end_byte": 617,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:apiRouter:call:19:17",
@@ -2838,7 +2848,10 @@
       "end_byte": 750,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:app:variable_ref:34:7",
@@ -2854,7 +2867,10 @@
       "end_byte": 791,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:app:variable_ref:36:8",
@@ -2870,7 +2886,10 @@
       "end_byte": 849,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:authenticate:variable_ref:14:8",
@@ -2886,7 +2905,10 @@
       "end_byte": 232,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:chi:variable_ref:12:6",
@@ -2902,7 +2924,10 @@
       "end_byte": 167,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:client:variable_ref:42:8",
@@ -2918,7 +2943,10 @@
       "end_byte": 1000,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:client:variable_ref:43:8",
@@ -2934,7 +2962,10 @@
       "end_byte": 1023,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:createItem:variable_ref:27:26",
@@ -2950,7 +2981,10 @@
       "end_byte": 649,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:createOrder:variable_ref:35:20",
@@ -2966,7 +3000,10 @@
       "end_byte": 836,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:createUser:variable_ref:14:37",
@@ -2982,7 +3019,10 @@
       "end_byte": 259,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:deleteUser:variable_ref:17:30",
@@ -2998,7 +3038,10 @@
       "end_byte": 398,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:fiber:variable_ref:32:8",
@@ -3014,7 +3057,10 @@
       "end_byte": 739,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:http:variable_ref:15:10",
@@ -3030,7 +3076,10 @@
       "end_byte": 275,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:http:variable_ref:27:46",
@@ -3046,7 +3095,10 @@
       "end_byte": 663,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:http:variable_ref:41:11",
@@ -3062,7 +3114,10 @@
       "end_byte": 915,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:http:variable_ref:41:27",
@@ -3078,7 +3133,10 @@
       "end_byte": 931,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:http:variable_ref:44:8",
@@ -3094,7 +3152,10 @@
       "end_byte": 1073,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:mux:variable_ref:24:11",
@@ -3110,7 +3171,10 @@
       "end_byte": 496,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:next:variable_ref:56:65",
@@ -3126,7 +3190,10 @@
       "end_byte": 1790,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:authenticate:56:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:r:variable_ref:13:1",
@@ -3142,7 +3209,10 @@
       "end_byte": 182,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:r:variable_ref:14:1",
@@ -3158,7 +3228,10 @@
       "end_byte": 214,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:r:variable_ref:15:1",
@@ -3174,7 +3247,10 @@
       "end_byte": 263,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:r:variable_ref:16:1",
@@ -3190,7 +3266,10 @@
       "end_byte": 316,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:r:variable_ref:19:1",
@@ -3206,7 +3285,10 @@
       "end_byte": 406,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:r:variable_ref:20:8",
@@ -3222,7 +3304,10 @@
       "end_byte": 443,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:req:variable_ref:42:18",
@@ -3238,7 +3323,10 @@
       "end_byte": 1007,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:router:variable_ref:25:1",
@@ -3254,7 +3342,10 @@
       "end_byte": 516,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:router:variable_ref:26:8",
@@ -3270,7 +3361,10 @@
       "end_byte": 582,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:router:variable_ref:28:8",
@@ -3286,7 +3380,10 @@
       "end_byte": 690,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:showItem:variable_ref:25:34",
@@ -3302,7 +3399,10 @@
       "end_byte": 551,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:showOrder:variable_ref:33:24",
@@ -3318,7 +3418,10 @@
       "end_byte": 779,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:showUser:variable_ref:13:22",
@@ -3334,7 +3437,10 @@
       "end_byte": 210,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:updateUser:variable_ref:15:41",
@@ -3350,7 +3456,10 @@
       "end_byte": 312,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:v1:variable_ref:35:1",
@@ -3366,7 +3475,10 @@
       "end_byte": 808,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

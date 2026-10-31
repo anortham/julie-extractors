@@ -543,7 +543,10 @@
       "end_byte": 256,
       "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/basic/source.sh:count:variable_ref:20:13",
@@ -559,7 +562,10 @@
       "end_byte": 327,
       "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/basic/source.sh:echo:call:23:4",
@@ -607,7 +613,10 @@
       "end_byte": 205,
       "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/basic/source.sh:helper:call:9:4",
@@ -626,6 +635,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/bash/basic/source.sh:i:variable_ref:17:12",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 17,
+      "start_column": 12,
+      "end_line": 17,
+      "end_column": 13,
+      "start_byte": 236,
+      "end_byte": 237,
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/bash/basic/source.sh:i:variable_ref:18:29",
       "name": "i",
       "kind": "variable_ref",
@@ -639,7 +667,10 @@
       "end_byte": 293,
       "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/basic/source.sh:seq:call:17:19",
@@ -658,6 +689,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/bash/basic/source.sh:total:variable_ref:18:12",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 18,
+      "start_column": 12,
+      "end_line": 18,
+      "end_column": 17,
+      "start_byte": 275,
+      "end_byte": 280,
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/bash/basic/source.sh:total:variable_ref:18:21",
       "name": "total",
       "kind": "variable_ref",
@@ -671,7 +721,29 @@
       "end_byte": 289,
       "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/bash/basic/source.sh:total:variable_ref:21:8",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 21,
+      "start_column": 8,
+      "end_line": 21,
+      "end_column": 13,
+      "start_byte": 351,
+      "end_byte": 356,
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/bash/basic/source.sh:total:variable_ref:23:11",
@@ -687,7 +759,10 @@
       "end_byte": 382,
       "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/basic/source.sh:value:variable_ref:5:13",
@@ -703,7 +778,10 @@
       "end_byte": 71,
       "containing_key": "fixtures/extraction/bash/basic/source.sh:helper:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

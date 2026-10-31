@@ -639,7 +639,10 @@
       "end_byte": 489,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:enabled:variable_ref:25:8",
@@ -655,7 +658,10 @@
       "end_byte": 452,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:helper:call:10:15",
@@ -690,7 +696,10 @@
       "end_byte": 481,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:i:variable_ref:26:35",
@@ -706,7 +715,10 @@
       "end_byte": 492,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:i:variable_ref:27:21",
@@ -722,7 +734,10 @@
       "end_byte": 520,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:id:member_access:10:27",
@@ -740,6 +755,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -757,7 +773,10 @@
       "end_byte": 515,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:total:variable_ref:30:11",
@@ -773,7 +792,10 @@
       "end_byte": 554,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:value:variable_ref:20:11",
@@ -789,7 +811,10 @@
       "end_byte": 348,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:helper:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

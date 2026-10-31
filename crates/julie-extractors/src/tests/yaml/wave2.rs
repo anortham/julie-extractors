@@ -79,6 +79,12 @@ server:
     };
     assert_eq!(anchor("timeout", 1).as_deref(), Some("default_timeout"));
     assert_eq!(anchor("[0]", 5).as_deref(), Some("pg"));
+    assert!(result.identifiers.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    }));
     for (from, target) in [
         (symbol(&result, "timeout", 7), symbol(&result, "timeout", 1)),
         (symbol(&result, "ports", 8), symbol(&result, "ports", 2)),
@@ -364,6 +370,12 @@ fn compose_services_emit_facts_edges_and_pending_extends() {
     let db = symbol(&result, "db", 13);
     assert!(references(&result, symbol(&result, "db", 6), db));
     assert!(references(&result, symbol(&result, "depends_on", 12), db));
+    assert!(result.identifiers.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    }));
     let pending = &result.structured_pending_relationships;
     assert_eq!(pending.len(), 1, "{pending:#?}");
     assert_eq!(

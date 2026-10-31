@@ -1778,7 +1778,10 @@
       "end_byte": 1446,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:names:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:$1:variable_ref:69:35",
@@ -1794,7 +1797,10 @@
       "end_byte": 1451,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:names:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:CustomStringConvertible:type_usage:78:19",
@@ -2059,7 +2065,29 @@
       "end_byte": 1214,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/swift/structure/source.swift:attempts:variable_ref:83:19",
+      "name": "attempts",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/structure/source.swift",
+      "start_line": 83,
+      "start_column": 19,
+      "end_line": 83,
+      "end_column": 27,
+      "start_byte": 1826,
+      "end_byte": 1834,
+      "containing_key": "fixtures/extraction/swift/structure/source.swift:reset:83:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:data:member_access:64:61",
@@ -2075,7 +2103,10 @@
       "end_byte": 1355,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:data:variable_ref:65:15",
@@ -2091,7 +2122,10 @@
       "end_byte": 1375,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:head:variable_ref:62:13",
@@ -2107,7 +2141,10 @@
       "end_byte": 1239,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:head:variable_ref:63:13",
@@ -2123,7 +2160,10 @@
       "end_byte": 1282,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:headers:variable_ref:57:8",
@@ -2139,7 +2179,10 @@
       "end_byte": 1134,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:subscript:56:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:headers:variable_ref:69:8",
@@ -2155,7 +2198,10 @@
       "end_byte": 1429,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:names:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:headers:variable_ref:73:38",
@@ -2171,7 +2217,10 @@
       "end_byte": 1547,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:validate:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:headers:variable_ref:75:30",
@@ -2187,7 +2236,10 @@
       "end_byte": 1669,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:teardown:75:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:height:variable_ref:62:35",
@@ -2203,7 +2255,10 @@
       "end_byte": 1263,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:keys:member_access:69:16",
@@ -2221,6 +2276,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "headers"
       }
     },
@@ -2259,7 +2315,10 @@
       "end_byte": 1139,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:subscript:56:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:removeAll:call:75:38",
@@ -2322,7 +2381,10 @@
       "end_byte": 799,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:sent:33:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:session:variable_ref:64:29",
@@ -2338,7 +2400,10 @@
       "end_byte": 1326,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:sorted:call:69:21",
@@ -2381,7 +2446,10 @@
       "end_byte": 1245,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:tail:variable_ref:63:19",
@@ -2397,7 +2465,10 @@
       "end_byte": 1288,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:teardown:call:53:8",
@@ -2502,7 +2573,10 @@
       "end_byte": 1255,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:x:member_access:48:13",
@@ -2520,6 +2594,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -2537,7 +2612,10 @@
       "end_byte": 1012,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:init:47:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:x:variable_ref:79:33",
@@ -2553,7 +2631,10 @@
       "end_byte": 1766,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:description:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:y:member_access:49:13",
@@ -2571,6 +2652,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -2588,7 +2670,10 @@
       "end_byte": 1031,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:init:47:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:y:variable_ref:79:38",
@@ -2604,7 +2689,10 @@
       "end_byte": 1771,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:description:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -2211,6 +2211,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "mem",
         "receiver_qualifier": "std"
       }
@@ -2408,7 +2409,10 @@
       "end_byte": 1493,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:workerIndex:73:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:Worker:type_usage:13:21",
@@ -2488,7 +2492,10 @@
       "end_byte": 1767,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:b:variable_ref:87:17",
@@ -2504,7 +2511,10 @@
       "end_byte": 1770,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:buf:variable_ref:87:23",
@@ -2520,7 +2530,10 @@
       "end_byte": 1778,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:c:variable_ref:87:20",
@@ -2536,7 +2549,10 @@
       "end_byte": 1773,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:close:call:100:13",
@@ -2572,7 +2588,10 @@
       "end_byte": 1314,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:count:variable_ref:67:15",
@@ -2588,7 +2607,10 @@
       "end_byte": 1376,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:count:variable_ref:68:20",
@@ -2604,7 +2626,10 @@
       "end_byte": 1409,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:enabled:variable_ref:63:8",
@@ -2620,7 +2645,10 @@
       "end_byte": 1289,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:expectEqual:call:118:20",
@@ -2720,7 +2748,29 @@
       "end_byte": 2145,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/zig/basic/source.zig:i:variable_ref:64:24",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 64,
+      "start_column": 24,
+      "end_line": 64,
+      "end_column": 25,
+      "start_byte": 1317,
+      "end_byte": 1318,
+      "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:i:variable_ref:65:21",
@@ -2736,7 +2786,10 @@
       "end_byte": 1344,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:id:member_access:10:27",
@@ -2754,6 +2807,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2773,6 +2827,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "worker"
       }
     },
@@ -2792,6 +2847,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2809,7 +2865,10 @@
       "end_byte": 490,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:record_run:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:init:call:84:32",
@@ -2862,6 +2921,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": null
       }
     },
@@ -2879,7 +2939,10 @@
       "end_byte": 2137,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:left:variable_ref:104:15",
@@ -2895,7 +2958,10 @@
       "end_byte": 2166,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:limit:variable_ref:100:19",
@@ -2911,7 +2977,10 @@
       "end_byte": 2043,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:limit:variable_ref:101:35",
@@ -2927,7 +2996,10 @@
       "end_byte": 2086,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:limit:variable_ref:101:46",
@@ -2943,7 +3015,10 @@
       "end_byte": 2097,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:limit:variable_ref:109:12",
@@ -2959,7 +3034,10 @@
       "end_byte": 2259,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:close:107:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:low:variable_ref:102:19",
@@ -2975,7 +3053,10 @@
       "end_byte": 2123,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:make:call:85:14",
@@ -3009,6 +3090,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "std"
       }
     },
@@ -3064,6 +3146,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -3117,7 +3200,10 @@
       "end_byte": 1764,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:100:8",
@@ -3133,7 +3219,10 @@
       "end_byte": 2031,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:108:12",
@@ -3149,7 +3238,10 @@
       "end_byte": 2240,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:close:107:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:10:22",
@@ -3165,7 +3257,10 @@
       "end_byte": 199,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:run:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:14:15",
@@ -3181,7 +3276,10 @@
       "end_byte": 266,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:go:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:17:39",
@@ -3197,7 +3295,10 @@
       "end_byte": 324,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:95:15",
@@ -3213,7 +3314,10 @@
       "end_byte": 1919,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:isOpen:94:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:99:13",
@@ -3229,7 +3333,10 @@
       "end_byte": 1998,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:self:variable_ref:9:19",
@@ -3245,7 +3352,10 @@
       "end_byte": 167,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:run:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:square:call:118:45",
@@ -3277,7 +3387,10 @@
       "end_byte": 2331,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:square:117:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:std:variable_ref:118:8",
@@ -3293,7 +3406,10 @@
       "end_byte": 2345,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:square:117:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:std:variable_ref:84:14",
@@ -3309,7 +3425,10 @@
       "end_byte": 1666,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:std:variable_ref:91:15",
@@ -3325,7 +3444,10 @@
       "end_byte": 1829,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:allocator:91:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:testing:member_access:118:12",
@@ -3343,6 +3465,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "std"
       }
     },
@@ -3360,7 +3483,29 @@
       "end_byte": 1339,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/zig/basic/source.zig:total:variable_ref:68:8",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 68,
+      "start_column": 8,
+      "end_line": 68,
+      "end_column": 13,
+      "start_byte": 1392,
+      "end_byte": 1397,
+      "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:total:variable_ref:70:11",
@@ -3376,7 +3521,10 @@
       "end_byte": 1448,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:evaluate:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:value:variable_ref:31:11",
@@ -3392,7 +3540,10 @@
       "end_byte": 678,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:helper:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:value:variable_ref:39:11",
@@ -3408,7 +3559,10 @@
       "end_byte": 813,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:fast_path:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:value:variable_ref:43:11",
@@ -3424,7 +3578,10 @@
       "end_byte": 882,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:identity:42:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:value:variable_ref:47:18",
@@ -3440,7 +3597,10 @@
       "end_byte": 948,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:ffi_entry:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:worker:variable_ref:58:18",
@@ -3456,7 +3616,10 @@
       "end_byte": 1192,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:runWorker:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:x:variable_ref:114:11",
@@ -3472,7 +3635,10 @@
       "end_byte": 2311,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:square:113:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:x:variable_ref:114:15",
@@ -3488,7 +3654,10 @@
       "end_byte": 2315,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:square:113:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:x:variable_ref:35:17",
@@ -3504,7 +3673,10 @@
       "end_byte": 741,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:x:variable_ref:35:21",
@@ -3520,7 +3692,10 @@
       "end_byte": 745,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:y:variable_ref:35:25",
@@ -3536,7 +3711,10 @@
       "end_byte": 749,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:y:variable_ref:35:29",
@@ -3552,7 +3730,10 @@
       "end_byte": 753,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:hypotenuse:34:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

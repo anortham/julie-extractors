@@ -138,7 +138,17 @@ Item {
             (13, "id".to_string()),
             (13, "total".to_string()),
             (13, "d".to_string()),
+            (15, "root".to_string()),
         ]
+    );
+    assert_eq!(
+        results
+            .identifiers
+            .iter()
+            .find(|identifier| identifier.name == "root" && identifier.start_line == 15)
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access")),
+        Some(&serde_json::json!("read"))
     );
     assert!(
         results

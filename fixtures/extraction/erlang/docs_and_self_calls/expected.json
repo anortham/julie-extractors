@@ -925,7 +925,10 @@
       "end_byte": 605,
       "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:MODULE:variable_ref:23:19",
@@ -941,7 +944,10 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:MODULE:variable_ref:25:20",
@@ -957,7 +963,10 @@
       "end_byte": 593,
       "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:MODULE:variable_ref:33:14",
@@ -973,7 +982,10 @@
       "end_byte": 752,
       "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:loop:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:account:type_usage:42:6",
@@ -1056,7 +1068,10 @@
       "end_byte": 537,
       "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:id:member_access:42:14",
@@ -1074,6 +1089,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1093,6 +1109,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1112,6 +1129,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1193,7 +1211,10 @@
       "end_byte": 563,
       "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:loop:call:25:27",
@@ -1300,6 +1321,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },

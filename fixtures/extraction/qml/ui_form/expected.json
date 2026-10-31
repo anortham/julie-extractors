@@ -1008,6 +1008,25 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:Color:variable_ref:7:38",
+      "name": "Color",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+      "start_line": 7,
+      "start_column": 38,
+      "end_line": 7,
+      "end_column": 43,
+      "start_byte": 162,
+      "end_byte": 167,
+      "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:tooltipBackground:7:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:DocumentModel:type_usage:13:45",
       "name": "DocumentModel",
       "kind": "type_usage",
@@ -1094,6 +1113,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:Math:variable_ref:8:33",
+      "name": "Math",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+      "start_line": 8,
+      "start_column": 33,
+      "end_line": 8,
+      "end_column": 37,
+      "start_byte": 220,
+      "end_byte": 224,
+      "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:size:8:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:Rectangle:type_usage:4:0",
       "name": "Rectangle",
       "kind": "type_usage",
@@ -1110,6 +1148,25 @@
       "confidence": "1.000",
       "metadata": {
         "role": "base_type"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:Style:variable_ref:8:42",
+      "name": "Style",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+      "start_line": 8,
+      "start_column": 42,
+      "end_line": 8,
+      "end_column": 47,
+      "start_byte": 229,
+      "end_byte": 234,
+      "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:size:8:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
       }
     },
     {
@@ -1160,6 +1217,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "root"
       }
     },
@@ -1179,6 +1237,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "tooltip",
         "receiver_qualifier": "Color"
       }
@@ -1199,6 +1258,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "font",
         "receiver_qualifier": "Style"
       }
@@ -1219,7 +1279,27 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "view"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:docModel:variable_ref:13:62",
+      "name": "docModel",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+      "start_line": 13,
+      "start_column": 62,
+      "end_line": 13,
+      "end_column": 70,
+      "start_byte": 453,
+      "end_byte": 461,
+      "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:save:13:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
       }
     },
     {
@@ -1257,6 +1337,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Style"
       }
     },
@@ -1336,6 +1417,63 @@
       }
     },
     {
+      "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:root:variable_ref:17:36",
+      "name": "root",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+      "start_line": 17,
+      "start_column": 36,
+      "end_line": 17,
+      "end_column": 40,
+      "start_byte": 578,
+      "end_byte": 582,
+      "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:onTriggered:17:23",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:root:variable_ref:21:35",
+      "name": "root",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+      "start_line": 21,
+      "start_column": 35,
+      "end_line": 21,
+      "end_column": 39,
+      "start_byte": 670,
+      "end_byte": 674,
+      "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:refresh:21:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:root:variable_ref:24:18",
+      "name": "root",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+      "start_line": 24,
+      "start_column": 18,
+      "end_line": 24,
+      "end_column": 22,
+      "start_byte": 712,
+      "end_byte": 716,
+      "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:Text:24:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:tooltip:member_access:7:44",
       "name": "tooltip",
       "kind": "member_access",
@@ -1351,6 +1489,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Color"
       }
     },
@@ -1370,8 +1509,28 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Timer",
         "role": "signal_handler"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:view:variable_ref:9:35",
+      "name": "view",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+      "start_line": 9,
+      "start_column": 35,
+      "end_line": 9,
+      "end_column": 39,
+      "start_byte": 297,
+      "end_byte": 301,
+      "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:count:9:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
       }
     },
     {
@@ -1388,7 +1547,10 @@
       "end_byte": 357,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:localHelper:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

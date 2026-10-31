@@ -12,7 +12,7 @@ pub(super) fn extract_identifiers(
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
     let containing_symbols = DeclarationIndex::new(base, symbols);
-    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, symbols, 0);
     base.identifiers.clone()
 }
 
@@ -21,20 +21,21 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &DeclarationIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    extract_identifier_from_node(base, node, containing_symbols);
+    extract_identifier_from_node(base, node, containing_symbols, symbols);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -43,6 +44,7 @@ fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &DeclarationIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         "call" => {
@@ -218,28 +220,44 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm (locked contract in csharp/identifiers.rs):
-        // a bare `identifier` used as a value or as the receiver of an attribute
-        // access — the reads the Call/MemberAccess/TypeUsage arms above do not own.
-        // The other arms match on PARENT node kinds (`call`, `attribute`, `type`,
-        // `subscript`), so this arm fires once per identifier node and the predicate
-        // excludes every position those arms own (no duplicate rows). Declaration
-        // names in tree-sitter-gdscript 6.1.0 are `name` nodes (a distinct kind), so
-        // most of rule 3 is satisfied structurally; parameters and enum members are
-        // the exceptions handled in the predicate.
-        "identifier" if is_gdscript_value_read_identifier(node) => {
+        "identifier" => {
             let name = base.get_node_text(&node);
-            // Rule 5: `self`/`super` parse as plain `identifier` nodes in receiver
-            // and value positions; they are keywords, not user variables.
-            if !is_gdscript_keyword_identifier(&name) {
-                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-                base.create_identifier(
-                    &node,
-                    name,
-                    IdentifierKind::VariableRef,
-                    containing_symbol_id,
-                );
+            if is_gdscript_keyword_identifier(&name) {
+                return;
             }
+            let rules = crate::base::variable_access::rules_for_language("gdscript")
+                .expect("GDScript variable access rules are registered");
+            let value_read = is_gdscript_value_read_identifier(node);
+            let write_target =
+                crate::base::variable_access::is_assignment_or_increment_target(
+                    node,
+                    &base.content,
+                    rules,
+                ) || crate::base::variable_access::is_pattern_binding(node, &base.content, rules);
+            if !value_read && !write_target {
+                return;
+            }
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            if write_target
+                && !crate::base::variable_access::should_emit_write_reference(
+                    node,
+                    &name,
+                    &base.content,
+                    rules,
+                    symbols,
+                )
+            {
+                return;
+            }
+            if write_target && !value_read && base.has_identifier_at_node(&node) {
+                return;
+            }
+            base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
         }
 
         _ => {}
@@ -298,14 +316,6 @@ fn names_a_type(attribute: Node) -> bool {
     })
 }
 
-/// Rule 1/4 predicate: is this bare `identifier` a value read or an attribute
-/// (member-access) receiver — the complement of the Call/MemberAccess/TypeUsage
-/// arms? Mirrors `is_csharp_value_read_identifier`; node kinds and field names
-/// were verified empirically against tree-sitter-gdscript 6.1.0 (probe evidence
-/// in the Task 6 report): declaration names are `name` nodes, plain assignment is
-/// `assignment` (left/right fields) while compound assignment is a distinct
-/// `augmented_assignment` kind, and `a.b.c()` parses as a flat
-/// `attribute { a, b, attribute_call(c) }`.
 fn is_gdscript_value_read_identifier(node: Node) -> bool {
     // Rule 2: type annotations belong to the TypeUsage arm.
     if is_gdscript_type_position(node) {

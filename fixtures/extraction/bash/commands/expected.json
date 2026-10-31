@@ -776,7 +776,29 @@
       "end_byte": 950,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:deploy:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/bash/commands/source.sh:IFS:variable_ref:30:10",
+      "name": "IFS",
+      "kind": "variable_ref",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/commands/source.sh",
+      "start_line": 30,
+      "start_column": 10,
+      "end_line": 30,
+      "end_column": 13,
+      "start_byte": 595,
+      "end_byte": 598,
+      "containing_key": "fixtures/extraction/bash/commands/source.sh:deploy:22:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:PATH:variable_ref:50:24",
@@ -792,7 +814,10 @@
       "end_byte": 1188,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:PATH:50:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:ROOT:variable_ref:50:14",
@@ -808,7 +833,10 @@
       "end_byte": 1178,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:PATH:50:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:TMP:variable_ref:12:13",
@@ -824,7 +852,10 @@
       "end_byte": 219,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:cleanup:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:TOOL_DIR:variable_ref:37:6",
@@ -840,7 +871,10 @@
       "end_byte": 777,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:deploy:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:basename:call:18:33",
@@ -984,7 +1018,10 @@
       "end_byte": 309,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:render:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:line:variable_ref:31:15",
@@ -1000,7 +1037,10 @@
       "end_byte": 636,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:deploy:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:mysql:call:43:4",
@@ -1032,7 +1072,10 @@
       "end_byte": 315,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:render:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:psql:call:40:4",
@@ -1144,7 +1187,10 @@
       "end_byte": 722,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:deploy:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:rm:call:12:4",
@@ -1176,7 +1222,10 @@
       "end_byte": 575,
       "containing_key": "fixtures/extraction/bash/commands/source.sh:deploy:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/commands/source.sh:source:call:5:0",

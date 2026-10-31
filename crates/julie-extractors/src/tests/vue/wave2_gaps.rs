@@ -1,4 +1,6 @@
-use crate::base::{ExtractionResults, RelationshipKind, StructuralFact, Symbol, SymbolKind};
+use crate::base::{
+    ExtractionResults, IdentifierKind, RelationshipKind, StructuralFact, Symbol, SymbolKind,
+};
 use crate::extract_canonical;
 use std::path::Path;
 
@@ -372,5 +374,98 @@ fn options_api_walks_only_the_component_options_object() {
                 && relationship.to_symbol_id == count.id
         }),
         "{{ count }} must reference the setup binding"
+    );
+}
+
+#[test]
+fn hosted_variable_access_facts_survive_host_mapping() {
+    let source = "<script setup lang=\"ts\">\nlet total = 0\ntotal += delta\nfunction save(value: number) { return value }\nsave(total)\n</script>";
+    let results = extract("src/Counter.vue", source);
+    let access_values = |name: &str| {
+        let mut values: Vec<_> = results
+            .identifiers
+            .iter()
+            .filter(|identifier| identifier.name == name)
+            .filter_map(|identifier| {
+                identifier
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("access"))
+                    .and_then(serde_json::Value::as_str)
+            })
+            .collect();
+        values.sort_unstable();
+        values
+    };
+
+    assert_eq!(access_values("total"), ["read", "read_write"]);
+    assert_eq!(access_values("delta"), ["read"]);
+    assert!(
+        results
+            .identifiers
+            .iter()
+            .filter(|identifier| matches!(
+                identifier.kind,
+                IdentifierKind::Call | IdentifierKind::TypeUsage
+            ))
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
+    for identifier in results
+        .identifiers
+        .iter()
+        .filter(|identifier| matches!(identifier.name.as_str(), "total" | "delta"))
+    {
+        assert_eq!(
+            &source[identifier.start_byte as usize..identifier.end_byte as usize],
+            identifier.name
+        );
+    }
+}
+
+#[test]
+fn implicit_event_handlers_are_calls_without_access_and_keep_receiver_reads() {
+    let source =
+        "<template>\n  <button @click=\"save\" @keydown=\"controller.save\" />\n</template>\n";
+    let results = extract("src/Handlers.vue", source);
+    let calls: Vec<_> = results
+        .identifiers
+        .iter()
+        .filter(|identifier| identifier.kind == IdentifierKind::Call)
+        .filter(|identifier| identifier.name == "save")
+        .collect();
+
+    assert_eq!(calls.len(), 2);
+    assert!(calls.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    }));
+    assert!(calls.iter().any(|identifier| identifier.metadata.is_none()));
+    assert!(calls.iter().any(|identifier| {
+        identifier.metadata.as_ref().is_some_and(|metadata| {
+            metadata
+                .get("receiver")
+                .is_some_and(|value| value == "controller")
+        })
+    }));
+
+    let receiver = results
+        .identifiers
+        .iter()
+        .find(|identifier| {
+            identifier.name == "controller" && identifier.kind == IdentifierKind::VariableRef
+        })
+        .expect("qualified event handler receiver");
+    assert_eq!(
+        receiver
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str),
+        Some("read")
     );
 }

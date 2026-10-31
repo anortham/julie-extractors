@@ -1250,7 +1250,10 @@
       "end_byte": 565,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:Request:variable_ref:20:4",
@@ -1266,7 +1269,10 @@
       "end_byte": 633,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:Request:variable_ref:27:4",
@@ -1282,7 +1288,10 @@
       "end_byte": 946,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:RequestBody:type_usage:18:70",
@@ -1397,7 +1406,10 @@
       "end_byte": 667,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:body:variable_ref:24:40",
@@ -1413,7 +1425,10 @@
       "end_byte": 888,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:build:call:19:60",
@@ -1602,6 +1617,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "class",
         "receiver_qualifier": "String"
       }
@@ -1622,6 +1638,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "class",
         "receiver_qualifier": "String"
       }
@@ -1642,6 +1659,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "class",
         "receiver_qualifier": "String"
       }
@@ -1707,7 +1725,10 @@
       "end_byte": 793,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:rest:variable_ref:24:4",
@@ -1723,7 +1744,10 @@
       "end_byte": 852,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:rest:variable_ref:29:4",
@@ -1739,7 +1763,10 @@
       "end_byte": 1016,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:retrieve:call:21:32",
@@ -1947,7 +1974,10 @@
       "end_byte": 964,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:url:variable_ref:28:18",
@@ -1963,7 +1993,10 @@
       "end_byte": 995,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:url:variable_ref:29:22",
@@ -1979,7 +2012,10 @@
       "end_byte": 1033,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:web:variable_ref:21:4",
@@ -1995,7 +2031,10 @@
       "end_byte": 684,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:web:variable_ref:22:4",
@@ -2011,7 +2050,10 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:web:variable_ref:28:4",
@@ -2027,7 +2069,10 @@
       "end_byte": 981,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

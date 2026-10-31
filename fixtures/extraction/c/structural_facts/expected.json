@@ -170,7 +170,10 @@
       "end_byte": 91,
       "containing_key": "fixtures/extraction/c/structural_facts/source.c:read_value:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

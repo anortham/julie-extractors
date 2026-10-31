@@ -1328,7 +1328,10 @@
       "end_byte": 993,
       "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/language_forms/source.erl:MODULE:variable_ref:31:29",
@@ -1344,7 +1347,10 @@
       "end_byte": 1049,
       "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/language_forms/source.erl:apply_after:call:31:10",
@@ -1726,6 +1732,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "item"
       }
     },
@@ -1869,6 +1876,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "item"
       }
     },
@@ -2054,6 +2062,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "point"
       }
     }

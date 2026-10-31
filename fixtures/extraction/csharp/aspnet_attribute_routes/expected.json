@@ -1316,6 +1316,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Routes"
       }
     },
@@ -1365,7 +1366,10 @@
       "end_byte": 507,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Sample:type_usage:3:10",
@@ -1397,7 +1401,10 @@
       "end_byte": 590,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

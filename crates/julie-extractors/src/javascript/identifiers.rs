@@ -186,11 +186,10 @@ impl super::JavaScriptExtractor {
                 }
             }
 
-            // `variable_ref` complement arm: a bare `identifier` used as a value or
-            // as the object/receiver of a member access — the reads the Call/
-            // MemberAccess arms above do not own. Property names are a distinct
-            // `property_identifier` node kind, so they can never reach this arm.
-            "identifier" if is_ecmascript_value_read_identifier(node) => {
+            "identifier"
+                if is_ecmascript_value_read_identifier(node)
+                    || is_ecmascript_write_site(node, &self.base.content, &self.base.language) =>
+            {
                 let name = self.base.get_node_text(&node);
                 let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
                 self.base.create_identifier(
@@ -206,6 +205,19 @@ impl super::JavaScriptExtractor {
             // (`shorthand_property_identifier_pattern`) and stays excluded; an
             // object-literal KEY (`{foo: 1}`) is a `property_identifier`, not this.
             "shorthand_property_identifier" => {
+                let name = self.base.get_node_text(&node);
+                let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
+                self.base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+
+            "shorthand_property_identifier_pattern"
+                if is_ecmascript_write_site(node, &self.base.content, &self.base.language) =>
+            {
                 let name = self.base.get_node_text(&node);
                 let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
                 self.base.create_identifier(
@@ -517,10 +529,7 @@ pub(crate) fn is_ecmascript_value_read_identifier(node: Node) -> bool {
         // field; the body expression falls through as a read.
         "arrow_function" => !is_field("parameter"),
         "catch_clause" => !is_field("parameter"),
-        // Destructuring patterns DECLARE bindings (`const {a, b: c} = o`); the
-        // source object is the declarator's `value` and falls through as a read.
         "array_pattern" | "object_pattern" | "rest_pattern" | "pair_pattern" => false,
-        // Pattern/parameter default value: `left` declares, `right` reads.
         "assignment_pattern" => !is_field("left"),
         // Import bindings are declarations (default, named, namespace, require).
         "import_specifier" | "import_clause" | "namespace_import" | "import_require_clause" => {
@@ -536,24 +545,24 @@ pub(crate) fn is_ecmascript_value_read_identifier(node: Node) -> bool {
         // `NS.Type`, nested jsx/module names) — type machinery, not value reads.
         "nested_type_identifier" | "nested_identifier" => false,
 
-        // Rule 4: a PLAIN assignment LHS is write-only; the RHS reads. Compound
-        // assignment (`x += 1`) is a distinct `augmented_assignment_expression`
-        // node kind, so its LHS falls through below as a read.
         "assignment_expression" => !is_field("left"),
-        // for-in/of: the loop binding (`left`) is a write target/declaration; the
-        // iterated collection (`right`) reads.
         "for_in_statement" => !is_field("left"),
 
-        // Rule 2: the `instanceof` RHS is owned by the binary_expression
-        // TypeUsage arm, so the variable_ref complement arm ignores it.
         "binary_expression" => {
             let is_instanceof_rhs = is_field("right") && is_instanceof_binary_expression(parent);
             !is_instanceof_rhs
         }
 
-        // Every other position — argument, operand, return value, template
-        // substitution, JSX expression `{x}`, collection element, spread,
-        // decorator, `typeof` query, update expression — is a read (rule 1).
         _ => true,
     }
+}
+
+pub(crate) fn is_ecmascript_write_site(node: Node, source: &str, language: &str) -> bool {
+    let Some(rules) = crate::base::variable_access::rules_for_language(language) else {
+        return false;
+    };
+    if crate::base::variable_access::is_assignment_or_increment_target(node, source, rules) {
+        return true;
+    }
+    crate::base::variable_access::is_pattern_binding(node, source, rules)
 }

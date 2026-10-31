@@ -1156,7 +1156,10 @@
       "end_byte": 34,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:Title:variable_ref:5:22",
@@ -1172,7 +1175,10 @@
       "end_byte": 69,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:Title:variable_ref:6:20",
@@ -1188,7 +1194,10 @@
       "end_byte": 99,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:Trim:call:27:25",
@@ -1239,7 +1248,10 @@
       "end_byte": 736,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:count:variable_ref:40:21",
@@ -1255,7 +1267,10 @@
       "end_byte": 851,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:enabled:variable_ref:33:16",
@@ -1271,7 +1286,10 @@
       "end_byte": 678,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:i:variable_ref:35:32",
@@ -1287,7 +1305,10 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:i:variable_ref:35:44",
@@ -1303,7 +1324,10 @@
       "end_byte": 739,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:i:variable_ref:37:29",
@@ -1319,7 +1343,10 @@
       "end_byte": 791,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:id:variable_ref:20:22",
@@ -1335,7 +1362,10 @@
       "end_byte": 393,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:id:variable_ref:22:26",
@@ -1351,7 +1381,10 @@
       "end_byte": 452,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:id:variable_ref:54:37",
@@ -1367,7 +1400,10 @@
       "end_byte": 1140,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:RecordRun:52:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:total:variable_ref:37:20",
@@ -1383,7 +1419,10 @@
       "end_byte": 786,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:total:variable_ref:44:19",
@@ -1399,7 +1438,10 @@
       "end_byte": 936,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:value:variable_ref:27:19",
@@ -1415,7 +1457,10 @@
       "end_byte": 544,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:value:variable_ref:49:19",
@@ -1431,7 +1476,10 @@
       "end_byte": 1028,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Helper:47:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

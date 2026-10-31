@@ -840,7 +840,10 @@
       "end_byte": 756,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:count:variable_ref:42:15",
@@ -856,7 +859,10 @@
       "end_byte": 819,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:enabled:variable_ref:38:8",
@@ -872,7 +878,10 @@
       "end_byte": 718,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:event:variable_ref:17:9",
@@ -888,7 +897,10 @@
       "end_byte": 296,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:observeRun:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:fetch:call:13:11",
@@ -942,7 +954,10 @@
       "end_byte": 747,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:i:variable_ref:39:36",
@@ -958,7 +973,10 @@
       "end_byte": 759,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:i:variable_ref:40:21",
@@ -974,7 +992,10 @@
       "end_byte": 787,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:label:member_access:23:26",
@@ -992,6 +1013,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "props"
       }
     },
@@ -1028,7 +1050,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:Badge:20:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:total:variable_ref:40:12",
@@ -1044,7 +1069,29 @@
       "end_byte": 782,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:total:variable_ref:43:8",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 43,
+      "start_column": 8,
+      "end_line": 43,
+      "end_column": 13,
+      "start_byte": 835,
+      "end_byte": 840,
+      "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:total:variable_ref:45:11",
@@ -1060,7 +1107,10 @@
       "end_byte": 868,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:trim:call:33:17",
@@ -1096,7 +1146,10 @@
       "end_byte": 611,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:format:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -189,3 +189,134 @@ func evaluate(seed int, unusedParam int) int {
         "comment-only GhostToken must not be extracted at all"
     );
 }
+
+#[test]
+fn test_go_variable_access_facts() {
+    let code = r#"
+package main
+type Holder struct { value int }
+func consume(int) {}
+func writes(initial int, holder Holder, argument int, records []int) {
+    initialized := initial
+    plain := 0
+    plain = initial
+    compound := 0
+    compound += initial
+    holder.value = initial
+    items := []int{0}
+    offset := 0
+    index := 0
+    items[offset + index] = initial
+    counter := 0
+    counter++
+    consume(argument)
+    for captured := range records {
+        consume(captured)
+    }
+}
+"#;
+    let (symbols, identifiers) = extract_all(code);
+    let access = |name: &str, kind: IdentifierKind, start: usize| {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == name
+                    && identifier.kind == kind
+                    && identifier.start_byte == start as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+    let has_variable_ref_at = |start: usize| {
+        identifiers.iter().any(|identifier| {
+            identifier.kind == IdentifierKind::VariableRef && identifier.start_byte == start as u32
+        })
+    };
+
+    let initialized_target = code.find("initialized := initial").unwrap();
+    let plain_declaration = code.find("plain := 0").unwrap();
+    let plain = code.find("plain = initial").unwrap();
+    let compound = code.find("compound += initial").unwrap();
+    let member = code.find("holder.value = initial").unwrap() + "holder.".len();
+    let complex_target = code.find("items[offset + index]").unwrap();
+    let offset = complex_target + "items[".len();
+    let complex_index = complex_target + "items[offset + ".len();
+    let increment = code.find("counter++").unwrap();
+    assert!(!has_variable_ref_at(initialized_target));
+    assert!(!has_variable_ref_at(plain_declaration));
+    let argument = code.find("consume(argument)").unwrap() + "consume(".len();
+    let binding = code.find("captured := range").unwrap();
+    assert_eq!(
+        access(
+            "initial",
+            IdentifierKind::VariableRef,
+            code.find("initialized := initial").unwrap() + "initialized := ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        access("plain", IdentifierKind::VariableRef, plain),
+        Some("write")
+    );
+    assert_eq!(
+        access("compound", IdentifierKind::VariableRef, compound),
+        Some("read_write")
+    );
+    assert_eq!(
+        access("value", IdentifierKind::MemberAccess, member),
+        Some("write")
+    );
+    assert_eq!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.start_byte == member as u32)
+            .count(),
+        1
+    );
+    assert_eq!(
+        access("offset", IdentifierKind::VariableRef, offset),
+        Some("read")
+    );
+    assert_eq!(
+        access("index", IdentifierKind::VariableRef, complex_index),
+        Some("read")
+    );
+    assert_eq!(
+        access("counter", IdentifierKind::VariableRef, increment),
+        Some("write")
+    );
+    assert_eq!(
+        access("argument", IdentifierKind::VariableRef, argument),
+        Some("read")
+    );
+    let call_start = code.find("consume(argument)").unwrap();
+    let call = identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte == call_start as u32)
+        .expect("consume call identifier");
+    assert_eq!(call.name, "consume");
+    assert_eq!(call.kind, IdentifierKind::Call);
+    assert_eq!(
+        call.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access")),
+        None
+    );
+    if symbols.iter().any(|symbol| {
+        symbol.name == "captured"
+            && symbol.start_byte <= binding as u32
+            && symbol.end_byte >= (binding + "captured".len()) as u32
+    }) {
+        assert!(
+            identifiers
+                .iter()
+                .all(|identifier| identifier.start_byte != binding as u32)
+        );
+    } else {
+        assert_eq!(
+            access("captured", IdentifierKind::VariableRef, binding),
+            Some("write")
+        );
+    }
+}

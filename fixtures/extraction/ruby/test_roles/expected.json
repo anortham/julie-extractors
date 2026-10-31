@@ -3166,7 +3166,10 @@
       "end_byte": 221,
       "containing_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:test_adds_two_numbers:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:@calculator:variable_ref:9:4",
@@ -3182,7 +3185,10 @@
       "end_byte": 148,
       "containing_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:teardown:8:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:@rows:variable_ref:33:4",
@@ -3198,7 +3204,10 @@
       "end_byte": 476,
       "containing_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:test_rows:32:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:Calculator:type_usage:5:18",
@@ -3312,6 +3321,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@calculator"
       }
     },
@@ -3363,6 +3373,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Calculator"
       }
     },
@@ -3396,7 +3407,10 @@
       "end_byte": 78,
       "containing_key": "fixtures/extraction/ruby/test_roles/production_roles.rb:teardown:6:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/production_roles.rb:after:call:21:0",
@@ -3508,7 +3522,10 @@
       "end_byte": 207,
       "containing_key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:computes the order total:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:@order:variable_ref:9:4",
@@ -3524,7 +3541,10 @@
       "end_byte": 130,
       "containing_key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:teardown:8:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:ActionDispatch:type_usage:21:25",
@@ -3686,6 +3706,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Order"
       }
     },
@@ -3705,6 +3726,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Order"
       }
     },
@@ -3820,6 +3842,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@order"
       }
     },
@@ -3983,6 +4006,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "RSpec"
       }
     },
@@ -4002,6 +4026,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "test"
       }
     },
@@ -4022,6 +4047,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/ruby/test_roles/test_source.rb:example:variable_ref:12:13",
+      "name": "example",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/test_roles/test_source.rb",
+      "start_line": 12,
+      "start_column": 13,
+      "end_line": 12,
+      "end_column": 20,
+      "start_byte": 179,
+      "end_byte": 186,
+      "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:around:12:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:example:variable_ref:13:4",
       "name": "example",
       "kind": "variable_ref",
@@ -4035,7 +4079,10 @@
       "end_byte": 199,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:around:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:fcontext:call:34:0",
@@ -4149,6 +4196,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "ordinary"
       }
     },
@@ -4216,6 +4264,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Order"
       }
     },
@@ -4235,6 +4284,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Order"
       }
     },
@@ -4254,6 +4304,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Order"
       }
     },
@@ -4273,6 +4324,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "described_class"
       }
     },
@@ -4292,6 +4344,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Object"
       }
     },
@@ -4311,6 +4364,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "ExampleRunner"
       }
     },
@@ -4328,7 +4382,10 @@
       "end_byte": 761,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:run:member_access:13:12",
@@ -4346,6 +4403,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "example"
       }
     },
@@ -4427,7 +4485,10 @@
       "end_byte": 825,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:xit:call:19:2",
@@ -4475,7 +4536,10 @@
       "end_byte": 166,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:adds one item:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:@stack:variable_ref:11:22",
@@ -4491,7 +4555,10 @@
       "end_byte": 203,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:adds one item:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:@stack:variable_ref:15:6",
@@ -4507,7 +4574,10 @@
       "end_byte": 258,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:test_adds_two_items:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:@stack:variable_ref:16:22",
@@ -4523,7 +4593,10 @@
       "end_byte": 298,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:test_adds_two_items:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:Test:type_usage:3:18",
@@ -4653,6 +4726,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@stack"
       }
     },
@@ -4672,6 +4746,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@stack"
       }
     },
@@ -4723,6 +4798,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@stack"
       }
     },
@@ -4742,6 +4818,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@stack"
       }
     },
@@ -4759,7 +4836,10 @@
       "end_byte": 466,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:starts empty:26:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb:sub_test_case:call:19:4",

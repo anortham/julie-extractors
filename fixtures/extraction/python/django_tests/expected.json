@@ -1023,7 +1023,10 @@
       "end_byte": 448,
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:setUpTestData:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:fixture:member_access:33:16",
@@ -1041,6 +1044,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "pytest_asyncio"
       }
     },
@@ -1058,7 +1062,10 @@
       "end_byte": 659,
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:client:34:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:question:member_access:24:12",
@@ -1076,6 +1083,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "cls"
       }
     },
@@ -1112,7 +1120,10 @@
       "end_byte": 239,
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:AsyncTests:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:value:member_access:15:13",
@@ -1130,6 +1141,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -1149,6 +1161,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     }

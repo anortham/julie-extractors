@@ -715,7 +715,10 @@
       "end_byte": 372,
       "containing_key": "fixtures/extraction/lua/test_roles/test_source.lua:setUp:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/test_roles/test_source.lua:TestCalc:variable_ref:27:9",
@@ -731,7 +734,10 @@
       "end_byte": 403,
       "containing_key": "fixtures/extraction/lua/test_roles/test_source.lua:tearDown:27:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/test_roles/test_source.lua:TestCalc:variable_ref:30:9",
@@ -747,7 +753,10 @@
       "end_byte": 437,
       "containing_key": "fixtures/extraction/lua/test_roles/test_source.lua:testAdd:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/test_roles/test_source.lua:before_each:call:2:2",
@@ -864,6 +873,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "ordinary"
       }
     },
@@ -881,7 +891,10 @@
       "end_byte": 556,
       "containing_key": "fixtures/extraction/lua/test_roles/test_source.lua:it:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/test_roles/test_source.lua:ordinary:variable_ref:44:0",
@@ -897,7 +910,10 @@
       "end_byte": 609,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/test_roles/test_source.lua:pending:call:11:2",

@@ -1,7 +1,7 @@
 // PHP Extractor - Identifier extraction (function calls, member access, type usage)
 
 use super::PhpExtractor;
-use crate::base::{BaseExtractor, ContainingSymbolIndex, IdentifierKind};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, IdentifierKind, Symbol};
 use tree_sitter::Node;
 
 /// Extract identifier from a single node based on its kind
@@ -9,6 +9,7 @@ pub(super) fn extract_identifier_from_node(
     extractor: &mut PhpExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         // Direct function calls: print_r(), array_map()
@@ -219,12 +220,6 @@ pub(super) fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm, `$variable` half (locked contract — see
-        // the doc comment in csharp/identifiers.rs): a `variable_name` used as a
-        // value or as the object/receiver of a member access — the reads the
-        // Call/MemberAccess/TypeUsage arms above do not own. The row uses the
-        // sigil-free inner `name` text (`$total` -> `total`), matching
-        // `extract_variable_assignment` symbol naming so name-liveness matches.
         "variable_name" if is_php_value_read_variable(node) => {
             let name = php_variable_bare_name(extractor.get_base(), node);
             // Rule 5: `$this` is a receiver convention, never a symbol name.
@@ -239,6 +234,24 @@ pub(super) fn extract_identifier_from_node(
                     containing_symbol_id,
                 );
             }
+        }
+
+        "variable_name"
+            if php_variable_bare_name(extractor.get_base(), node).is_some_and(|name| {
+                should_emit_write_reference(node, &name, &extractor.get_base().content, symbols)
+                    && !extractor.get_base().has_identifier_at_node(&node)
+            }) =>
+        {
+            let Some(name) = php_variable_bare_name(extractor.get_base(), node) else {
+                return;
+            };
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            extractor.get_base_mut().create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
         }
 
         // `variable_ref` complement arm, bare-`name` half: constants in value
@@ -263,6 +276,18 @@ pub(super) fn extract_identifier_from_node(
             // Skip other node types for now
         }
     }
+}
+
+fn should_emit_write_reference(
+    node: Node<'_>,
+    name: &str,
+    source: &str,
+    symbols: &[Symbol],
+) -> bool {
+    let Some(rules) = crate::base::variable_access::rules_for_language("php") else {
+        return false;
+    };
+    crate::base::variable_access::should_emit_write_reference(node, name, source, rules, symbols)
 }
 
 /// An identifier for a written name: `audit` for `\App\Support\audit`, anchored

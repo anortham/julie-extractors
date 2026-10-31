@@ -1372,7 +1372,10 @@
       "end_byte": 525,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length returns the size of the string:22:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length:member_access:38:18",
@@ -1388,7 +1391,10 @@
       "end_byte": 816,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return the length of the string:37:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length:member_access:42:15",
@@ -1404,7 +1410,10 @@
       "end_byte": 904,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:return zero for an empty string:41:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length:member_access:50:18",
@@ -1420,7 +1429,10 @@
       "end_byte": 1063,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:returns the length of the string:49:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:seedFixtures:call:19:8",

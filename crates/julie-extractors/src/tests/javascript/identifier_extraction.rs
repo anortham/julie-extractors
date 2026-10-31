@@ -363,8 +363,6 @@ function process() {
 
 #[test]
 fn test_javascript_variable_ref_emission() {
-    // Locked variable_ref contract: receivers + bare value reads, the complement
-    // of the Call/MemberAccess arms. See csharp/identifiers.rs for the 6 rules.
     let js_code = r#"
 // GhostToken appears only in this comment and must never be an identifier.
 const graphKit = {
@@ -376,9 +374,9 @@ const registry = { limit: 5, ghost: otherBinding };
 
 function evaluate(seed, unusedParam) {
     let count = 0;
-    count += 1;                        // compound assignment -> read count
+    count += 1;
     let x = 5;                         // declaration name, no ref
-    x = 7;                             // plain write LHS -> NOT a read
+    writeOnlyTarget = 7;
     const total = seed;                // seed on RHS -> read
     const g = graphKit.reach();        // graphKit receiver -> read; reach -> call
     const pack = { seed };             // shorthand property -> read of seed
@@ -426,6 +424,16 @@ const label = 'x';
             "expected variable_ref for {expected}; got {var_refs:?}"
         );
     }
+    assert_eq!(
+        identifier_access(&identifiers, js_code, "writeOnlyTarget", 0),
+        Some("write")
+    );
+    let declaration_name = js_code.find("let x = 5;").unwrap() as u32 + 4;
+    assert!(
+        identifiers.iter().all(|id| {
+            id.start_byte != declaration_name || id.kind != IdentifierKind::VariableRef
+        })
+    );
 
     // Receiver + call coexist: graphKit.reach()
     assert!(
@@ -437,7 +445,7 @@ const label = 'x';
 
     // --- Negative cases (rules 2/3/4/5) ---
     for forbidden in [
-        "x",           // declaration name + plain-write LHS
+        "x",           // declaration name
         "unusedParam", // parameter name only
         "alpha",       // destructuring pattern declares, not reads
         "limit",       // object-literal key
@@ -482,5 +490,192 @@ const label = 'x';
     assert!(
         count_ref.containing_symbol_id.is_some(),
         "variable_ref must carry containing_symbol_id"
+    );
+}
+
+fn identifier_access<'a>(
+    identifiers: &'a [crate::base::types::Identifier],
+    code: &str,
+    text: &str,
+    occurrence: usize,
+) -> Option<&'a str> {
+    let start = code.match_indices(text).nth(occurrence)?.0 as u32;
+    identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte == start)?
+        .metadata
+        .as_ref()?
+        .get("access")?
+        .as_str()
+}
+
+#[test]
+fn javascript_variable_access_facts_cover_write_sites() {
+    let code = r#"
+function update(initial) {
+    const declared = initial;
+    plainTarget = initial;
+    compoundTarget += initial;
+    container.field = memberValue;
+    container[index] = elementValue;
+    ({ destructuredTarget } = destructuredSource);
+    consume(callArgument);
+    for (loopTarget of values) consume(loopTarget);
+    try { consume(initial); } catch (caught) { consume(caught); }
+}
+"#;
+    let mut parser = init_test_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = JavaScriptExtractor::new(
+        "javascript".to_string(),
+        "test.js".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    assert!(symbols.iter().any(|symbol| symbol.name == "declared"));
+    assert!(identifiers.iter().all(|identifier| {
+        identifier.start_byte != code.find("declared").unwrap() as u32
+            || identifier.kind != IdentifierKind::VariableRef
+    }));
+    assert_eq!(
+        identifier_access(&identifiers, code, "initial", 1),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "initial", 2),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "initial", 3),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "plainTarget", 0),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "compoundTarget", 0),
+        Some("read_write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "field", 0),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "container", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "memberValue", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "container", 1),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "index", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "elementValue", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "destructuredTarget", 0),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "destructuredSource", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "callArgument", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "loopTarget", 0),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "caught", 0),
+        Some("write")
+    );
+    let consume_start = code.find("consume").unwrap() as u32;
+    let consume = identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte == consume_start)
+        .unwrap();
+    assert_eq!(consume.kind, IdentifierKind::Call);
+    assert!(
+        consume
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    );
+}
+
+#[test]
+fn assignment_pattern_defaults_and_computed_keys_are_reads() {
+    let code = r#"
+({ field: target = fallback, [selector]: picked } = objectSource);
+({ objectTarget = objectFallback } = objectSource);
+[arrayTarget = arrayFallback] = arraySource;
+"#;
+    let mut parser = init_test_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = JavaScriptExtractor::new(
+        "javascript".to_string(),
+        "test.js".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    assert_eq!(
+        identifier_access(&identifiers, code, "target", 0),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "selector", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "fallback", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "picked", 0),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "objectSource", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "objectTarget", 0),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "objectFallback", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "arrayTarget", 0),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "arrayFallback", 0),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "arraySource", 0),
+        Some("read")
     );
 }

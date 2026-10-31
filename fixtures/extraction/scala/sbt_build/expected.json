@@ -425,7 +425,10 @@
       "end_byte": 250,
       "containing_key": "fixtures/extraction/scala/sbt_build/build.sbt:root:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/sbt_build/build.sbt:core:variable_ref:9:65",
@@ -441,7 +444,10 @@
       "end_byte": 266,
       "containing_key": "fixtures/extraction/scala/sbt_build/build.sbt:root:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/sbt_build/build.sbt:dependsOn:call:9:55",
@@ -587,7 +593,10 @@
       "end_byte": 61,
       "containing_key": "fixtures/extraction/scala/sbt_build/build.sbt:core:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/sbt_build/build.sbt:project:variable_ref:9:17",
@@ -603,7 +612,10 @@
       "end_byte": 221,
       "containing_key": "fixtures/extraction/scala/sbt_build/build.sbt:root:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/sbt_build/build.sbt:scalaVersion:variable_ref:1:12",

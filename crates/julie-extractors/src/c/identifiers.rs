@@ -152,13 +152,17 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm: a bare `identifier` used as a value or
-        // as the object/receiver of a member access — the reads the Call/
-        // MemberAccess/TypeUsage arms above do not own. Type positions never
-        // reach here (C uses the distinct `type_identifier` kind), and field
-        // names are the distinct `field_identifier` kind. See the LOCKED
-        // SEMANTIC CONTRACT doc comment in `csharp/identifiers.rs`.
-        "identifier" if is_c_value_read_identifier(node) => {
+        "identifier"
+            if is_c_value_read_identifier(node)
+                || crate::base::variable_access::rules_for_language("c").is_some_and(|rules| {
+                    !extractor.base.has_identifier_at_node(&node)
+                        && crate::base::variable_access::is_assignment_or_increment_target(
+                            node,
+                            &extractor.base.content,
+                            rules,
+                        )
+                }) =>
+        {
             let name = extractor.base.get_node_text(&node);
             // Rule 5: C keywords (`sizeof`, `return`, ...) and C23 `true`/
             // `false`/`nullptr` are distinct grammar tokens, so the only
@@ -229,9 +233,6 @@ fn is_c_value_read_identifier(node: tree_sitter::Node) -> bool {
         }
         "preproc_params" => false,
 
-        // Rule 4: the LHS of a PLAIN assignment (`x = 5`) is write-only; a
-        // compound assignment (`x += 1`) reads its target. `x++`/`x--` are the
-        // separate `update_expression` kind and fall through as reads.
         "assignment_expression" => {
             let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
             if !is_left {

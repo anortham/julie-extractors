@@ -29,7 +29,7 @@ pub(super) fn extract_identifiers(
     let file_path = extractor.get_base_mut().file_path.clone();
     let containing_symbols = ContainingSymbolIndex::new(symbols, &file_path);
 
-    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, symbols, 0);
 
     for macro_tree in &extractor.macro_trees {
         crate::base::receiver_metadata::enrich(
@@ -110,6 +110,7 @@ fn walk_tree_for_identifiers(
     extractor: &mut RustExtractor,
     node: tree_sitter::Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -117,7 +118,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(extractor, node, containing_symbols);
+    extract_identifier_from_node(extractor, node, containing_symbols, symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -125,7 +126,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -134,6 +135,7 @@ fn extract_identifier_from_node(
     extractor: &mut RustExtractor,
     node: tree_sitter::Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         // Function calls: foo(), bar.baz(), foo::<T>() (turbofish)
@@ -332,13 +334,6 @@ fn extract_identifier_from_node(
             base.create_identifier(&node, name, IdentifierKind::Call, containing_symbol_id);
         }
 
-        // `variable_ref` complement arm: a bare `identifier` used as a value,
-        // a field-access receiver, or a scoped-access path receiver (`X` in
-        // `X::Y()`) — the reads the Call/MemberAccess/TypeUsage arms above do
-        // not own. Rust keywords, `self`, `true`/`false`, and lifetimes are
-        // distinct grammar kinds, so no name filter is needed (the TypeUsage
-        // arms carry none either). See the LOCKED SEMANTIC CONTRACT doc
-        // comment in `csharp/identifiers.rs`.
         "identifier" if is_rust_value_read_identifier(node) => {
             let name = {
                 let base = extractor.get_base_mut();
@@ -354,6 +349,20 @@ fn extract_identifier_from_node(
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             let base = extractor.get_base_mut();
             base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
+        "identifier"
+            if should_emit_write_reference(node, &extractor.base.content, symbols)
+                && !extractor.base.has_identifier_at_node(&node) =>
+        {
+            let name = extractor.get_base_mut().get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            extractor.get_base_mut().create_identifier(
                 &node,
                 name,
                 IdentifierKind::VariableRef,
@@ -385,6 +394,18 @@ fn extract_identifier_from_node(
 
         _ => {}
     }
+}
+
+fn should_emit_write_reference(
+    node: tree_sitter::Node<'_>,
+    source: &str,
+    symbols: &[Symbol],
+) -> bool {
+    let Some(rules) = crate::base::variable_access::rules_for_language("rust") else {
+        return false;
+    };
+    let name = node.utf8_text(source.as_bytes()).unwrap_or_default();
+    crate::base::variable_access::should_emit_write_reference(node, name, source, rules, symbols)
 }
 
 /// Rule 1/4 predicate for Rust `variable_ref` emission: is this bare

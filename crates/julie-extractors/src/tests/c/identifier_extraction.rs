@@ -437,8 +437,6 @@ void run() {
 
     #[test]
     fn test_c_variable_ref_emission() {
-        // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
-        // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
         let c_code = r#"
 enum Mode { MODE_A, MODE_B };
 struct Point { int x; int y; };
@@ -448,7 +446,7 @@ static int visibility_unknown = 3;
 int reach(struct Point *p, int seed, int unused_param) {
     int local = seed;                          /* declaration name, seed read */
     int dead_local = 1;                        /* declaration name, never read */
-    local = 7;                                 /* plain write LHS -> NOT a read */
+    local = 7;                                 /* plain write target */
     local += seed;                             /* compound assignment -> read local */
     struct Point pt = { .x = seed, .y = 2 };   /* designated member .x/.y -> reads */
     pt.y = p->x;                               /* pt + p receivers -> reads */
@@ -513,6 +511,92 @@ int reach(struct Point *p, int seed, int unused_param) {
         assert!(
             !identifiers.iter().any(|id| id.name == "GhostToken"),
             "comment-only GhostToken must not be extracted at all"
+        );
+    }
+
+    #[test]
+    fn test_c_variable_access_facts() {
+        let code = r#"
+struct Box { int value; };
+int call(int value) { return value; }
+int run(struct Box *box, int seed, int *values) {
+    int plain = seed;
+    plain = call(seed);
+    int compound = seed;
+    compound += 1;
+    compound++;
+    box->value = compound;
+    values[seed] = compound;
+    return call(plain);
+}
+"#;
+        let mut parser = init_test_parser();
+        let tree = parser.parse(code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = CExtractor::new(
+            "c".to_string(),
+            "test.c".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let plain_start = code.find("plain = call").unwrap() as u32;
+        let compound_start = code.find("compound +=").unwrap() as u32;
+        let increment_start = code.find("compound++").unwrap() as u32;
+        let member_start = code.find("box->value =").unwrap() as u32 + 5;
+        let member_receiver_start = code.find("box->value =").unwrap() as u32;
+        let array_start = code.find("values[seed]").unwrap() as u32;
+        let index_start = array_start + 7;
+        let argument_start = code.find("call(seed)").unwrap() as u32 + 5;
+        let access = |start: u32, name: &str, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|id| id.start_byte == start && id.name == name && id.kind == kind)
+                .and_then(|id| id.metadata.as_ref()?.get("access")?.as_str())
+                .map(str::to_owned)
+        };
+        assert_eq!(
+            access(plain_start, "plain", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(compound_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("read_write")
+        );
+        assert_eq!(
+            access(increment_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(member_start, "value", IdentifierKind::MemberAccess).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(member_receiver_start, "box", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(array_start, "values", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(index_start, "seed", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(argument_start, "seed", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        let call_start = code.find("call(seed)").unwrap() as u32;
+        assert_eq!(access(call_start, "call", IdentifierKind::Call), None);
+        let type_start = code.find("struct Box").unwrap() as u32 + 7;
+        assert_eq!(access(type_start, "Box", IdentifierKind::TypeUsage), None);
+        let declaration_start = code.find("int plain").unwrap() as u32 + 4;
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.start_byte == declaration_start)
         );
     }
 }

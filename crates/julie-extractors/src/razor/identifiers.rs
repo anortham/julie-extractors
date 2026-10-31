@@ -6,6 +6,38 @@ use crate::base::{
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
+fn create_identifier_with_csharp_access(
+    base: &mut BaseExtractor,
+    node: &Node,
+    name: String,
+    kind: IdentifierKind,
+    containing_symbol_id: Option<String>,
+) -> Identifier {
+    let access = if matches!(
+        kind,
+        IdentifierKind::VariableRef | IdentifierKind::MemberAccess
+    ) {
+        crate::base::variable_access::rules_for_language("csharp")
+            .and_then(|rules| crate::base::variable_access::classify(*node, &base.content, rules))
+    } else {
+        None
+    };
+    if let Some(access) = access {
+        base.create_identifier_with_metadata(
+            node,
+            name,
+            kind,
+            containing_symbol_id,
+            std::collections::HashMap::from([(
+                "access".to_string(),
+                serde_json::Value::String(access.as_str().to_string()),
+            )]),
+        )
+    } else {
+        base.create_identifier(node, name, kind, containing_symbol_id)
+    }
+}
+
 impl super::RazorExtractor {
     /// Extract all identifier usages (function calls, member access, etc.)
     /// Following the Rust extractor reference implementation pattern
@@ -176,7 +208,8 @@ impl super::RazorExtractor {
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
 
-                    self.base.create_identifier(
+                    create_identifier_with_csharp_access(
+                        &mut self.base,
                         &name_node,
                         name,
                         IdentifierKind::MemberAccess,
@@ -199,8 +232,13 @@ impl super::RazorExtractor {
                     };
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
-                    self.base
-                        .create_identifier(&name_node, name, kind, containing_symbol_id);
+                    create_identifier_with_csharp_access(
+                        &mut self.base,
+                        &name_node,
+                        name,
+                        kind,
+                        containing_symbol_id,
+                    );
                 }
             }
 
@@ -245,7 +283,8 @@ impl super::RazorExtractor {
                 } else if is_razor_value_read_identifier(node) {
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
-                    self.base.create_identifier(
+                    create_identifier_with_csharp_access(
+                        &mut self.base,
                         &node,
                         name,
                         IdentifierKind::VariableRef,

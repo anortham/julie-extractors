@@ -332,7 +332,10 @@
       "end_byte": 137,
       "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/script/source.fsx:scriptValue:variable_ref:10:2",
@@ -348,7 +351,10 @@
       "end_byte": 152,
       "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

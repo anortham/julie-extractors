@@ -1151,8 +1151,6 @@ class AuthController extends UserService {
 
 #[test]
 fn test_scala_variable_ref_emission() {
-    // Locked variable_ref contract: receivers + bare value reads, the
-    // complement of the Call/MemberAccess/TypeUsage arms.
     let code = r#"
 object GraphTraversal {
   def reach(): Int = 0
@@ -1164,16 +1162,16 @@ class Sample(val bar: Int) {
 
   // GhostToken appears only in this comment and must never be an identifier.
   def evaluate(seed: Int, unusedParam: Int): Int = {
-    count += 1                        // compound (infix `+=`) -> read count
-    var x = 5                         // declaration name, no ref
-    x = 7                             // plain write LHS -> NOT a read
-    val total = seed                  // initializer -> read seed
-    val g = GraphTraversal.reach()    // receiver -> read; reach -> call
-    val f = Widget(bar = seed)        // named-arg label names a parameter -> NOT a read
-    val s = s"brace ${limit + 1}"     // interpolation expression -> read limit
+    count += 1
+    var x = 5
+    x = 7
+    val total = seed
+    val g = GraphTraversal.reach()
+    val f = Widget(bar = seed)
+    val s = s"brace ${limit + 1}"
     val m = seed match {
-      case First => total             // Capitalized pattern = stable reference -> read
-      case fallback => 0              // lowercase pattern binds -> NOT a read
+      case First => total
+      case fallback => 0
     }
     if (total > 0) total else VisibilityUnknown
   }
@@ -1198,15 +1196,16 @@ class Sample(val bar: Int) {
         .map(|id| id.name.as_str())
         .collect();
 
-    // --- Positive cases (rules 1/4) ---
     for expected in [
-        "GraphTraversal",    // object receiver
-        "count",             // compound-assignment (infix) target
-        "seed",              // initializer + named-argument VALUE + match subject
-        "total",             // if condition + branch reads
-        "VisibilityUnknown", // bare read in else branch
-        "limit",             // string interpolation expression read
-        "First",             // capitalized (stable) pattern reference
+        "GraphTraversal",
+        "count",
+        "x",
+        "seed",
+        "total",
+        "VisibilityUnknown",
+        "limit",
+        "First",
+        "fallback",
     ] {
         assert!(
             var_refs.contains(&expected),
@@ -1214,7 +1213,6 @@ class Sample(val bar: Int) {
         );
     }
 
-    // Receiver + call coexist: GraphTraversal.reach()
     assert!(
         identifiers
             .iter()
@@ -1222,17 +1220,14 @@ class Sample(val bar: Int) {
         "GraphTraversal.reach() must still yield a call named reach"
     );
 
-    // --- Negative cases (rules 2/3/4/5) ---
     for forbidden in [
-        "x",           // declaration name + plain-write LHS
-        "unusedParam", // parameter name only
-        "GhostToken",  // comment-only mention
-        "Sample",      // class declaration name
-        "evaluate",    // method declaration name
-        "bar",         // named-argument label + class parameter name
-        "Widget",      // call callee (owned by the Call arm)
-        "fallback",    // lowercase pattern binding
-        "s",           // val declaration name + interpolator
+        "unusedParam",
+        "GhostToken",
+        "Sample",
+        "evaluate",
+        "bar",
+        "Widget",
+        "s",
     ] {
         assert!(
             !var_refs.contains(&forbidden),
@@ -1244,7 +1239,6 @@ class Sample(val bar: Int) {
         "comment-only GhostToken must not be extracted at all"
     );
 
-    // No duplicate rows: each (name, kind, span) is unique.
     let mut keys: Vec<(String, String, u32, u32)> = identifiers
         .iter()
         .map(|id| {
@@ -1261,7 +1255,6 @@ class Sample(val bar: Int) {
     keys.dedup();
     assert_eq!(before, keys.len(), "duplicate identifier rows detected");
 
-    // containing_symbol_id is populated on a variable_ref.
     let evaluate = symbols
         .iter()
         .find(|s| s.name == "evaluate")
@@ -1310,3 +1303,112 @@ open class BaseService {
 }
 mod wave1_gaps;
 mod wave2_gaps;
+
+fn variable_access_at(
+    identifiers: &[crate::base::Identifier],
+    source: &str,
+    site: &str,
+) -> Option<String> {
+    let start = source.find(site)? as u32;
+    identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte == start)?
+        .metadata
+        .as_ref()?
+        .get("access")?
+        .as_str()
+        .map(str::to_owned)
+}
+
+#[test]
+fn variable_access_facts_follow_assignment_syntax_for_scala() {
+    let code = r#"
+object Sample {
+  class Box(var value: Int)
+  def consume(value: Int): Int = value
+  def update(input: Int, box: Box): Int = {
+    var output = 0
+    output = input
+    output += 1
+    box.value = input
+    consume(output)
+    input match {
+      case StableValue => input
+      case captured => captured
+    }
+    for (item <- List(input)) item
+    output
+  }
+}
+"#;
+    let identifiers = extract_identifiers(code);
+
+    assert_eq!(
+        variable_access_at(&identifiers, code, "output = input"),
+        Some("write".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "output += 1"),
+        Some("read_write".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "value = input"),
+        Some("write".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "box.value = input"),
+        Some("read".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "output)"),
+        Some("read".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "captured =>"),
+        Some("write".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "captured\n    }"),
+        Some("read".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "StableValue =>"),
+        Some("read".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "item <-"),
+        Some("write".into())
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code, "input match"),
+        Some("read".into())
+    );
+    assert!(
+        identifiers
+            .iter()
+            .all(|identifier| identifier.start_byte != code.find("output = 0").unwrap() as u32)
+    );
+}
+
+#[test]
+fn call_assignment_target_keeps_call_kind_without_access_metadata() {
+    let source = include_str!(
+        "../../../../../fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala"
+    );
+    let start = source.find("property(\"startsWith\")").unwrap() as u32;
+    let end = start + "property".len() as u32;
+    let identifiers = extract_identifiers(source);
+    let rows = identifiers
+        .iter()
+        .filter(|identifier| identifier.start_byte == start && identifier.end_byte == end)
+        .collect::<Vec<_>>();
+
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].kind, IdentifierKind::Call);
+    assert!(
+        rows[0]
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| metadata.get("access").is_none())
+    );
+}

@@ -392,6 +392,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Rails"
       }
     },
@@ -411,6 +412,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "routes",
         "receiver_qualifier": "Rails.application"
       }
@@ -495,6 +497,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HTTP",
         "receiver_qualifier": "Net"
       }
@@ -595,6 +598,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "URI"
       }
     },
@@ -614,6 +618,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HTTP",
         "receiver_qualifier": "Net"
       }
@@ -714,6 +719,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "application",
         "receiver_qualifier": "Rails"
       }

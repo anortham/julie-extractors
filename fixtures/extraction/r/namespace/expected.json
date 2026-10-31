@@ -87,7 +87,10 @@
       "end_byte": 112,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/namespace/NAMESPACE:R6:variable_ref:6:7",
@@ -103,7 +106,10 @@
       "end_byte": 123,
       "containing_key": "fixtures/extraction/r/namespace/NAMESPACE:R6:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/namespace/NAMESPACE:S3method:call:3:0",
@@ -135,7 +141,10 @@
       "end_byte": 90,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/namespace/NAMESPACE:dplyr:variable_ref:7:11",
@@ -151,7 +160,10 @@
       "end_byte": 141,
       "containing_key": "fixtures/extraction/r/namespace/NAMESPACE:dplyr:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/namespace/NAMESPACE:export:call:4:0",
@@ -199,7 +211,10 @@
       "end_byte": 148,
       "containing_key": "fixtures/extraction/r/namespace/NAMESPACE:dplyr:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/namespace/NAMESPACE:import:call:6:0",
@@ -247,7 +262,10 @@
       "end_byte": 60,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/namespace/NAMESPACE:shape_summary:variable_ref:3:15",
@@ -263,7 +281,10 @@
       "end_byte": 74,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

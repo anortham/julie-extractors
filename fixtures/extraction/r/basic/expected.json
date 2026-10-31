@@ -791,7 +791,10 @@
       "end_byte": 654,
       "containing_key": "fixtures/extraction/r/basic/source.r:w:42:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:count:variable_ref:18:16",
@@ -807,7 +810,10 @@
       "end_byte": 282,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:count:variable_ref:21:13",
@@ -823,7 +829,10 @@
       "end_byte": 335,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:count:variable_ref:24:18",
@@ -839,7 +848,10 @@
       "end_byte": 385,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:count:variable_ref:9:25",
@@ -855,7 +867,10 @@
       "end_byte": 141,
       "containing_key": "fixtures/extraction/r/basic/source.r:model_formula:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:dplyr:variable_ref:1:8",
@@ -871,7 +886,10 @@
       "end_byte": 13,
       "containing_key": "fixtures/extraction/r/basic/source.r:dplyr:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:enabled:variable_ref:17:6",
@@ -887,7 +905,10 @@
       "end_byte": 257,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:helper:call:12:8",
@@ -922,6 +943,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/r/basic/source.r:i:variable_ref:18:9",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 18,
+      "start_column": 9,
+      "end_line": 18,
+      "end_column": 10,
+      "start_byte": 270,
+      "end_byte": 271,
+      "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/r/basic/source.r:i:variable_ref:19:23",
       "name": "i",
       "kind": "variable_ref",
@@ -935,7 +975,10 @@
       "end_byte": 310,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:id:member_access:33:11",
@@ -953,6 +996,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -972,6 +1016,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -989,7 +1034,10 @@
       "end_byte": 176,
       "containing_key": "fixtures/extraction/r/basic/source.r:run_worker:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:id:variable_ref:33:17",
@@ -1005,7 +1053,10 @@
       "end_byte": 550,
       "containing_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:library:call:1:0",
@@ -1108,7 +1159,67 @@
       "end_byte": 306,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/r/basic/source.r:total:variable_ref:19:6",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 19,
+      "start_column": 6,
+      "end_line": 19,
+      "end_column": 11,
+      "start_byte": 292,
+      "end_byte": 297,
+      "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/r/basic/source.r:total:variable_ref:22:4",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 22,
+      "end_column": 9,
+      "start_byte": 347,
+      "end_byte": 352,
+      "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/r/basic/source.r:total:variable_ref:24:2",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 24,
+      "start_column": 2,
+      "end_line": 24,
+      "end_column": 7,
+      "start_byte": 364,
+      "end_byte": 369,
+      "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:total:variable_ref:24:30",
@@ -1124,7 +1235,10 @@
       "end_byte": 397,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:total:variable_ref:24:37",
@@ -1140,7 +1254,10 @@
       "end_byte": 404,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:total:variable_ref:24:48",
@@ -1156,7 +1273,10 @@
       "end_byte": 415,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:total:variable_ref:25:2",
@@ -1172,7 +1292,10 @@
       "end_byte": 428,
       "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:total:variable_ref:9:17",
@@ -1188,7 +1311,10 @@
       "end_byte": 133,
       "containing_key": "fixtures/extraction/r/basic/source.r:model_formula:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/basic/source.r:value:variable_ref:6:2",
@@ -1204,7 +1330,10 @@
       "end_byte": 103,
       "containing_key": "fixtures/extraction/r/basic/source.r:helper:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

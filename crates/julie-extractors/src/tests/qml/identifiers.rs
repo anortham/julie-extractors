@@ -727,4 +727,64 @@ Item {
             Some(badge.id.as_str())
         );
     }
+
+    #[test]
+    fn javascript_assignments_and_member_targets_get_access() {
+        let code = r#"
+import QtQuick 2.15
+
+Item {
+    function update(seed) {
+        let count = 0
+        count = seed
+        count += seed
+        let model = {}
+        model.count = seed
+        return model.count
+    }
+    Behavior on opacity {}
+}
+"#;
+        let identifiers = extract_identifiers(code);
+        let access_at = |start: usize, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|identifier| identifier.start_byte == start as u32 && identifier.kind == kind)
+                .and_then(|identifier| identifier.metadata.as_ref())
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(serde_json::Value::as_str)
+        };
+
+        assert_eq!(
+            access_at(
+                code.find("count = seed").unwrap(),
+                IdentifierKind::VariableRef
+            ),
+            Some("write")
+        );
+        assert_eq!(
+            access_at(
+                code.find("count += seed").unwrap(),
+                IdentifierKind::VariableRef
+            ),
+            Some("read_write")
+        );
+        let member = code.find("model.count = seed").unwrap();
+        assert_eq!(access_at(member, IdentifierKind::VariableRef), Some("read"));
+        assert_eq!(
+            access_at(member + "model.".len(), IdentifierKind::MemberAccess),
+            Some("write")
+        );
+        assert!(!identifiers.iter().any(|identifier| {
+            identifier.start_byte == (member + "model.".len()) as u32
+                && identifier.kind == IdentifierKind::VariableRef
+        }));
+        assert_eq!(
+            access_at(
+                code.find("Behavior on opacity").unwrap() + "Behavior on ".len(),
+                IdentifierKind::MemberAccess
+            ),
+            Some("read")
+        );
+    }
 }

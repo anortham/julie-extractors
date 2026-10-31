@@ -443,7 +443,10 @@
       "end_byte": 195,
       "containing_key": "fixtures/extraction/php/symfony_routes/source.php:show:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/symfony_routes/source.php:id:variable_ref:38:20",
@@ -459,7 +462,10 @@
       "end_byte": 714,
       "containing_key": "fixtures/extraction/php/symfony_routes/source.php:interpolated:38:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/symfony_routes/source.php:id:variable_ref:41:15",
@@ -475,7 +481,10 @@
       "end_byte": 780,
       "containing_key": "fixtures/extraction/php/symfony_routes/source.php:interpolated:38:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/symfony_routes/source.php:suffix:variable_ref:44:24",
@@ -491,7 +500,10 @@
       "end_byte": 820,
       "containing_key": "fixtures/extraction/php/symfony_routes/source.php:concatenated:44:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/symfony_routes/source.php:suffix:variable_ref:47:15",
@@ -507,7 +519,10 @@
       "end_byte": 893,
       "containing_key": "fixtures/extraction/php/symfony_routes/source.php:concatenated:44:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

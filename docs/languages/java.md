@@ -448,3 +448,14 @@ extractor defect:
 
 The temporary checkouts and SQLite artifacts were removed after recording this
 evidence.
+
+## Variable access facts
+
+`variable_ref` and assignment-target `member_access` identifiers carry an
+optional `metadata.access`: `read`, `write`, or `read_write`. Plain assignments,
+initializers represented by a variable-reference row, pattern bindings,
+increments, and decrements are writes; compound assignments are read/write.
+For `box.value = next`, `value` is a write and `box` is a read. Other classified
+occurrences, including call arguments, are reads. Declaration names already
+represented by symbols do not gain duplicate identifier rows. Calls and type
+usages have no access key.

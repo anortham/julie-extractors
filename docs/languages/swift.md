@@ -328,3 +328,7 @@ in `"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
 another punctuation character becomes that character, and so does a `\u{…}`
 escape of a printable character. `\n`, `\t`, and other control escapes stay as
 written, so a name stays on one line. An interpolation `\(…)` is `{}`.
+
+## Variable access facts
+
+Variable-reference and member-access identifiers carry metadata_json.access as read, write, or read_write when the syntax is classified. Assignment and compound-assignment targets, for bindings, and `&` inout arguments are covered. A member write classifies the selected member; navigation receivers and computed subscript expressions remain reads. Bindings already represented by symbols do not get duplicate identifiers.

@@ -343,7 +343,10 @@
       "end_byte": 265,
       "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:dynamicRequest:11:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/http_client_axios/source.js:axios:variable_ref:4:9",
@@ -359,7 +362,10 @@
       "end_byte": 78,
       "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:loadUsers:3:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/http_client_axios/source.js:get:call:12:15",
@@ -415,7 +421,10 @@
       "end_byte": 205,
       "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:createUser:7:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/http_client_axios/source.js:url:variable_ref:12:19",
@@ -431,7 +440,10 @@
       "end_byte": 273,
       "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:dynamicRequest:11:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

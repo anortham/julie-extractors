@@ -381,7 +381,10 @@
       "end_byte": 326,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:EmailTagHelper:type_usage:2:28",
@@ -479,6 +482,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "item"
       }
     },
@@ -498,6 +502,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "DateTime"
       }
     },
@@ -581,6 +586,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "panelData"
       }
     },
@@ -598,7 +604,10 @@
       "end_byte": 425,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:dynamic:type_usage:17:8",
@@ -630,7 +639,10 @@
       "end_byte": 392,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:panelData:variable_ref:21:32",
@@ -646,7 +658,10 @@
       "end_byte": 498,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:value:variable_ref:12:31",
@@ -662,7 +677,10 @@
       "end_byte": 296,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:value:variable_ref:19:35",
@@ -678,7 +696,10 @@
       "end_byte": 446,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

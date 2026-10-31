@@ -995,7 +995,10 @@
       "end_byte": 412,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:recursive:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:value:variable_ref:25:35",
@@ -1011,7 +1014,10 @@
       "end_byte": 426,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:recursive:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

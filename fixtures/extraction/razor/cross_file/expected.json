@@ -594,7 +594,10 @@
       "end_byte": 593,
       "containing_key": "fixtures/extraction/razor/cross_file/source.razor:Entry:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/cross_file/source.razor:LayoutComponentBase:type_usage:8:10",
@@ -725,7 +728,10 @@
       "end_byte": 434,
       "containing_key": "fixtures/extraction/razor/cross_file/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

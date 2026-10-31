@@ -443,11 +443,19 @@ fn canonical_gdscript_reads_and_node_paths_keep_named_receivers() {
     let node_source = include_str!("../../../fixtures/extraction/gdscript/godot/source.gd");
     let node_results = extract("gdscript", "nodes.gd", node_source, ExtractionLevel::Full);
 
-    assert_receiver(
-        identifier_named(&results, "health"),
-        "stats",
-        Some("player"),
-    );
+    let health_member = identifier(&results, "health", IdentifierKind::MemberAccess);
+    assert_receiver(health_member, "stats", Some("player"));
+    assert!(results.identifiers.iter().any(|identifier| {
+        identifier.name == "health"
+            && identifier.kind == IdentifierKind::VariableRef
+            && identifier.start_line == 18
+            && identifier
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(serde_json::Value::as_str)
+                == Some("write")
+    }));
     assert_receiver(
         identifier_named(&node_results, "area_entered"),
         "$Hurtbox",

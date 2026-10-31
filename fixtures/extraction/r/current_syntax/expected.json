@@ -210,7 +210,10 @@
       "end_byte": 149,
       "containing_key": "fixtures/extraction/r/current_syntax/source.R:else_prefix:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/current_syntax/source.R:hex_fraction:variable_ref:17:17",
@@ -226,7 +229,10 @@
       "end_byte": 237,
       "containing_key": "fixtures/extraction/r/current_syntax/source.R:after_comment:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/current_syntax/source.R:return:variable_ref:2:2",
@@ -242,7 +248,10 @@
       "end_byte": 46,
       "containing_key": "fixtures/extraction/r/current_syntax/source.R:return_identity:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

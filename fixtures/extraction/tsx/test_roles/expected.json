@@ -569,7 +569,10 @@
       "end_byte": 426,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/test_roles/source.tsx:test:call:21:9",
@@ -624,7 +627,10 @@
       "end_byte": 206,
       "containing_key": "fixtures/extraction/tsx/test_roles/source.tsx:renders a TSX test case:5:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

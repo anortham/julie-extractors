@@ -433,7 +433,10 @@
       "end_byte": 412,
       "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor:HttpClient:type_usage:5:8",
@@ -484,7 +487,10 @@
       "end_byte": 361,
       "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor:NavigationManager:type_usage:4:8",
@@ -628,7 +634,10 @@
       "end_byte": 168,
       "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor:Widget:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

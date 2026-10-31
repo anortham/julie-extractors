@@ -88,6 +88,32 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.11.0
+
+classification: compatible
+
+SQLite schema remains 8, report schema remains 3, and extraction identity epoch
+remains 10. `EXTRACTION_CONTRACT_VERSION` adds
+`annotations-at-references-v1` and `variable-write-sites-v1`. A 3.10.0 reader
+can read the existing tables and ignore the new optional metadata key. The
+capability snapshot fingerprint changes; refresh an existing artifact with
+`julie-extract scan --root <project> --db <artifact.db> --force` before
+incremental use with 3.11.0.
+
+`annotations-at-references-v1`: `symbol_annotations` now has rows at both the
+`references` and `full` levels, with the existing shape. `symbols` and `facts`
+still omit annotations. `complexity_metrics` stays exclusive to `full`.
+
+`variable-write-sites-v1`: variable-reference and member-access identifiers
+can carry `metadata_json.access`: `write`, `read_write`, or `read`. A missing
+key means unclassified. Plain reassignment and pattern targets produce
+identifier rows when no declaration symbol already represents that site;
+declarations with symbol rows do not gain duplicate identifiers. Assignment
+receivers and subscript indices remain reads. Call and type-use identifiers
+never carry this key. This describes syntax, without resolving bindings or
+inferring runtime effects. See [Variable access facts](extracted-data-v4.md#variable-access-facts)
+for the value definitions and the per-language support records for coverage.
+
 ## 3.10.0
 
 classification: incompatible

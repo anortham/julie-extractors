@@ -256,3 +256,7 @@ another punctuation character becomes that character, and so does a Unicode or
 hex escape of a printable character. `\n`, `\t`, and other control escapes stay
 as written, so a name stays on one line. In a single-quoted label only `\'` and
 `\\` are escapes.
+
+## Variable access facts
+
+Variable-reference and member-access identifiers carry metadata_json.access as read, write, or read_write when the syntax is classified. Assignment targets, compound assignments, increments/decrements, foreach and catch bindings, and by-reference foreach bindings are covered. Member writes classify the property while the receiver and subscript expressions remain reads. Bindings already represented by symbols do not get duplicate identifiers.

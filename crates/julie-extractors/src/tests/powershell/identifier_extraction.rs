@@ -1,9 +1,3 @@
-//! PowerShell `variable_ref` identifier emission (locked contract in
-//! csharp/identifiers.rs). PowerShell was GREENFIELD for variable_ref:
-//! `variables.rs::extract_variable_reference` creates Symbols for
-//! automatic/environment variables only and never emits identifiers, so
-//! `$var` reads previously produced NO identifier row at all.
-
 use crate::base::IdentifierKind;
 use crate::powershell::PowerShellExtractor;
 use std::path::PathBuf;
@@ -35,6 +29,10 @@ function Get-Total {
     $count += 1
     $x = 5
     $x = 7
+    $array = @()
+    $i = 0
+    $array[$i] = $x
+    Invoke-Thing ([ref]$x)
     $total = $seed
     $g = $graphUtil.Reach()
     Write-Output $total
@@ -63,20 +61,32 @@ class Worker {
         .filter(|id| id.kind == IdentifierKind::VariableRef)
         .map(|id| id.name.as_str())
         .collect();
+    let access_at = |start: usize| {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.start_byte == start as u32
+                    && identifier.kind == IdentifierKind::VariableRef
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
 
-    // --- Positive cases (rules 1/4) ---
     for expected in [
-        "graphUtil",         // member-invocation receiver
-        "seed",              // RHS read (param name matches symbol naming: no `$`)
-        "count",             // compound-assignment target
-        "total",             // compound target + command argument + RHS reads
-        "items",             // foreach collection
-        "item",              // compound-assignment RHS inside loop body
-        "interpolated",      // expandable-string interpolation hole is a runtime read
-        "rows",              // pipeline source
-        "VisibilityUnknown", // bare return read (case preserved)
-        "ctorParam",         // constructor-body RHS read (the declaration is not)
-        "counter",           // scope qualifier stripped like symbol naming ($Script:counter)
+        "graphUtil",
+        "seed",
+        "count",
+        "total",
+        "array",
+        "i",
+        "items",
+        "item",
+        "interpolated",
+        "rows",
+        "VisibilityUnknown",
+        "ctorParam",
+        "counter",
     ] {
         assert!(
             var_refs.contains(&expected),
@@ -84,12 +94,6 @@ class Worker {
         );
     }
 
-    // Receiver read coexists with the method name staying OUT of variable_ref.
-    // (Method names are `member_name > simple_name` nodes, never `variable`.
-    // NOTE: the pre-existing Call arm matches "invocation_expression", but this
-    // grammar spells the node "invokation_expression", so `$obj.Reach()` emits
-    // no Call identifier today — a pre-existing gap outside variable_ref scope,
-    // reported as an open gap for Task 8.)
     assert!(
         !identifiers
             .iter()
@@ -97,28 +101,24 @@ class Worker {
         "method name Reach must not be a variable_ref"
     );
 
-    // Names follow the PowerShell symbol-naming convention: `$` sigil stripped
-    // (code-kb's dead-code name-match compares identifiers.name = symbols.name).
     assert!(
         !var_refs.iter().any(|name| name.starts_with('$')),
         "variable_ref names must not carry the $ sigil; got {var_refs:?}"
     );
 
-    // --- Negative cases (rules 2/3/4/5) ---
     for forbidden in [
-        "x",              // plain-write LHS only (also its implicit declaration)
-        "unusedParam",    // parameter declaration only
-        "GhostToken",     // comment-only mention
-        "_",              // automatic pipeline variable
-        "PSItem",         // automatic pipeline variable alias
-        "PATH",           // environment variable ($env:PATH)
-        "env:PATH",       // no qualifier-carrying spelling either
-        "Get-Total",      // function declaration name
-        "Reach",          // call callee, owned by the Call arm
-        "Slot",           // class property declaration + member name, never a bare read
-        "this",           // engine constant ($this)
-        "typed",          // typed plain-write LHS ([hashtable]$typed = @{})
-        "Script:counter", // qualifier must be stripped, not carried
+        "unusedParam",
+        "GhostToken",
+        "_",
+        "PSItem",
+        "PATH",
+        "env:PATH",
+        "Get-Total",
+        "Reach",
+        "Slot",
+        "this",
+        "typed",
+        "Script:counter",
     ] {
         assert!(
             !var_refs.contains(&forbidden),
@@ -126,19 +126,28 @@ class Worker {
         );
     }
 
-    // The constructor parameter declaration is excluded; only its body read emits.
     assert_eq!(
         var_refs.iter().filter(|n| **n == "ctorParam").count(),
         1,
         "ctorParam must emit exactly one variable_ref (the RHS read); got {var_refs:?}"
     );
+    assert_eq!(access_at(code.find("$x = 5").unwrap()), None);
+    assert_eq!(access_at(code.find("$x = 7").unwrap()), Some("write"));
+    assert_eq!(
+        access_at(code.find("$count +=").unwrap()),
+        Some("read_write")
+    );
+    assert_eq!(access_at(code.find("$item in").unwrap()), Some("write"));
+    assert_eq!(access_at(code.find("$array[$i]").unwrap()), Some("read"));
+    assert_eq!(access_at(code.find("$i]").unwrap()), Some("read"));
+    let ref_target = code.find("[ref]$x").unwrap() + "[ref]".len();
+    assert_eq!(access_at(ref_target), Some("write"));
 
     assert!(
         !identifiers.iter().any(|id| id.name == "GhostToken"),
         "comment-only GhostToken must not be extracted at all"
     );
 
-    // No duplicate rows: each (name, kind, span) is unique.
     let mut keys: Vec<(String, String, u32, u32)> = identifiers
         .iter()
         .map(|id| {
@@ -155,7 +164,6 @@ class Worker {
     keys.dedup();
     assert_eq!(before, keys.len(), "duplicate identifier rows detected");
 
-    // containing_symbol_id is populated on a variable_ref.
     let get_total = symbols
         .iter()
         .find(|s| s.name == "Get-Total")

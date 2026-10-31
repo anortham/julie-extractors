@@ -1454,7 +1454,10 @@
       "end_byte": 697,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Create:call:22:22",
@@ -1492,6 +1495,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "EventArgs"
       }
     },
@@ -1509,7 +1513,10 @@
       "end_byte": 721,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:EventHandler:type_usage:17:17",
@@ -1683,6 +1690,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "other"
       }
     },
@@ -1726,6 +1734,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "item"
       }
     },
@@ -1782,7 +1791,10 @@
       "end_byte": 1120,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Name:42:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Order:type_usage:15:62",
@@ -2021,7 +2033,10 @@
       "end_byte": 1154,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:this[int i]:43:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:item:variable_ref:21:18",
@@ -2037,7 +2052,10 @@
       "end_byte": 599,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:item:variable_ref:26:29",
@@ -2053,7 +2071,10 @@
       "end_byte": 804,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:line:variable_ref:26:49",
@@ -2069,7 +2090,10 @@
       "end_byte": 824,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:logger:variable_ref:23:8",
@@ -2085,7 +2109,10 @@
       "end_byte": 655,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:other:variable_ref:47:8",
@@ -2101,7 +2128,10 @@
       "end_byte": 1227,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Run:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:other:variable_ref:48:8",
@@ -2117,7 +2147,10 @@
       "end_byte": 1253,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Run:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:services:variable_ref:25:8",
@@ -2133,7 +2166,10 @@
       "end_byte": 746,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

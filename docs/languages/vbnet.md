@@ -151,3 +151,12 @@ The keys come at the `references` and `full` levels only.
     does not declare gives `null`: a base type or a module can declare it.
   - The spelling is the type as written, with whitespace removed except one
     space between two words: `List(Of  Integer)` gives `List(Of Integer)`.
+
+## Variable access facts
+
+Emitted `variable_ref` and `member_access` identifiers include
+`metadata_json.access` when the syntax identifies the site. Plain assignment
+targets are `write`; compound assignment targets are `read_write`; other
+classified references are `read`. A member receiver remains a read when its
+member is assigned. `For Each` and `Catch` binding names already represented by
+symbol rows are not emitted again as variable references.

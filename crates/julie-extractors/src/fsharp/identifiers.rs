@@ -19,6 +19,7 @@ pub(super) fn extract_identifiers(
         extractor,
         tree.root_node(),
         &containing_symbols,
+        symbols,
         &mut seen,
         0,
     );
@@ -30,6 +31,7 @@ fn walk(
     extractor: &mut FSharpExtractor,
     node: Node,
     containing_symbols: &Scope<'_>,
+    symbols: &[Symbol],
     seen: &mut HashSet<(IdentifierKind, u32, u32)>,
     depth: u32,
 ) {
@@ -142,7 +144,26 @@ fn walk(
                 );
             }
         }
-        "identifier" if is_value_read(node, &extractor.base.content) => {
+        "identifier"
+            if !is_member_write_target(node)
+                && (is_value_read(node, &extractor.base.content)
+                    || crate::base::variable_access::rules_for_language("fsharp").is_some_and(
+                        |rules| {
+                            !extractor.base.has_identifier_at_node(&node)
+                                && (crate::base::variable_access::is_explicit_read_reference(
+                                    node,
+                                    &extractor.base.content,
+                                    rules,
+                                ) || crate::base::variable_access::should_emit_write_reference(
+                                    node,
+                                    &extractor.base().get_node_text(&node),
+                                    &extractor.base.content,
+                                    rules,
+                                    symbols,
+                                ))
+                        },
+                    )) =>
+        {
             let name = extractor.base().get_node_text(&node);
             emit(
                 extractor,
@@ -161,8 +182,42 @@ fn walk(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(extractor, child, containing_symbols, seen, child_depth);
+        walk(
+            extractor,
+            child,
+            containing_symbols,
+            symbols,
+            seen,
+            child_depth,
+        );
     }
+}
+
+fn is_member_write_target(node: Node<'_>) -> bool {
+    let Some(long_identifier) = node
+        .parent()
+        .filter(|parent| parent.kind() == "long_identifier")
+    else {
+        return false;
+    };
+    let Some(member_path) = long_identifier
+        .parent()
+        .filter(|parent| parent.kind() == "long_identifier_or_op" && is_member_path(*parent))
+    else {
+        return false;
+    };
+    if !terminal_identifier(member_path).is_some_and(|terminal| terminal.id() == node.id()) {
+        return false;
+    }
+    let Some(mutation) = member_path
+        .parent()
+        .filter(|parent| parent.kind() == "mutate_expression")
+    else {
+        return false;
+    };
+    mutation
+        .child_by_field_name("assignee")
+        .is_some_and(|assignee| contains_node(assignee, node))
 }
 
 fn emit_generic_type(

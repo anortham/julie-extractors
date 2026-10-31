@@ -1768,7 +1768,10 @@
       "end_byte": 387,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:Router:variable_ref:28:4",
@@ -1784,7 +1787,10 @@
       "end_byte": 952,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:Router:variable_ref:44:4",
@@ -1800,7 +1806,10 @@
       "end_byte": 1286,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:Router:variable_ref:49:4",
@@ -1816,7 +1825,10 @@
       "end_byte": 1426,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:qualified:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:USERS:variable_ref:31:15",
@@ -1832,7 +1844,10 @@
       "end_byte": 1082,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:a:variable_ref:29:48",
@@ -1848,7 +1863,10 @@
       "end_byte": 1009,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:a:variable_ref:50:43",
@@ -1864,7 +1882,10 @@
       "end_byte": 1478,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:qualified:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:any:call:14:26",
@@ -1918,7 +1939,10 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:as_str:call:29:34",
@@ -1953,7 +1977,10 @@
       "end_byte": 1461,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:qualified:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:b:variable_ref:30:46",
@@ -1969,7 +1996,10 @@
       "end_byte": 1059,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:b:variable_ref:51:36",
@@ -1985,7 +2015,10 @@
       "end_byte": 1518,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:qualified:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:c:variable_ref:31:26",
@@ -2001,7 +2034,10 @@
       "end_byte": 1089,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:create:variable_ref:13:40",
@@ -2017,7 +2053,10 @@
       "end_byte": 482,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:dashboard:variable_ref:21:28",
@@ -2033,7 +2072,10 @@
       "end_byte": 757,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:format:call:29:15",
@@ -2218,7 +2260,10 @@
       "end_byte": 521,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:list:variable_ref:13:29",
@@ -2234,7 +2279,10 @@
       "end_byte": 469,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:nest:call:15:9",
@@ -2580,7 +2628,10 @@
       "end_byte": 1511,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:qualified:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:show:variable_ref:12:34",
@@ -2596,7 +2647,10 @@
       "end_byte": 433,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:show:variable_ref:44:39",
@@ -2612,7 +2666,10 @@
       "end_byte": 1319,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:to_owned:call:30:23",

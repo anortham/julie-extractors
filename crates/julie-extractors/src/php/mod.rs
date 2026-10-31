@@ -104,7 +104,7 @@ impl PhpExtractor {
         let containing_symbols = self.base.containing_symbol_index(symbols);
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, symbols, 0);
 
         // Return the collected identifiers
         self.base.identifiers.clone()
@@ -239,6 +239,7 @@ impl PhpExtractor {
         &mut self,
         node: Node,
         containing_symbols: &crate::base::ContainingSymbolIndex<'_>,
+        symbols: &[Symbol],
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -246,7 +247,7 @@ impl PhpExtractor {
         }
 
         // Extract identifier from this node if applicable
-        extract_identifier_from_node(self, node, containing_symbols);
+        extract_identifier_from_node(self, node, containing_symbols, symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -254,7 +255,7 @@ impl PhpExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, symbols, child_depth);
         }
     }
 

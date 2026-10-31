@@ -3837,7 +3837,10 @@
       "end_byte": 2050,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:Animal:variable_ref:24:36",
@@ -3853,7 +3856,10 @@
       "end_byte": 705,
       "containing_key": "fixtures/extraction/r/idioms/source.R:Dog:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:Dog:variable_ref:61:5",
@@ -3869,7 +3875,29 @@
       "end_byte": 1775,
       "containing_key": "fixtures/extraction/r/idioms/source.R:w:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/r/idioms/source.R:Person:variable_ref:64:0",
+      "name": "Person",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/idioms/source.R",
+      "start_line": 64,
+      "start_column": 0,
+      "end_line": 64,
+      "end_column": 6,
+      "start_byte": 1803,
+      "end_byte": 1809,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:Pet:variable_ref:25:42",
@@ -3885,7 +3913,10 @@
       "end_byte": 800,
       "containing_key": "fixtures/extraction/r/idioms/source.R:Cat:25:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:R6Class:call:11:14",
@@ -3980,6 +4011,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/r/idioms/source.R:Shape:variable_ref:81:0",
+      "name": "Shape",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/idioms/source.R",
+      "start_line": 81,
+      "start_column": 0,
+      "end_line": 81,
+      "end_column": 5,
+      "start_byte": 2369,
+      "end_byte": 2374,
+      "containing_key": "fixtures/extraction/r/idioms/source.R:Shape:81:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/r/idioms/source.R:Shape:variable_ref:83:17",
       "name": "Shape",
       "kind": "variable_ref",
@@ -3993,7 +4043,10 @@
       "end_byte": 2512,
       "containing_key": "fixtures/extraction/r/idioms/source.R:area,Shape:83:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:UseMethod:call:5:24",
@@ -4012,6 +4065,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/r/idioms/source.R:`%+%`:variable_ref:9:0",
+      "name": "`%+%`",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/idioms/source.R",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 5,
+      "start_byte": 295,
+      "end_byte": 300,
+      "containing_key": "fixtures/extraction/r/idioms/source.R:%+%:9:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/r/idioms/source.R:a:variable_ref:9:31",
       "name": "a",
       "kind": "variable_ref",
@@ -4025,7 +4097,10 @@
       "end_byte": 327,
       "containing_key": "fixtures/extraction/r/idioms/source.R:%+%:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:app:variable_ref:91:34",
@@ -4041,7 +4116,10 @@
       "end_byte": 2734,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:area:call:98:2",
@@ -4060,6 +4138,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/r/idioms/source.R:area:variable_ref:82:0",
+      "name": "area",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/idioms/source.R",
+      "start_line": 82,
+      "start_column": 0,
+      "end_line": 82,
+      "end_column": 4,
+      "start_byte": 2449,
+      "end_byte": 2453,
+      "containing_key": "fixtures/extraction/r/idioms/source.R:area:82:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/r/idioms/source.R:area:variable_ref:83:11",
       "name": "area",
       "kind": "variable_ref",
@@ -4073,7 +4170,10 @@
       "end_byte": 2505,
       "containing_key": "fixtures/extraction/r/idioms/source.R:area,Shape:83:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:b:variable_ref:9:34",
@@ -4089,7 +4189,10 @@
       "end_byte": 330,
       "containing_key": "fixtures/extraction/r/idioms/source.R:%+%:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:balance:variable_ref:70:16",
@@ -4105,7 +4208,10 @@
       "end_byte": 2110,
       "containing_key": "fixtures/extraction/r/idioms/source.R:withdraw:69:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:balance:variable_ref:70:4",
@@ -4123,6 +4229,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "assignment": "<<-"
       }
     },
@@ -4140,7 +4247,10 @@
       "end_byte": 2153,
       "containing_key": "fixtures/extraction/r/idioms/source.R:report:72:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:c:call:30:14",
@@ -4220,7 +4330,10 @@
       "end_byte": 1432,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:cache:variable_ref:45:0",
@@ -4236,7 +4349,10 @@
       "end_byte": 1454,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:cat:call:37:74",
@@ -4300,7 +4416,10 @@
       "end_byte": 1636,
       "containing_key": "fixtures/extraction/r/idioms/source.R:pipeline:49:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:class_character:variable_ref:81:62",
@@ -4316,7 +4435,10 @@
       "end_byte": 2446,
       "containing_key": "fixtures/extraction/r/idioms/source.R:Shape:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:clean:call:51:4",
@@ -4364,7 +4486,10 @@
       "end_byte": 2893,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:cyl:variable_ref:97:24",
@@ -4380,7 +4505,10 @@
       "end_byte": 2954,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:data.frame:call:59:16",
@@ -4414,6 +4542,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "cfg"
       }
     },
@@ -4431,7 +4560,10 @@
       "end_byte": 1536,
       "containing_key": "fixtures/extraction/r/idioms/source.R:clean:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:df:variable_ref:50:2",
@@ -4447,7 +4579,10 @@
       "end_byte": 1573,
       "containing_key": "fixtures/extraction/r/idioms/source.R:pipeline:49:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:df:variable_ref:56:13",
@@ -4463,7 +4598,10 @@
       "end_byte": 1674,
       "containing_key": "fixtures/extraction/r/idioms/source.R:pipeline:49:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:dir:variable_ref:94:14",
@@ -4479,7 +4617,10 @@
       "end_byte": 2821,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:dplyr:variable_ref:91:11",
@@ -4495,7 +4636,10 @@
       "end_byte": 2713,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:env:variable_ref:46:0",
@@ -4511,7 +4655,10 @@
       "end_byte": 1472,
       "containing_key": "fixtures/extraction/r/idioms/source.R:handler:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:ext_bare:call:53:4",
@@ -4594,7 +4741,10 @@
       "end_byte": 2720,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:fmt:call:17:19",
@@ -4660,6 +4810,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "env"
       }
     },
@@ -4679,6 +4830,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "db",
         "receiver_qualifier": "cfg"
       }
@@ -4715,6 +4867,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -4734,6 +4887,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "cache"
       }
     },
@@ -4751,7 +4905,10 @@
       "end_byte": 947,
       "containing_key": "fixtures/extraction/r/idioms/source.R:push:28:17",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:items:variable_ref:30:16",
@@ -4767,7 +4924,10 @@
       "end_byte": 970,
       "containing_key": "fixtures/extraction/r/idioms/source.R:push:28:17",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:items:variable_ref:30:4",
@@ -4785,6 +4945,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "assignment": "<<-"
       }
     },
@@ -4804,6 +4965,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "shape"
       }
     },
@@ -5069,7 +5231,10 @@
       "end_byte": 2740,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:map:call:56:9",
@@ -5174,7 +5339,10 @@
       "end_byte": 2849,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:mpg:variable_ref:96:38",
@@ -5190,7 +5358,10 @@
       "end_byte": 2912,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:msg:variable_ref:22:48",
@@ -5206,7 +5377,10 @@
       "end_byte": 658,
       "containing_key": "fixtures/extraction/r/idioms/source.R:log_it:22:17",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:mtcars:variable_ref:95:29",
@@ -5222,7 +5396,10 @@
       "end_byte": 2869,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:mtcars:variable_ref:96:2",
@@ -5238,7 +5415,10 @@
       "end_byte": 2879,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:n:variable_ref:76:60",
@@ -5254,7 +5434,10 @@
       "end_byte": 2253,
       "containing_key": "fixtures/extraction/r/idioms/source.R:add:76:27",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:n:variable_ref:77:46",
@@ -5270,7 +5453,10 @@
       "end_byte": 2304,
       "containing_key": "fixtures/extraction/r/idioms/source.R:log_it:77:17",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:name:member_access:17:11",
@@ -5288,6 +5474,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -5429,7 +5616,10 @@
       "end_byte": 293,
       "containing_key": "fixtures/extraction/r/idioms/source.R:load.config:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:pi:variable_ref:36:63",
@@ -5445,7 +5635,10 @@
       "end_byte": 1227,
       "containing_key": "fixtures/extraction/r/idioms/source.R:area,Circle:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:pi:variable_ref:6:31",
@@ -5461,7 +5654,10 @@
       "end_byte": 183,
       "containing_key": "fixtures/extraction/r/idioms/source.R:area.circle:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:print:call:94:19",
@@ -5495,6 +5691,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "shape"
       }
     },
@@ -5514,6 +5711,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "shape"
       }
     },
@@ -5617,7 +5815,10 @@
       "end_byte": 1509,
       "containing_key": "fixtures/extraction/r/idioms/source.R:handler:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:requireNamespace:call:90:2",
@@ -5665,7 +5866,29 @@
       "end_byte": 2832,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/r/idioms/source.R:row:variable_ref:94:7",
+      "name": "row",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/idioms/source.R",
+      "start_line": 94,
+      "start_column": 7,
+      "end_line": 94,
+      "end_column": 10,
+      "start_byte": 2811,
+      "end_byte": 2814,
+      "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:select:variable_ref:91:25",
@@ -5681,7 +5904,10 @@
       "end_byte": 2728,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:setClass:call:33:0",
@@ -5857,7 +6083,10 @@
       "end_byte": 1235,
       "containing_key": "fixtures/extraction/r/idioms/source.R:area,Circle:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:shape:variable_ref:6:36",
@@ -5873,7 +6102,10 @@
       "end_byte": 191,
       "containing_key": "fixtures/extraction/r/idioms/source.R:area.circle:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:shape:variable_ref:83:49",
@@ -5889,7 +6121,10 @@
       "end_byte": 2544,
       "containing_key": "fixtures/extraction/r/idioms/source.R:area,Shape:83:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:shape:variable_ref:98:7",
@@ -5905,7 +6140,10 @@
       "end_byte": 2968,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:side:member_access:39:4",
@@ -5923,6 +6161,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "x"
       }
     },
@@ -6044,7 +6283,10 @@
       "end_byte": 2770,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:total:member_access:78:47",
@@ -6062,6 +6304,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -6079,7 +6322,10 @@
       "end_byte": 1692,
       "containing_key": "fixtures/extraction/r/idioms/source.R:pipeline:49:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:use:call:91:7",
@@ -6114,7 +6360,10 @@
       "end_byte": 2746,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:v:variable_ref:16:32",
@@ -6130,7 +6379,10 @@
       "end_byte": 525,
       "containing_key": "fixtures/extraction/r/idioms/source.R:fmt:16:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:value:variable_ref:39:12",
@@ -6146,7 +6398,10 @@
       "end_byte": 1399,
       "containing_key": "fixtures/extraction/r/idioms/source.R:side<-,Square:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:wt:variable_ref:95:18",
@@ -6162,7 +6417,10 @@
       "end_byte": 2854,
       "containing_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:x:variable_ref:17:23",
@@ -6178,7 +6436,10 @@
       "end_byte": 551,
       "containing_key": "fixtures/extraction/r/idioms/source.R:add:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:x:variable_ref:30:23",
@@ -6194,7 +6455,10 @@
       "end_byte": 973,
       "containing_key": "fixtures/extraction/r/idioms/source.R:push:28:17",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:x:variable_ref:39:2",
@@ -6210,7 +6474,10 @@
       "end_byte": 1385,
       "containing_key": "fixtures/extraction/r/idioms/source.R:side<-,Square:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:x:variable_ref:40:2",
@@ -6226,7 +6493,10 @@
       "end_byte": 1403,
       "containing_key": "fixtures/extraction/r/idioms/source.R:side<-,Square:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:x:variable_ref:70:26",
@@ -6242,7 +6512,10 @@
       "end_byte": 2114,
       "containing_key": "fixtures/extraction/r/idioms/source.R:withdraw:69:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:x:variable_ref:7:43",
@@ -6258,7 +6531,10 @@
       "end_byte": 240,
       "containing_key": "fixtures/extraction/r/idioms/source.R:print.money:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:x:variable_ref:86:23",
@@ -6274,7 +6550,10 @@
       "end_byte": 2599,
       "containing_key": "fixtures/extraction/r/idioms/source.R:.helper:86:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

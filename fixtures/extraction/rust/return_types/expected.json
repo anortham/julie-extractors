@@ -90,7 +90,10 @@
       "end_byte": 43,
       "containing_key": "fixtures/extraction/rust/return_types/source.rs:make:2:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

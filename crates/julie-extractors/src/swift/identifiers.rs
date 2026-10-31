@@ -14,27 +14,38 @@ impl SwiftExtractor {
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
         let owners = OwnerIndex::new(&self.base, tree.root_node(), symbols);
-        self.walk_tree_for_identifiers(tree.root_node(), &owners, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &owners, symbols, 0);
         self.base.identifiers.clone()
     }
 
-    fn walk_tree_for_identifiers(&mut self, node: Node, owners: &OwnerIndex<'_>, depth: u32) {
+    fn walk_tree_for_identifiers(
+        &mut self,
+        node: Node,
+        owners: &OwnerIndex<'_>,
+        symbols: &[Symbol],
+        depth: u32,
+    ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
 
-        self.extract_identifier_from_node(node, owners);
+        self.extract_identifier_from_node(node, owners, symbols);
 
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, owners, child_depth);
+            self.walk_tree_for_identifiers(child, owners, symbols, child_depth);
         }
     }
 
-    fn extract_identifier_from_node(&mut self, node: Node, owners: &OwnerIndex<'_>) {
+    fn extract_identifier_from_node(
+        &mut self,
+        node: Node,
+        owners: &OwnerIndex<'_>,
+        symbols: &[Symbol],
+    ) {
         match node.kind() {
             "call_expression" | "macro_invocation" => {
                 if let Some(callee) = call_callee(&self.base, node) {
@@ -88,15 +99,11 @@ impl SwiftExtractor {
                         );
                         record_outermost_swift_type_arguments(&mut self.base, node, &identifier);
                     }
-                }
-                // `variable_ref` complement arm (locked contract — see the
-                // reference implementation doc comment in csharp/identifiers.rs):
-                // a bare `simple_identifier` used as a value or as the target/
-                // receiver of a navigation — the reads the Call/MemberAccess/
-                // TypeUsage arms do not own. Evaluated only when the type-usage
-                // predicate rejected the node, so type positions never reach it.
-                else if node.kind() == "simple_identifier"
-                    && is_swift_value_read_identifier(node)
+                } else if node.kind() == "simple_identifier"
+                    && (is_swift_value_read_identifier(node)
+                        || (name != "_"
+                            && should_emit_write_reference(node, &self.base.content, symbols)
+                            && !self.base.has_identifier_at_node(&node)))
                     // Rule 5: reuse the builtin filter. (`self`/`super`/`true`/
                     // `nil` are distinct grammar nodes, never simple_identifier.)
                     && !is_swift_builtin_type(&name)
@@ -210,6 +217,14 @@ impl SwiftExtractor {
             }
         }
     }
+}
+
+fn should_emit_write_reference(node: Node<'_>, source: &str, symbols: &[Symbol]) -> bool {
+    let Some(rules) = crate::base::variable_access::rules_for_language("swift") else {
+        return false;
+    };
+    let name = node.utf8_text(source.as_bytes()).unwrap_or_default();
+    crate::base::variable_access::should_emit_write_reference(node, name, source, rules, symbols)
 }
 
 /// Find the `value_arguments` child of a `call_suffix` (it also may hold a

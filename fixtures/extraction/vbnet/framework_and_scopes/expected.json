@@ -2185,6 +2185,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "value"
       }
     },
@@ -2234,7 +2235,10 @@
       "end_byte": 2708,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ControllerBase:type_usage:8:17",
@@ -2268,6 +2272,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "orders"
       }
     },
@@ -2308,6 +2313,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "IOrderApi"
       }
     },
@@ -2325,7 +2331,10 @@
       "end_byte": 1959,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Delete:member_access:19:60",
@@ -2343,6 +2352,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HttpMethod"
       }
     },
@@ -2491,7 +2501,10 @@
       "end_byte": 729,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:HttpPost:type_usage:15:9",
@@ -2906,7 +2919,10 @@
       "end_byte": 2700,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Ok:call:21:33",
@@ -3288,6 +3304,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "_timer"
       }
     },
@@ -3321,7 +3338,10 @@
       "end_byte": 2451,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:_client:variable_ref:17:33",
@@ -3337,7 +3357,10 @@
       "end_byte": 533,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:_client:variable_ref:18:31",
@@ -3353,7 +3376,10 @@
       "end_byte": 615,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:_items:variable_ref:20:24",
@@ -3369,7 +3395,10 @@
       "end_byte": 803,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:_repo:variable_ref:62:16",
@@ -3385,7 +3414,10 @@
       "end_byte": 1931,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:_timer:variable_ref:69:69",
@@ -3401,7 +3433,10 @@
       "end_byte": 2210,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:OnTick:69:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:api:variable_ref:88:8",
@@ -3417,7 +3452,10 @@
       "end_byte": 2558,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:api:variable_ref:89:17",
@@ -3433,7 +3471,10 @@
       "end_byte": 2614,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:86:8",
@@ -3449,7 +3490,10 @@
       "end_byte": 2472,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:87:18",
@@ -3465,7 +3509,10 @@
       "end_byte": 2529,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:91:8",
@@ -3481,7 +3528,10 @@
       "end_byte": 2690,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:92:8",
@@ -3497,7 +3547,10 @@
       "end_byte": 2735,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:93:8",
@@ -3513,7 +3566,10 @@
       "end_byte": 2774,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:conn:variable_ref:59:16",
@@ -3529,7 +3585,10 @@
       "end_byte": 1864,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:dto:variable_ref:18:88",
@@ -3545,7 +3604,10 @@
       "end_byte": 668,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ex:variable_ref:64:16",
@@ -3561,7 +3623,10 @@
       "end_byte": 2041,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:order:variable_ref:56:16",
@@ -3577,7 +3642,10 @@
       "end_byte": 1763,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:orders:variable_ref:55:42",
@@ -3593,7 +3661,10 @@
       "end_byte": 1741,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:orders:variable_ref:62:27",
@@ -3609,7 +3680,10 @@
       "end_byte": 1943,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:orders:variable_ref:62:55",
@@ -3625,7 +3699,10 @@
       "end_byte": 1971,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:total:variable_ref:21:22",
@@ -3641,7 +3718,10 @@
       "end_byte": 834,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:v1:variable_ref:90:8",
@@ -3657,7 +3737,10 @@
       "end_byte": 2641,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:value:variable_ref:34:19",
@@ -3673,7 +3756,10 @@
       "end_byte": 1172,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:operator Not:33:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:value:variable_ref:38:19",
@@ -3689,7 +3775,10 @@
       "end_byte": 1293,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:operator CType:37:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

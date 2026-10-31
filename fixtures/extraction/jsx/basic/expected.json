@@ -579,7 +579,10 @@
       "end_byte": 576,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:count:variable_ref:35:15",
@@ -595,7 +598,10 @@
       "end_byte": 639,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:enabled:variable_ref:31:8",
@@ -611,7 +617,10 @@
       "end_byte": 538,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:fetch:call:10:8",
@@ -684,7 +693,10 @@
       "end_byte": 300,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:Badge:8:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:i:variable_ref:32:24",
@@ -700,7 +712,10 @@
       "end_byte": 567,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:i:variable_ref:32:36",
@@ -716,7 +731,10 @@
       "end_byte": 579,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:i:variable_ref:33:21",
@@ -732,7 +750,10 @@
       "end_byte": 607,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:label:member_access:4:13",
@@ -750,6 +771,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "this"
       }
     },
@@ -767,7 +789,10 @@
       "end_byte": 223,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:handleClick:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:label:variable_ref:16:20",
@@ -783,7 +808,10 @@
       "end_byte": 328,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:Badge:8:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:label:variable_ref:4:21",
@@ -799,7 +827,10 @@
       "end_byte": 90,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:label:4:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:registered:variable_ref:1:1",
@@ -815,7 +846,10 @@
       "end_byte": 11,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:WorkerModel:2:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:total:variable_ref:33:12",
@@ -831,7 +865,29 @@
       "end_byte": 602,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/jsx/basic/source.jsx:total:variable_ref:36:8",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "start_line": 36,
+      "start_column": 8,
+      "end_line": 36,
+      "end_column": 13,
+      "start_byte": 655,
+      "end_byte": 660,
+      "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:total:variable_ref:38:11",
@@ -847,7 +903,10 @@
       "end_byte": 688,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:trim:call:26:17",
@@ -883,7 +942,10 @@
       "end_byte": 456,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:format:25:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

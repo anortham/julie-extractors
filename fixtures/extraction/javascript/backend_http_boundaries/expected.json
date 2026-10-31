@@ -280,7 +280,10 @@
       "end_byte": 279,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:app:variable_ref:12:2",
@@ -296,7 +299,10 @@
       "end_byte": 298,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:app:variable_ref:15:2",
@@ -312,7 +318,10 @@
       "end_byte": 367,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:app:variable_ref:7:2",
@@ -328,7 +337,10 @@
       "end_byte": 155,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:app:variable_ref:9:2",
@@ -344,7 +356,10 @@
       "end_byte": 220,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:cache:variable_ref:15:49",
@@ -360,7 +375,10 @@
       "end_byte": 416,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:express:call:5:14",
@@ -395,7 +413,10 @@
       "end_byte": 139,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:fastify:call:17:17",
@@ -547,7 +568,10 @@
       "end_byte": 525,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:json:call:15:44",
@@ -583,7 +607,10 @@
       "end_byte": 424,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:post:call:14:5",
@@ -637,7 +664,10 @@
       "end_byte": 337,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:res:variable_ref:15:40",
@@ -653,7 +683,10 @@
       "end_byte": 405,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:route:call:12:6",
@@ -749,7 +782,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:router:variable_ref:8:2",
@@ -765,7 +801,10 @@
       "end_byte": 185,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:server:variable_ref:18:2",
@@ -781,7 +820,10 @@
       "end_byte": 466,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:showItem:variable_ref:9:30",
@@ -797,7 +839,10 @@
       "end_byte": 253,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:showUser:variable_ref:8:27",
@@ -813,7 +858,10 @@
       "end_byte": 212,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:updateItem:variable_ref:9:45",
@@ -829,7 +877,10 @@
       "end_byte": 270,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:use:call:7:6",
@@ -865,7 +916,10 @@
       "end_byte": 359,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

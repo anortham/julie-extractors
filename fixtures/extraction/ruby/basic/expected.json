@@ -1068,7 +1068,10 @@
       "end_byte": 185,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:reset:16:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:Enumerable:type_usage:8:10",
@@ -1196,7 +1199,10 @@
       "end_byte": 646,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:count:variable_ref:53:19",
@@ -1212,7 +1218,10 @@
       "end_byte": 708,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:enabled:variable_ref:48:7",
@@ -1228,7 +1237,10 @@
       "end_byte": 621,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:helper:call:30:25",
@@ -1263,7 +1275,27 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "access": "read",
         "receiver": "self"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/basic/source.rb:i:variable_ref:49:10",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/basic/source.rb",
+      "start_line": 49,
+      "start_column": 10,
+      "end_line": 49,
+      "end_column": 11,
+      "start_byte": 632,
+      "end_byte": 633,
+      "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
       }
     },
     {
@@ -1280,7 +1312,10 @@
       "end_byte": 665,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:id:variable_ref:13:10",
@@ -1296,7 +1331,10 @@
       "end_byte": 158,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:initialize:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:include:call:8:2",
@@ -1328,7 +1366,10 @@
       "end_byte": 386,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:run:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:missing_wave2:member_access:26:9",
@@ -1347,6 +1388,7 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1366,6 +1408,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Widget"
       }
     },
@@ -1385,6 +1428,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Unknown"
       }
     },
@@ -1404,6 +1448,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HTTP",
         "receiver_qualifier": "Net"
       }
@@ -1454,7 +1499,10 @@
       "end_byte": 660,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:total:variable_ref:53:10",
@@ -1470,7 +1518,10 @@
       "end_byte": 699,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:total:variable_ref:54:6",
@@ -1486,7 +1537,10 @@
       "end_byte": 720,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:total:variable_ref:56:4",
@@ -1502,7 +1556,29 @@
       "end_byte": 743,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/basic/source.rb:value:variable_ref:30:18",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/basic/source.rb",
+      "start_line": 30,
+      "start_column": 18,
+      "end_line": 30,
+      "end_column": 23,
+      "start_byte": 390,
+      "end_byte": 395,
+      "containing_key": "fixtures/extraction/ruby/basic/source.rb:run:29:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:value:variable_ref:30:32",
@@ -1518,7 +1594,10 @@
       "end_byte": 409,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:run:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:value:variable_ref:43:4",
@@ -1534,7 +1613,10 @@
       "end_byte": 550,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:helper:42:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

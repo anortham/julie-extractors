@@ -304,7 +304,7 @@ impl BashExtractor {
         self.remember_local_functions(symbols);
         let containing_symbols = self.base.containing_symbol_index(symbols);
         self.associative_arrays = arithmetic::associative_array_names(&self.base, tree.root_node());
-        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, symbols, 0);
         self.base.identifiers.clone()
     }
 
@@ -318,19 +318,20 @@ impl BashExtractor {
         &mut self,
         node: tree_sitter::Node,
         containing_symbols: &ContainingSymbolIndex<'_>,
+        symbols: &[Symbol],
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
 
-        self.extract_identifier_from_node(node, containing_symbols);
+        self.extract_identifier_from_node(node, containing_symbols, symbols);
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, symbols, child_depth);
         }
     }
 
@@ -338,9 +339,70 @@ impl BashExtractor {
         &mut self,
         node: tree_sitter::Node,
         containing_symbols: &ContainingSymbolIndex<'_>,
+        symbols: &[Symbol],
     ) {
         match node.kind() {
             "command" => self.extract_command_identifiers(node, containing_symbols),
+            "variable_name"
+                if node.parent().is_some_and(|parent| {
+                    parent.kind() == "for_statement"
+                        && parent.child_by_field_name("variable") == Some(node)
+                }) =>
+            {
+                let name = self.base.get_node_text(&node);
+                let rules = crate::base::variable_access::rules_for_language("bash")
+                    .expect("Bash variable access rules are registered");
+                let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
+                if crate::base::variable_access::should_emit_write_reference(
+                    node,
+                    &name,
+                    &self.base.content,
+                    rules,
+                    symbols,
+                ) && !self.base.has_identifier_at_node(&node)
+                {
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        crate::base::IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
+                }
+            }
+            "variable_name"
+                if node.parent().is_some_and(|assignment| {
+                    assignment.kind() == "variable_assignment"
+                        && assignment.child_by_field_name("name") == Some(node)
+                }) =>
+            {
+                let assignment = node.parent().unwrap();
+                if assignment
+                    .parent()
+                    .is_some_and(|parent| parent.kind() == "declaration_command")
+                {
+                    return;
+                }
+                let name = self.base.get_node_text(&node);
+                let rules = crate::base::variable_access::rules_for_language("bash")
+                    .expect("Bash variable access rules are registered");
+                let containing_symbol_id =
+                    self.find_containing_symbol_id(assignment, containing_symbols);
+                if crate::base::variable_access::should_emit_write_reference(
+                    node,
+                    &name,
+                    &self.base.content,
+                    rules,
+                    symbols,
+                ) && !self.base.has_identifier_at_node(&node)
+                {
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        crate::base::IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
+                }
+            }
             "subscript" => {
                 let mut cursor = node.walk();
                 for child in node.children(&mut cursor) {
@@ -359,18 +421,6 @@ impl BashExtractor {
                     }
                 }
             }
-            // variable_ref (Batch F): `$var` (simple_expansion) and `${var}`
-            // (expansion) are bash's genuine variable reads; before this arm
-            // they emitted nothing, so declared variables looked dead to
-            // kind-blind name matching. Only a DIRECT `variable_name` child is
-            // taken: in `${arr[$i]}` the array name sits inside the `subscript`
-            // node (owned by the MemberAccess arm above — kind untouched), so
-            // no double emission; the index read `$i` is its own
-            // simple_expansion and is picked up here by the walker. Positional
-            // parameters (`$1` parses as variable_name "1") are skipped via the
-            // all-digits check; special parameters (`$@`, `$?`, …) parse as
-            // `special_variable_name` and never match. Non-resolvable: no
-            // target binding at extraction.
             "simple_expansion" | "expansion" => {
                 let mut cursor = node.walk();
                 for child in node.children(&mut cursor) {
@@ -390,9 +440,24 @@ impl BashExtractor {
                     }
                 }
             }
-            "variable_name" | "word"
-                if arithmetic::is_arithmetic_read(&self.base, node, &self.associative_arrays) =>
-            {
+            "variable_name" | "word" => {
+                let arithmetic_read =
+                    arithmetic::is_arithmetic_read(&self.base, node, &self.associative_arrays);
+                let write_reference = crate::base::variable_access::rules_for_language("bash")
+                    .is_some_and(|rules| {
+                        let name = self.base.get_node_text(&node);
+                        crate::base::variable_access::should_emit_write_reference(
+                            node,
+                            &name,
+                            &self.base.content,
+                            rules,
+                            symbols,
+                        )
+                    });
+                if !arithmetic_read && (!write_reference || self.base.has_identifier_at_node(&node))
+                {
+                    return;
+                }
                 let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
                 let name = self.base.get_node_text(&node);
                 self.base.create_identifier(

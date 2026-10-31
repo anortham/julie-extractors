@@ -686,6 +686,44 @@
       }
     },
     {
+      "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:a:variable_ref:22:55",
+      "name": "a",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt",
+      "start_line": 22,
+      "start_column": 55,
+      "end_line": 22,
+      "end_column": 56,
+      "start_byte": 484,
+      "end_byte": 485,
+      "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:withData:22:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:b:variable_ref:22:58",
+      "name": "b",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt",
+      "start_line": 22,
+      "start_column": 58,
+      "end_line": 22,
+      "end_column": 59,
+      "start_byte": 487,
+      "end_byte": 488,
+      "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:withData:22:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:beforeSpec:call:4:4",
       "name": "beforeSpec",
       "kind": "call",
@@ -702,6 +740,25 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:c:variable_ref:22:61",
+      "name": "c",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt",
+      "start_line": 22,
+      "start_column": 61,
+      "end_line": 22,
+      "end_column": 62,
+      "start_byte": 490,
+      "end_byte": 491,
+      "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:withData:22:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
       }
     },
     {

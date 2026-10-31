@@ -1799,6 +1799,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Outer"
       }
     },
@@ -1880,7 +1881,10 @@
       "end_byte": 1053,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:lookup:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:PackedScene:type_usage:36:50",
@@ -1944,7 +1948,10 @@
       "end_byte": 884,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:reset:35:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:String:type_usage:62:29",
@@ -1992,7 +1999,10 @@
       "end_byte": 724,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_ready:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:_on_died:variable_ref:31:17",
@@ -2008,7 +2018,10 @@
       "end_byte": 759,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_ready:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:_on_hurtbox_area_entered:variable_ref:29:31",
@@ -2024,7 +2037,10 @@
       "end_byte": 700,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_ready:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:area:variable_ref:47:4",
@@ -2040,7 +2056,10 @@
       "end_byte": 1157,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_on_hurtbox_area_entered:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:area:variable_ref:48:3",
@@ -2056,7 +2075,10 @@
       "end_byte": 1180,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_on_hurtbox_area_entered:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:area_entered:member_access:29:10",
@@ -2074,6 +2096,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$Hurtbox"
       }
     },
@@ -2110,7 +2133,10 @@
       "end_byte": 968,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:reset:35:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:connect:call:29:23",
@@ -2181,7 +2207,10 @@
       "end_byte": 707,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_ready:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:died:variable_ref:49:1",
@@ -2197,7 +2226,10 @@
       "end_byte": 1211,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_on_hurtbox_area_entered:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:emit:call:49:6",
@@ -2395,7 +2427,10 @@
       "end_byte": 1079,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:lookup:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:int:type_usage:15:38",
@@ -2475,7 +2510,10 @@
       "end_byte": 1092,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:lookup:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:kind_for:call:43:14",
@@ -2510,7 +2548,10 @@
       "end_byte": 930,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:reset:35:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:load:call:36:13",
@@ -2635,6 +2676,44 @@
       }
     },
     {
+      "key": "fixtures/extraction/gdscript/godot/source.gd:speed:variable_ref:59:1",
+      "name": "speed",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/godot/source.gd",
+      "start_line": 59,
+      "start_column": 1,
+      "end_line": 59,
+      "end_column": 6,
+      "start_byte": 1372,
+      "end_byte": 1377,
+      "containing_key": "fixtures/extraction/gdscript/godot/source.gd:sync_speed:58:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/gdscript/godot/source.gd:state:variable_ref:38:1",
+      "name": "state",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/godot/source.gd",
+      "start_line": 38,
+      "start_column": 1,
+      "end_line": 38,
+      "end_column": 6,
+      "start_byte": 917,
+      "end_byte": 922,
+      "containing_key": "fixtures/extraction/gdscript/godot/source.gd:reset:35:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/gdscript/godot/source.gd:value:variable_ref:59:9",
       "name": "value",
       "kind": "variable_ref",
@@ -2648,7 +2727,10 @@
       "end_byte": 1385,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:sync_speed:58:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:void:type_usage:28:17",

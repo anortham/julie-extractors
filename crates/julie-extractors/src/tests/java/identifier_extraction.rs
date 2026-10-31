@@ -500,9 +500,6 @@ public enum MyEnum {
 
     #[test]
     fn test_java_variable_ref_emission() {
-        // Locked variable_ref contract (see csharp/identifiers.rs doc comment):
-        // receivers + bare value reads, the complement of the Call/MemberAccess/
-        // TypeUsage arms.
         let java_code = r#"
 public class GraphTraversal {
     public static int reach() { return 0; }
@@ -516,7 +513,7 @@ public class Sample {
     public int evaluate(int seed, int unusedParam) {
         count += 1;                       // compound assignment -> read count
         int x = 5;                        // declaration name, no ref
-        x = 7;                            // plain write LHS -> NOT a read
+        x = 7;                            // plain write target
         int total = seed;                 // initializer value -> read seed
         int g = GraphTraversal.reach();   // receiver -> read; reach -> call
         java.util.function.IntSupplier s = this::helper; // method reference -> call helper
@@ -555,6 +552,7 @@ class Decorated {
         for expected in [
             "GraphTraversal",     // static-access receiver
             "count",              // compound-assignment target
+            "x",                  // plain assignment target
             "seed",               // initializer value read
             "total",              // ternary condition + consequence
             "VISIBILITY_UNKNOWN", // bare read in ternary alternative
@@ -584,7 +582,6 @@ class Decorated {
 
         // --- Negative cases (rules 2/3/4/5) ---
         for forbidden in [
-            "x",           // declaration name + plain-write LHS
             "unusedParam", // parameter name only
             "GhostToken",  // comment-only mention
             "Sample",      // class declaration name
@@ -601,6 +598,24 @@ class Decorated {
         assert!(
             !identifiers.iter().any(|id| id.name == "GhostToken"),
             "comment-only GhostToken must not be extracted at all"
+        );
+
+        let plain_write_start = java_code.find("x = 7").unwrap() as u32;
+        let declaration_start = java_code.find("int x = 5").unwrap() as u32 + 4;
+        assert!(identifiers.iter().any(|id| {
+            id.start_byte == plain_write_start
+                && id.kind == IdentifierKind::VariableRef
+                && id
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("access"))
+                    .and_then(|access| access.as_str())
+                    == Some("write")
+        }));
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.start_byte == declaration_start)
         );
 
         // No duplicate rows: each (name, kind, span) is unique.
@@ -633,6 +648,135 @@ class Decorated {
             graph_ref.containing_symbol_id.as_deref(),
             Some(evaluate.id.as_str()),
             "receiver variable_ref should be contained in evaluate"
+        );
+    }
+
+    #[test]
+    fn test_java_variable_access_facts() {
+        let code = r#"
+class Box { int value; }
+class Sample {
+    int call(int value) { return value; }
+    void run(Box box, int seed, int[] values) {
+        int plain = seed;
+        plain = call(seed);
+        int compound = seed;
+        compound += 1;
+        compound++;
+        box.value = compound;
+        values[seed] = compound;
+        if (seed instanceof Integer captured) { call(captured); }
+    }
+}
+"#;
+        let workspace_root = PathBuf::from("/tmp/test");
+        let tree = init_parser(code, "java");
+        let mut extractor = JavaExtractor::new(
+            "java".to_string(),
+            "test.java".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let plain_start = code.find("plain = call").unwrap() as u32;
+        let compound_start = code.find("compound +=").unwrap() as u32;
+        let increment_start = code.find("compound++").unwrap() as u32;
+        let member_start = code.find("box.value =").unwrap() as u32 + 4;
+        let member_receiver_start = code.find("box.value =").unwrap() as u32;
+        let array_start = code.find("values[seed]").unwrap() as u32;
+        let index_start = array_start + 7;
+        let argument_start = code.find("call(seed)").unwrap() as u32 + 5;
+        let pattern_use_start = code.find("call(captured)").unwrap() as u32 + 5;
+        let access = |start: u32, name: &str, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|id| id.start_byte == start && id.name == name && id.kind == kind)
+                .and_then(|id| id.metadata.as_ref()?.get("access")?.as_str())
+                .map(str::to_owned)
+        };
+        assert_eq!(
+            access(plain_start, "plain", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(compound_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("read_write")
+        );
+        assert_eq!(
+            access(increment_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(member_start, "value", IdentifierKind::MemberAccess).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            identifiers
+                .iter()
+                .filter(|id| {
+                    id.start_byte == member_start
+                        && id.name == "value"
+                        && id.kind == IdentifierKind::MemberAccess
+                })
+                .count(),
+            1
+        );
+        assert!(!identifiers.iter().any(|id| {
+            id.start_byte == member_start
+                && id.name == "value"
+                && id.kind == IdentifierKind::VariableRef
+        }));
+        assert_eq!(
+            access(member_receiver_start, "box", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(array_start, "values", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(index_start, "seed", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(argument_start, "seed", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(pattern_use_start, "captured", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        let pattern_start = code.find("instanceof Integer captured").unwrap() as u32
+            + "instanceof Integer ".len() as u32;
+        let pattern_identifier = identifiers.iter().find(|id| {
+            id.start_byte == pattern_start
+                && id.name == "captured"
+                && id.kind == IdentifierKind::VariableRef
+        });
+        let pattern_symbol = symbols.iter().any(|symbol| {
+            symbol.name == "captured"
+                && symbol.start_byte <= pattern_start
+                && symbol.end_byte >= pattern_start + "captured".len() as u32
+        });
+        let pattern_identifier_is_write = pattern_identifier.is_some_and(|id| {
+            id.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(|access| access.as_str())
+                == Some("write")
+        });
+        assert!(pattern_identifier_is_write || pattern_symbol);
+        assert!(!(pattern_identifier.is_some() && pattern_symbol));
+        let call_start = code.find("call(seed)").unwrap() as u32;
+        assert_eq!(access(call_start, "call", IdentifierKind::Call), None);
+        let type_start = code.find("Box box").unwrap() as u32;
+        assert_eq!(access(type_start, "Box", IdentifierKind::TypeUsage), None);
+        let declaration_start = code.find("int plain").unwrap() as u32 + 4;
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.start_byte == declaration_start)
         );
     }
 }

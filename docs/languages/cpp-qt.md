@@ -10,6 +10,9 @@ this release a Qt class was mostly an error node: `columnview.h` in Kirigami
 reported 92 parse diagnostics and no usable symbol table. A macro pre-pass now
 blanks those macros before the parse, on both parse paths.
 
+General C++ extraction, including variable access metadata, is documented in
+[`cpp.md`](cpp.md).
+
 ## The macro pre-pass
 
 `cpp/qt_macros.rs::blank_macros` rewrites the source; `preprocess.rs::blanked_source`

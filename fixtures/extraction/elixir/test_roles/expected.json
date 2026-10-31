@@ -740,6 +740,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/elixir/test_roles/source.ex:a:variable_ref:13:14",
+      "name": "a",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/test_roles/source.ex",
+      "start_line": 13,
+      "start_column": 14,
+      "end_line": 13,
+      "end_column": 15,
+      "start_byte": 192,
+      "end_byte": 193,
+      "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:addition commutes:12:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/elixir/test_roles/source.ex:a:variable_ref:14:13",
       "name": "a",
       "kind": "variable_ref",
@@ -753,7 +772,10 @@
       "end_byte": 240,
       "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:addition commutes:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/test_roles/source.ex:a:variable_ref:14:26",
@@ -769,7 +791,10 @@
       "end_byte": 253,
       "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:addition commutes:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/test_roles/source.ex:all:call:13:10",
@@ -820,6 +845,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/elixir/test_roles/source.ex:b:variable_ref:13:30",
+      "name": "b",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/test_roles/source.ex",
+      "start_line": 13,
+      "start_column": 30,
+      "end_line": 13,
+      "end_column": 31,
+      "start_byte": 208,
+      "end_byte": 209,
+      "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:addition commutes:12:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/elixir/test_roles/source.ex:b:variable_ref:14:17",
       "name": "b",
       "kind": "variable_ref",
@@ -833,7 +877,10 @@
       "end_byte": 244,
       "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:addition commutes:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/test_roles/source.ex:b:variable_ref:14:22",
@@ -849,7 +896,10 @@
       "end_byte": 249,
       "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:addition commutes:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/test_roles/source.ex:check:call:13:4",
@@ -1025,7 +1075,10 @@
       "end_byte": 376,
       "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:adds two numbers:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/test_roles/source.ex:value:variable_ref:22:13",
@@ -1041,7 +1094,10 @@
       "end_byte": 399,
       "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:adds two numbers:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/test_roles/source.ex:value:variable_ref:29:4",
@@ -1057,7 +1113,10 @@
       "end_byte": 497,
       "containing_key": "fixtures/extraction/elixir/test_roles/source.ex:verify_addition:28:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

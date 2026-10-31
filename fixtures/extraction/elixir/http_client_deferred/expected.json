@@ -759,6 +759,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Finch"
       }
     },
@@ -776,7 +777,10 @@
       "end_byte": 179,
       "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:get!:member_access:5:10",
@@ -794,6 +798,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Tesla"
       }
     },
@@ -813,6 +818,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Tesla"
       }
     },
@@ -832,6 +838,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "OtherClient"
       }
     },
@@ -851,6 +858,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HTTPoison"
       }
     },
@@ -868,7 +876,10 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:post:member_access:6:10",
@@ -886,6 +897,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Tesla"
       }
     },
@@ -903,7 +915,10 @@
       "end_byte": 555,
       "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:request!:member_access:8:14",
@@ -921,6 +936,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HTTPoison"
       }
     },
@@ -940,6 +956,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "httpc"
       }
     },
@@ -959,6 +976,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "httpc"
       }
     },
@@ -978,6 +996,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Finch"
       }
     }

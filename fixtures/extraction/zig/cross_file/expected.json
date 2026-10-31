@@ -235,7 +235,10 @@
       "end_byte": 464,
       "containing_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/cross_file/source.zig:total:variable_ref:14:8",
@@ -251,7 +254,10 @@
       "end_byte": 411,
       "containing_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/cross_file/source.zig:total:variable_ref:15:16",
@@ -267,7 +273,10 @@
       "end_byte": 440,
       "containing_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/cross_file/source.zig:total:variable_ref:18:11",
@@ -283,7 +292,10 @@
       "end_byte": 489,
       "containing_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

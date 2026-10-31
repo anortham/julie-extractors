@@ -996,7 +996,10 @@
       "end_byte": 414,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:ThenTheCartHolds:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:BeforeScenario:type_usage:23:5",
@@ -1139,6 +1142,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "cart"
       }
     },
@@ -1158,6 +1162,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "cart"
       }
     },
@@ -1465,7 +1470,10 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:GivenAnEmptyCart:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:cart:variable_ref:15:44",
@@ -1481,7 +1489,10 @@
       "end_byte": 305,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:WhenIAddItems:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:cart:variable_ref:18:67",
@@ -1497,7 +1508,10 @@
       "end_byte": 432,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:ThenTheCartHolds:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:cart:variable_ref:21:36",
@@ -1513,7 +1527,10 @@
       "end_byte": 525,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:TheCartIsSaved:20:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:cart:variable_ref:24:27",
@@ -1529,7 +1546,10 @@
       "end_byte": 587,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:Reset:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:cart:variable_ref:27:26",
@@ -1545,7 +1565,10 @@
       "end_byte": 648,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:Tidy:26:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:cart:variable_ref:29:26",
@@ -1561,7 +1584,10 @@
       "end_byte": 688,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:Total:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:count:variable_ref:15:53",
@@ -1577,7 +1603,10 @@
       "end_byte": 315,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:WhenIAddItems:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:count:variable_ref:18:60",
@@ -1593,7 +1622,10 @@
       "end_byte": 426,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:ThenTheCartHolds:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -866,7 +866,10 @@
       "end_byte": 322,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:enabledConditionally:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:flag:variable_ref:8:24",
@@ -882,7 +885,10 @@
       "end_byte": 245,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:disabledConditionally:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:minutes:call:17:22",
@@ -948,7 +954,10 @@
       "end_byte": 54,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:SwiftTraitSuite:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:serialized:variable_ref:14:11",
@@ -964,7 +973,10 @@
       "end_byte": 382,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:serialized:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:serialized:variable_ref:3:42",
@@ -980,7 +992,10 @@
       "end_byte": 68,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:SwiftTraitSuite:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:slow:variable_ref:3:24",
@@ -996,7 +1011,10 @@
       "end_byte": 44,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:SwiftTraitSuite:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:tags:call:3:18",

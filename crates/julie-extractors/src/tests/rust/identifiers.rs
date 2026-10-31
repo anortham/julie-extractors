@@ -195,8 +195,6 @@ impl UserService {
 
 #[test]
 fn test_rust_variable_ref_emission() {
-    // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
-    // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
     let code = r#"
 const VISIBILITY_UNKNOWN: i32 = 3;
 
@@ -218,19 +216,19 @@ pub fn reach() -> i32 {
 pub struct Tagged;
 
 pub fn evaluate(seed: i32, unused_param: i32) -> i32 {
-    let mut local = seed;              // pattern binding, seed read
-    let dead_local = 1;                // pattern binding, never read
-    local = 7;                         // plain write LHS -> NOT a read
-    local += seed;                     // compound assignment -> read local
-    let s = Sample { bar: seed };      // field-initializer member bar -> read
+    let mut local = seed;
+    let dead_local = 1;
+    local = 7;
+    local += seed;
+    let s = Sample { bar: seed };
     let size = seed;
-    let shorthand = Sample { bar: size }; // size value read
-    let b = s.bar + Sample::default_bar() + reach(); // s receiver + Sample scope path -> reads
+    let shorthand = Sample { bar: size };
+    let b = s.bar + Sample::default_bar() + reach();
     let macro_only = seed;
-    println!("{} {}", local, macro_only); // macro-invocation args -> reads
+    println!("{} {}", local, macro_only);
     match local {
         0 => seed,
-        _other => 0,                   // pattern binding, never a read
+        _other => 0,
     };
     b + local + VISIBILITY_UNKNOWN + shorthand.bar
 }
@@ -244,19 +242,26 @@ pub fn evaluate(seed: i32, unused_param: i32) -> i32 {
         .filter(|id| id.kind == IdentifierKind::VariableRef)
         .map(|id| id.name.as_str())
         .collect();
+    let access = |name: &str| {
+        identifiers
+            .iter()
+            .find(|id| id.name == name && id.kind == IdentifierKind::VariableRef)
+            .and_then(|id| id.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
 
-    // --- Positive cases (rules 1/4) ---
     for expected in [
-        "seed",               // RHS / argument / match-arm value reads
-        "local",              // compound-assignment target + macro arg read
-        "bar",                // struct-literal field initializer `Sample { bar: seed }`
-        "size",               // struct-literal field value read
-        "s",                  // field-access receiver `s.bar`
-        "Sample",             // scoped-access path receiver (`X` in `X::Y()`)
-        "b",                  // bare return read
-        "VISIBILITY_UNKNOWN", // bare value read
-        "shorthand",          // field-access receiver in return expression
-        "macro_only",         // read only inside a macro-invocation token tree
+        "seed",
+        "local",
+        "bar",
+        "size",
+        "s",
+        "Sample",
+        "b",
+        "VISIBILITY_UNKNOWN",
+        "shorthand",
+        "macro_only",
     ] {
         assert!(
             var_refs.contains(&expected),
@@ -264,25 +269,23 @@ pub fn evaluate(seed: i32, unused_param: i32) -> i32 {
         );
     }
 
-    // --- Negative cases (rules 2/3/4/5) ---
     for forbidden in [
-        "dead_local",   // let-pattern binding only
-        "unused_param", // parameter name only
-        "evaluate",     // function declaration name
-        "reach",        // call callee, owned by the Call arm
-        "default_bar",  // scoped call callee, owned by the Call arm
-        "_other",       // match-pattern binding
-        "Debug",        // attribute/token-tree meta position
-        "Tagged",       // struct declaration name
-        "GhostToken",   // comment-only mention
+        "dead_local",
+        "unused_param",
+        "evaluate",
+        "reach",
+        "default_bar",
+        "Debug",
+        "Tagged",
+        "GhostToken",
     ] {
         assert!(
             !var_refs.contains(&forbidden),
             "{forbidden} must NOT be a Rust variable_ref; got {var_refs:?}"
         );
     }
+    assert_eq!(access("_other"), Some("write"));
 
-    // Receiver + call coexist: Sample::default_bar() must still yield a Call.
     assert!(
         identifiers
             .iter()
@@ -290,7 +293,6 @@ pub fn evaluate(seed: i32, unused_param: i32) -> i32 {
         "Sample::default_bar() must still yield a Call identifier"
     );
 
-    // GhostToken must not appear as ANY identifier kind.
     assert!(
         !identifiers.iter().any(|id| id.name == "GhostToken"),
         "comment-only GhostToken must not be extracted at all"
@@ -416,4 +418,158 @@ impl Store {
         call_named(&identifiers, "finish").receiver_type.as_deref(),
         Some("Store")
     );
+}
+
+#[test]
+fn test_rust_variable_access_facts() {
+    let code = r#"
+struct Holder { value: i32 }
+fn consume(_: i32) {}
+fn mutate(value: &mut i32) { *value += 1; }
+fn borrow(_: &i32) {}
+fn writes(initial: i32, mut holder: Holder, mut argument: i32, records: Option<i32>) {
+    let initialized = initial;
+    let mut plain = 0;
+    plain = initial;
+    let mut compound = 0;
+    compound += initial;
+    holder.value = initial;
+    let mut items = vec![0];
+    let index = 0;
+    items[index] = initial;
+    let offset = 0;
+    items[offset + index] = initial;
+    consume(argument);
+    borrow(&argument);
+    mutate(&mut argument);
+    match records {
+        Some(captured) => consume(captured),
+        None => {}
+    }
+}
+"#;
+    let (symbols, identifiers) = extract_all(code);
+    let access = |name: &str, kind: IdentifierKind, start: usize| {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == name
+                    && identifier.kind == kind
+                    && identifier.start_byte == start as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+    let has_variable_ref_at = |start: usize| {
+        identifiers.iter().any(|identifier| {
+            identifier.kind == IdentifierKind::VariableRef && identifier.start_byte == start as u32
+        })
+    };
+
+    let initialized_target = code.find("let initialized = initial").unwrap() + "let ".len();
+    let plain_declaration = code.find("let mut plain = 0").unwrap() + "let mut ".len();
+    let plain = code.find("plain = initial").unwrap();
+    let compound = code.find("compound += initial").unwrap();
+    let member = code.find("holder.value = initial").unwrap() + "holder.".len();
+    let receiver = code.find("holder.value = initial").unwrap();
+    let indexed_target = code.find("items[index]").unwrap();
+    let index = indexed_target + "items[".len();
+    let complex_target = code.find("items[offset + index]").unwrap();
+    let offset = complex_target + "items[".len();
+    let complex_index = complex_target + "items[offset + ".len();
+    let argument = code.find("consume(argument)").unwrap() + "consume(".len();
+    let by_reference = code.find("&mut argument").unwrap() + "&mut ".len();
+    let shared_reference = code.find("&argument").unwrap() + 1;
+    let binding = code.find("Some(captured)").unwrap() + "Some(".len();
+    assert!(!has_variable_ref_at(initialized_target));
+    assert!(!has_variable_ref_at(plain_declaration));
+    assert_eq!(
+        access(
+            "initial",
+            IdentifierKind::VariableRef,
+            code.find("let initialized = initial").unwrap() + "let initialized = ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        access("plain", IdentifierKind::VariableRef, plain),
+        Some("write")
+    );
+    assert_eq!(
+        access("compound", IdentifierKind::VariableRef, compound),
+        Some("read_write")
+    );
+    assert_eq!(
+        access("value", IdentifierKind::MemberAccess, member),
+        Some("write")
+    );
+    assert_eq!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.start_byte == member as u32)
+            .count(),
+        1
+    );
+    assert_eq!(
+        access("holder", IdentifierKind::VariableRef, receiver),
+        Some("read")
+    );
+    assert_eq!(
+        access("items", IdentifierKind::VariableRef, indexed_target),
+        Some("read")
+    );
+    assert_eq!(
+        access("index", IdentifierKind::VariableRef, index),
+        Some("read")
+    );
+    assert_eq!(
+        access("offset", IdentifierKind::VariableRef, offset),
+        Some("read")
+    );
+    assert_eq!(
+        access("index", IdentifierKind::VariableRef, complex_index),
+        Some("read")
+    );
+    assert_eq!(
+        access("argument", IdentifierKind::VariableRef, argument),
+        Some("read")
+    );
+    let call_start = code.find("consume(argument)").unwrap();
+    let call = identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte == call_start as u32)
+        .expect("consume call identifier");
+    assert_eq!(call.name, "consume");
+    assert_eq!(call.kind, IdentifierKind::Call);
+    assert_eq!(
+        call.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access")),
+        None
+    );
+    assert_eq!(
+        access("argument", IdentifierKind::VariableRef, by_reference),
+        Some("write")
+    );
+    assert_eq!(
+        access("argument", IdentifierKind::VariableRef, shared_reference),
+        Some("read")
+    );
+    if symbols.iter().any(|symbol| {
+        symbol.name == "captured"
+            && symbol.start_byte <= binding as u32
+            && symbol.end_byte >= (binding + "captured".len()) as u32
+    }) {
+        assert!(
+            identifiers
+                .iter()
+                .all(|identifier| identifier.start_byte != binding as u32)
+        );
+    } else {
+        assert_eq!(
+            access("captured", IdentifierKind::VariableRef, binding),
+            Some("write")
+        );
+    }
 }

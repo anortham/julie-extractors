@@ -996,7 +996,10 @@
       "end_byte": 1602,
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:audit_row:51:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:audit_row:call:52:101",
@@ -1061,7 +1064,10 @@
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:ux_users_email:26:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "users"
+      "receiver_type": "users",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:ok:call:54:81",
@@ -1205,7 +1211,10 @@
       "end_byte": 1231,
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:archive_old_orders:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:runtests:call:55:14",
@@ -1240,6 +1249,7 @@
       "confidence": "1.000",
       "receiver_type": "orders",
       "metadata": {
+        "access": "read",
         "receiver": "o"
       }
     },
@@ -1276,6 +1286,7 @@
       "confidence": "1.000",
       "receiver_type": "orders",
       "metadata": {
+        "access": "read",
         "receiver": "o"
       }
     },
@@ -1296,6 +1307,7 @@
       "confidence": "1.000",
       "receiver_type": "orders",
       "metadata": {
+        "access": "read",
         "receiver": "o"
       }
     },
@@ -1314,7 +1326,10 @@
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:archive_old_orders:38:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:user_id:member_access:27:42",
@@ -1330,7 +1345,10 @@
       "end_byte": 850,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:user_id:member_access:31:9",
@@ -1349,6 +1367,7 @@
       "confidence": "1.000",
       "receiver_type": "orders",
       "metadata": {
+        "access": "read",
         "receiver": "o"
       }
     },
@@ -1369,6 +1388,7 @@
       "confidence": "1.000",
       "receiver_type": "orders",
       "metadata": {
+        "access": "read",
         "receiver": "o"
       }
     },
@@ -1418,7 +1438,10 @@
       "end_byte": 1265,
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:archive_old_orders:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:v_count:variable_ref:44:11",
@@ -1434,7 +1457,10 @@
       "end_byte": 1297,
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:archive_old_orders:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -159,7 +159,19 @@ fn arithmetic_reads_emit_variable_refs() {
         names
     };
     assert_eq!(refs(4), vec!["limit", "total"]);
-    assert_eq!(refs(5), vec!["limit", "total"]);
+    assert_eq!(refs(5), vec!["limit", "total", "total"]);
+    assert_eq!(
+        result
+            .identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte == source.find("total=$((").unwrap() as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access")),
+        Some(&serde_json::json!("write"))
+    );
     assert_eq!(refs(6), vec!["limit", "n", "n", "n"]);
     assert_eq!(refs(7), vec!["total"]);
 }

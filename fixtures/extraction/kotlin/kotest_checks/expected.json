@@ -1877,7 +1877,10 @@
       "end_byte": 191,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:localScope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:forAll:call:19:8",
@@ -1912,7 +1915,10 @@
       "end_byte": 384,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:nestedScope:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:run:call:17:4",
@@ -1947,7 +1953,10 @@
       "end_byte": 138,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/shadowed_import.kt:verify:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:List:type_usage:23:16",
@@ -2017,7 +2026,10 @@
       "end_byte": 368,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:base:variable_ref:14:66",
@@ -2033,7 +2045,10 @@
       "end_byte": 375,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checkAll:call:17:8",
@@ -2068,7 +2083,10 @@
       "end_byte": 477,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:forAll:call:19:24",
@@ -2103,7 +2121,10 @@
       "end_byte": 608,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:forAllRows:call:14:8",
@@ -2178,7 +2199,10 @@
       "end_byte": 578,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:length:member_access:18:40",
@@ -2196,6 +2220,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "value"
       }
     },
@@ -2237,7 +2262,10 @@
       "end_byte": 830,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:forAll:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:row:call:14:19",
@@ -2322,7 +2350,10 @@
       "end_byte": 385,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:square:variable_ref:15:64",
@@ -2338,7 +2369,10 @@
       "end_byte": 458,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:value:variable_ref:15:47",
@@ -2354,7 +2388,10 @@
       "end_byte": 440,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:value:variable_ref:15:55",
@@ -2370,7 +2407,10 @@
       "end_byte": 448,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:value:variable_ref:16:33",
@@ -2386,7 +2426,10 @@
       "end_byte": 499,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:value:variable_ref:16:42",
@@ -2402,7 +2445,10 @@
       "end_byte": 508,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:value:variable_ref:17:48",
@@ -2418,7 +2464,10 @@
       "end_byte": 564,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:value:variable_ref:18:34",
@@ -2434,7 +2483,10 @@
       "end_byte": 633,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:value:variable_ref:20:34",
@@ -2450,7 +2502,10 @@
       "end_byte": 729,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:withData:20:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:withData:call:20:8",
@@ -2507,7 +2562,10 @@
       "end_byte": 242,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:unrelated:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:forAll:call:10:4",
@@ -2564,7 +2622,10 @@
       "end_byte": 50,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:row:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:value:variable_ref:5:65",
@@ -2580,7 +2641,10 @@
       "end_byte": 122,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:forAll:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:checkAll:member_access:7:23",
@@ -2598,6 +2662,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "property",
         "receiver_qualifier": "io.kotest"
       }
@@ -2616,7 +2681,10 @@
       "end_byte": 118,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:verify:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:forAll:call:6:4",
@@ -2651,7 +2719,10 @@
       "end_byte": 106,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:verify:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:io:variable_ref:7:4",
@@ -2667,7 +2738,10 @@
       "end_byte": 127,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:verify:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:kotest:member_access:7:7",
@@ -2685,6 +2759,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "io"
       }
     },
@@ -2704,6 +2779,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "kotest",
         "receiver_qualifier": "io"
       }
@@ -2745,7 +2821,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:verify:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

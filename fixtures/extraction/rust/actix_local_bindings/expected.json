@@ -1198,7 +1198,10 @@
       "end_byte": 561,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:app:21:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:ServiceConfig:type_usage:17:28",
@@ -1246,7 +1249,10 @@
       "end_byte": 266,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:branch:variable_ref:11:7",
@@ -1262,7 +1268,29 @@
       "end_byte": 335,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:changing:variable_ref:12:8",
+      "name": "changing",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_local_bindings/source.rs",
+      "start_line": 12,
+      "start_column": 8,
+      "end_line": 12,
+      "end_column": 16,
+      "start_byte": 346,
+      "end_byte": 354,
+      "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:changing:variable_ref:14:4",
@@ -1278,7 +1306,10 @@
       "end_byte": 395,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:config:variable_ref:18:4",
@@ -1294,7 +1325,10 @@
       "end_byte": 498,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:routes:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:call:23:36",
@@ -1428,7 +1462,10 @@
       "end_byte": 436,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:list_users:variable_ref:5:40",
@@ -1444,7 +1481,10 @@
       "end_byte": 157,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:new:call:22:9",
@@ -1480,7 +1520,10 @@
       "end_byte": 374,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:route:call:14:13",
@@ -1576,7 +1619,10 @@
       "end_byte": 621,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:app:21:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:routes:variable_ref:24:45",
@@ -1592,7 +1638,10 @@
       "end_byte": 675,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:app:21:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:scope:call:10:28",
@@ -1728,7 +1777,10 @@
       "end_byte": 116,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:scope:variable_ref:8:8",
@@ -1744,7 +1796,10 @@
       "end_byte": 222,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:service:call:23:9",
@@ -1798,7 +1853,10 @@
       "end_byte": 536,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:routes:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:to:call:14:40",
@@ -1890,7 +1948,10 @@
       "end_byte": 302,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:12:19",
@@ -1906,7 +1967,10 @@
       "end_byte": 360,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:14:29",
@@ -1922,7 +1986,10 @@
       "end_byte": 415,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:18:28",
@@ -1938,7 +2005,10 @@
       "end_byte": 519,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:routes:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:23:17",
@@ -1954,7 +2024,10 @@
       "end_byte": 589,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:app:21:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:24:17",
@@ -1970,7 +2043,10 @@
       "end_byte": 644,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:app:21:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:4:16",
@@ -1986,7 +2062,10 @@
       "end_byte": 90,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:5:26",
@@ -2002,7 +2081,10 @@
       "end_byte": 136,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:7:20",
@@ -2018,7 +2100,10 @@
       "end_byte": 190,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_local_bindings/source.rs:web:variable_ref:8:31",
@@ -2034,7 +2119,10 @@
       "end_byte": 243,
       "containing_key": "fixtures/extraction/rust/actix_local_bindings/source.rs:configure:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -86,13 +86,6 @@ obj = Namespace::HelperClass.new
 
 #[test]
 fn test_ruby_variable_ref_emission() {
-    // Locked variable_ref contract (see csharp/identifiers.rs): receivers + bare
-    // value reads, the complement of the Call/MemberAccess/TypeUsage arms.
-    //
-    // Ruby boundary: a bare lowercase identifier in value position can be a local
-    // read OR a receiverless zero-arg method call — tree-sitter-ruby yields a
-    // `call` node only when there are parens/args/blocks/receivers, so this arm
-    // owns the bare-`identifier` complement and both meanings become name-visible.
     let code = r#"
 class Sample
   def evaluate(seed, unused_param)
@@ -130,22 +123,26 @@ end
         .filter(|id| id.kind == IdentifierKind::VariableRef)
         .map(|id| id.name.as_str())
         .collect();
+    let access = |name: &str, start: usize| {
+        identifiers
+            .iter()
+            .find(|id| {
+                id.name == name
+                    && id.kind == IdentifierKind::VariableRef
+                    && id.start_byte == start as u32
+            })
+            .and_then(|id| id.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
 
-    // Positive cases (rules 1/4)
-    for expected in [
-        "count", // compound-assignment target (`+=`)
-        "y",     // compound-assignment target (`||=`)
-        "seed",  // RHS read + receiver of seed.persist
-        "total", // `||=` RHS + ternary reads
-    ] {
+    for expected in ["count", "y", "seed", "total"] {
         assert!(
             var_refs.contains(&expected),
             "expected variable_ref for {expected}; got {var_refs:?}"
         );
     }
 
-    // A bare identifier with no earlier binding in its scope is a
-    // receiverless method call under Ruby's lexical rule.
     for method_call in ["is_user_type", "visibility_unknown"] {
         assert!(!var_refs.contains(&method_call), "{method_call}");
         assert!(
@@ -156,7 +153,6 @@ end
         );
     }
 
-    // Constants stay owned by the TypeUsage arm — no double emission.
     assert!(
         !var_refs.contains(&"GraphTraversal"),
         "constant receiver must stay a type_usage, not variable_ref"
@@ -174,27 +170,25 @@ end
         "GraphTraversal.reach must still yield a member access named reach"
     );
 
-    // Negative cases (rules 2/3/4/5)
     for forbidden in [
-        "x",            // plain-write LHS only
-        "unused_param", // parameter name only
-        "ghost_token",  // comment-only mention
-        "evaluate",     // method declaration name
-        "filter_items", // call callee (owned by the Call arm)
-        "persist",      // accessed member name (owned by the MemberAccess arm)
-        "private",      // visibility modifier, filtered (rule 5)
+        "unused_param",
+        "ghost_token",
+        "evaluate",
+        "filter_items",
+        "persist",
+        "private",
     ] {
         assert!(
             !var_refs.contains(&forbidden),
             "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
         );
     }
+    assert_eq!(access("x", code.find("x = 7").unwrap()), Some("write"));
     assert!(
         !identifiers.iter().any(|id| id.name == "ghost_token"),
         "comment-only ghost_token must not be extracted at all"
     );
 
-    // No duplicate rows: each (name, kind, span) is unique.
     let mut keys: Vec<(String, String, u32, u32)> = identifiers
         .iter()
         .map(|id| {
@@ -248,4 +242,130 @@ fn setter_declaration_names_do_not_become_calls() {
         references[0].start_byte as usize,
         source.rfind("logger").unwrap()
     );
+}
+
+#[test]
+fn test_ruby_variable_access_facts() {
+    let code = r#"
+global_plain = 0
+global_plain = 1
+class Sample
+  def writes(initial, box, argument, records)
+    initialized = initial
+    plain = 0
+    plain = initial
+    compound = 0
+    compound += initial
+    box.value = initial
+    consume(argument)
+    records.each do |captured|
+      consume(captured)
+    end
+  end
+end
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_ruby::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor =
+        RubyExtractor::new("test.rb".to_string(), code.to_string(), &workspace_root);
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+    let access = |name: &str, kind: IdentifierKind, start: usize| {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == name
+                    && identifier.kind == kind
+                    && identifier.start_byte == start as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+    let has_variable_ref_at = |start: usize| {
+        identifiers.iter().any(|identifier| {
+            identifier.kind == IdentifierKind::VariableRef && identifier.start_byte == start as u32
+        })
+    };
+
+    let initialized_target = code.find("initialized = initial").unwrap();
+    let plain_declaration = code.find("plain = 0").unwrap();
+    let plain = code.find("plain = initial").unwrap();
+    let global_declaration = code.find("global_plain = 0").unwrap();
+    let global_write = code.find("global_plain = 1").unwrap();
+    let compound = code.find("compound += initial").unwrap();
+    let member = code.find("box.value = initial").unwrap() + "box.".len();
+    let argument = code.find("consume(argument)").unwrap() + "consume(".len();
+    let binding = code.find("|captured|").unwrap() + 1;
+    assert!(!has_variable_ref_at(initialized_target));
+    assert!(!has_variable_ref_at(plain_declaration));
+    assert!(!has_variable_ref_at(global_declaration));
+    assert_eq!(
+        access("global_plain", IdentifierKind::VariableRef, global_write),
+        Some("write")
+    );
+    assert_eq!(
+        access(
+            "initial",
+            IdentifierKind::VariableRef,
+            code.find("initialized = initial").unwrap() + "initialized = ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        access("plain", IdentifierKind::VariableRef, plain),
+        Some("write")
+    );
+    assert_eq!(
+        access("compound", IdentifierKind::VariableRef, compound),
+        Some("read_write")
+    );
+    assert_eq!(
+        access("value", IdentifierKind::MemberAccess, member),
+        Some("write")
+    );
+    assert_eq!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.start_byte == member as u32)
+            .count(),
+        1
+    );
+    assert_eq!(
+        access("argument", IdentifierKind::VariableRef, argument),
+        Some("read")
+    );
+    let call_start = code.find("consume(argument)").unwrap();
+    let call = identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte == call_start as u32)
+        .expect("consume call identifier");
+    assert_eq!(call.name, "consume");
+    assert_eq!(call.kind, IdentifierKind::Call);
+    assert_eq!(
+        call.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access")),
+        None
+    );
+    if symbols.iter().any(|symbol| {
+        symbol.name == "captured"
+            && symbol.start_byte <= binding as u32
+            && symbol.end_byte >= (binding + "captured".len()) as u32
+    }) {
+        assert!(
+            identifiers
+                .iter()
+                .all(|identifier| identifier.start_byte != binding as u32)
+        );
+    } else {
+        assert_eq!(
+            access("captured", IdentifierKind::VariableRef, binding),
+            Some("write")
+        );
+    }
 }

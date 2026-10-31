@@ -73,3 +73,9 @@ comment, a string, or an unquoted `url()` is a custom function call:
   `ruleName`, `atRuleType`, and `type` describe the at-rule.
 - Text after the target, such as media queries, `layer(base)`, or
   `supports(...)`, is in `media`.
+
+## Variable access facts
+
+Variable access classification is not applicable to native CSS. Custom-property
+declarations and `var()` references describe stylesheet values rather than
+program-variable assignment sites; their `metadata_json.access` stays absent.

@@ -670,7 +670,10 @@
       "end_byte": 133,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/local_macro_shadow.rs:criterion_group:call:5:0",
@@ -734,7 +737,10 @@
       "end_byte": 115,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/local_macro_shadow.rs:local_benchmark_group:variable_ref:6:16",
@@ -750,7 +756,10 @@
       "end_byte": 173,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/local_macro_shadow.rs:shadowed_group:variable_ref:12:16",
@@ -766,7 +775,10 @@
       "end_byte": 266,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:Bencher:type_usage:4:35",
@@ -846,7 +858,10 @@
       "end_byte": 423,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:config:variable_ref:15:4",
@@ -862,7 +877,10 @@
       "end_byte": 411,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:criterion_benches:variable_ref:12:17",
@@ -878,7 +896,10 @@
       "end_byte": 316,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:criterion_benches:variable_ref:18:16",
@@ -894,7 +915,10 @@
       "end_byte": 516,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:criterion_complete:variable_ref:14:11",
@@ -910,7 +934,10 @@
       "end_byte": 399,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:criterion_complete:variable_ref:18:35",
@@ -926,7 +953,10 @@
       "end_byte": 536,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:criterion_fast:variable_ref:12:36",
@@ -942,7 +972,10 @@
       "end_byte": 332,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:criterion_fast:variable_ref:16:30",
@@ -958,7 +991,10 @@
       "end_byte": 480,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:criterion_group:call:12:0",
@@ -1022,7 +1058,10 @@
       "end_byte": 348,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:criterion_slow:variable_ref:16:14",
@@ -1038,7 +1077,10 @@
       "end_byte": 464,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:custom_group:call:28:0",
@@ -1070,7 +1112,10 @@
       "end_byte": 378,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:ordinary_function:variable_ref:28:14",
@@ -1086,7 +1131,10 @@
       "end_byte": 675,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/source.rs:targets:variable_ref:16:4",
@@ -1102,7 +1150,10 @@
       "end_byte": 447,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:benchmark_target:variable_ref:3:45",
@@ -1118,7 +1169,10 @@
       "end_byte": 87,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:benchmark_target:variable_ref:5:31",
@@ -1134,7 +1188,10 @@
       "end_byte": 182,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:benchmark_target:variable_ref:7:21",
@@ -1150,7 +1207,10 @@
       "end_byte": 253,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:criterion:variable_ref:3:0",
@@ -1166,7 +1226,10 @@
       "end_byte": 35,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:criterion:variable_ref:4:0",
@@ -1182,7 +1245,10 @@
       "end_byte": 99,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:criterion_group:call:3:11",
@@ -1268,7 +1334,10 @@
       "end_byte": 164,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:custom_group:variable_ref:6:16",
@@ -1284,7 +1353,10 @@
       "end_byte": 213,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:custom_registration:call:7:0",
@@ -1316,7 +1388,10 @@
       "end_byte": 69,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs:qualified_group:variable_ref:4:27",
@@ -1332,7 +1407,10 @@
       "end_byte": 132,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

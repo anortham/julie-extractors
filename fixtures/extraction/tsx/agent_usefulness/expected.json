@@ -153,7 +153,10 @@
       "end_byte": 194,
       "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:id:variable_ref:1:84",
@@ -169,7 +172,10 @@
       "end_byte": 86,
       "containing_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

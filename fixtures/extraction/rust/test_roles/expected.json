@@ -953,7 +953,10 @@
       "end_byte": 338,
       "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_parameterized_case:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/test_roles/source.rs:left:variable_ref:25:12",
@@ -969,7 +972,10 @@
       "end_byte": 471,
       "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_named_case:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/test_roles/source.rs:left:variable_ref:31:12",
@@ -985,7 +991,10 @@
       "end_byte": 605,
       "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case_macro_parameterized:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/test_roles/source.rs:right:variable_ref:25:19",
@@ -1001,7 +1010,10 @@
       "end_byte": 479,
       "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_rstest_named_case:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/test_roles/source.rs:right:variable_ref:31:19",
@@ -1017,7 +1029,10 @@
       "end_byte": 613,
       "containing_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case_macro_parameterized:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

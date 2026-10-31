@@ -777,6 +777,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "User"
       }
     },
@@ -796,6 +797,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "User"
       }
     },
@@ -864,6 +866,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:id:variable_ref:16:26",
+      "name": "id",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 16,
+      "start_column": 26,
+      "end_line": 16,
+      "end_column": 28,
+      "start_byte": 248,
+      "end_byte": 250,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/ruby/sinatra/source.rb:id:variable_ref:17:17",
       "name": "id",
       "kind": "variable_ref",
@@ -877,7 +898,10 @@
       "end_byte": 271,
       "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/sinatra/source.rb:log_request:call:25:4",
@@ -973,7 +997,10 @@
       "end_byte": 173,
       "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

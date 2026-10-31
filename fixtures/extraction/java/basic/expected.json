@@ -3388,7 +3388,10 @@
       "end_byte": 3525,
       "containing_key": "fixtures/extraction/java/basic/source.java:area:148:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:Money:type_usage:146:41",
@@ -3506,6 +3509,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Math"
       }
     },
@@ -3541,6 +3545,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "RetentionPolicy",
         "receiver_qualifier": "java.lang.annotation"
       }
@@ -3593,6 +3598,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "annotation",
         "receiver_qualifier": "java.lang"
       }
@@ -3805,6 +3811,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "fixture"
       }
     },
@@ -3824,6 +3831,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "fixture"
       }
     },
@@ -3875,6 +3883,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "lang",
         "receiver_qualifier": "java"
       }
@@ -3917,7 +3926,10 @@
       "end_byte": 2166,
       "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:c:variable_ref:151:39",
@@ -3933,7 +3945,10 @@
       "end_byte": 3532,
       "containing_key": "fixtures/extraction/java/basic/source.java:area:148:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:c:variable_ref:151:52",
@@ -3949,7 +3964,10 @@
       "end_byte": 3545,
       "containing_key": "fixtures/extraction/java/basic/source.java:area:148:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:cents:variable_ref:134:12",
@@ -3965,7 +3983,10 @@
       "end_byte": 3005,
       "containing_key": "fixtures/extraction/java/basic/source.java:Money:133:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:cents:variable_ref:135:17",
@@ -3981,7 +4002,10 @@
       "end_byte": 3081,
       "containing_key": "fixtures/extraction/java/basic/source.java:Money:133:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:close:call:31:19",
@@ -4018,7 +4042,10 @@
       "end_byte": 1685,
       "containing_key": "fixtures/extraction/java/basic/source.java:evaluate:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:createNativeQuery:call:165:25",
@@ -4057,7 +4084,10 @@
       "end_byte": 3877,
       "containing_key": "fixtures/extraction/java/basic/source.java:count:164:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:enabled:variable_ref:75:12",
@@ -4073,7 +4103,10 @@
       "end_byte": 1644,
       "containing_key": "fixtures/extraction/java/basic/source.java:evaluate:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:evaluate:call:85:36",
@@ -4156,7 +4189,10 @@
       "end_byte": 1940,
       "containing_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:fixture:variable_ref:86:8",
@@ -4172,7 +4208,10 @@
       "end_byte": 1982,
       "containing_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:getSingleResult:call:165:74",
@@ -4208,7 +4247,10 @@
       "end_byte": 3606,
       "containing_key": "fixtures/extraction/java/basic/source.java:area:148:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:helper:call:18:15",
@@ -4246,7 +4288,10 @@
       "end_byte": 1677,
       "containing_key": "fixtures/extraction/java/basic/source.java:evaluate:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:i:variable_ref:76:39",
@@ -4262,7 +4307,10 @@
       "end_byte": 1688,
       "containing_key": "fixtures/extraction/java/basic/source.java:evaluate:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:i:variable_ref:77:25",
@@ -4278,7 +4326,10 @@
       "end_byte": 1720,
       "containing_key": "fixtures/extraction/java/basic/source.java:evaluate:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:id:member_access:12:13",
@@ -4296,6 +4347,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "this"
       }
     },
@@ -4313,7 +4365,10 @@
       "end_byte": 2310,
       "containing_key": "fixtures/extraction/java/basic/source.java:Supervisor:100:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:id:variable_ref:12:18",
@@ -4329,7 +4384,10 @@
       "end_byte": 196,
       "containing_key": "fixtures/extraction/java/basic/source.java:Worker:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:id:variable_ref:17:18",
@@ -4345,7 +4403,10 @@
       "end_byte": 264,
       "containing_key": "fixtures/extraction/java/basic/source.java:run:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:id:variable_ref:18:22",
@@ -4361,7 +4422,10 @@
       "end_byte": 291,
       "containing_key": "fixtures/extraction/java/basic/source.java:run:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:id:variable_ref:58:33",
@@ -4377,7 +4441,10 @@
       "end_byte": 1203,
       "containing_key": "fixtures/extraction/java/basic/source.java:recordRun:57:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:id:variable_ref:95:23",
@@ -4393,7 +4460,10 @@
       "end_byte": 2223,
       "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:java:variable_ref:122:32",
@@ -4409,7 +4479,10 @@
       "end_byte": 2720,
       "containing_key": "fixtures/extraction/java/basic/source.java:Audited:122:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:job:variable_ref:91:16",
@@ -4425,7 +4498,10 @@
       "end_byte": 2117,
       "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:jobs:variable_ref:90:23",
@@ -4441,7 +4517,10 @@
       "end_byte": 2094,
       "containing_key": "fixtures/extraction/java/basic/source.java:consume:89:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:lang:member_access:122:37",
@@ -4459,6 +4538,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "java"
       }
     },
@@ -4476,7 +4556,10 @@
       "end_byte": 2026,
       "containing_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:left:variable_ref:110:55",
@@ -4492,7 +4575,10 @@
       "end_byte": 2498,
       "containing_key": "fixtures/extraction/java/basic/source.java:combine:109:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:level:variable_ref:145:13",
@@ -4508,7 +4594,10 @@
       "end_byte": 3282,
       "containing_key": "fixtures/extraction/java/basic/source.java:byCurrency:145:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:lock:variable_ref:24:22",
@@ -4524,7 +4613,10 @@
       "end_byte": 414,
       "containing_key": "fixtures/extraction/java/basic/source.java:guardedFetch:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:observeRun:call:58:8",
@@ -4696,7 +4788,10 @@
       "end_byte": 2506,
       "containing_key": "fixtures/extraction/java/basic/source.java:combine:109:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:run:call:106:21",
@@ -4797,7 +4892,10 @@
       "end_byte": 3488,
       "containing_key": "fixtures/extraction/java/basic/source.java:area:148:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:stream:variable_ref:30:27",
@@ -4813,7 +4911,10 @@
       "end_byte": 526,
       "containing_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:stream:variable_ref:31:12",
@@ -4829,7 +4930,10 @@
       "end_byte": 563,
       "containing_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:sum:variable_ref:111:8",
@@ -4845,7 +4949,10 @@
       "end_byte": 2519,
       "containing_key": "fixtures/extraction/java/basic/source.java:combine:109:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:task:variable_ref:42:33",
@@ -4861,7 +4968,10 @@
       "end_byte": 826,
       "containing_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:total:variable_ref:77:16",
@@ -4877,7 +4987,10 @@
       "end_byte": 1715,
       "containing_key": "fixtures/extraction/java/basic/source.java:evaluate:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:total:variable_ref:80:15",
@@ -4893,7 +5006,10 @@
       "end_byte": 1766,
       "containing_key": "fixtures/extraction/java/basic/source.java:evaluate:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:validate:call:135:8",
@@ -4931,7 +5047,10 @@
       "end_byte": 1049,
       "containing_key": "fixtures/extraction/java/basic/source.java:helper:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:w:variable_ref:152:45",
@@ -4947,7 +5066,10 @@
       "end_byte": 3602,
       "containing_key": "fixtures/extraction/java/basic/source.java:area:148:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:wrapped:variable_ref:43:8",
@@ -4963,7 +5085,10 @@
       "end_byte": 849,
       "containing_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

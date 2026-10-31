@@ -338,6 +338,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "x"
       }
     },
@@ -355,7 +356,10 @@
       "end_byte": 550,
       "containing_key": "fixtures/extraction/vbnet/cross_file/source.vb:Helper:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/cross_file/source.vb:x:variable_ref:12:26",
@@ -371,7 +375,10 @@
       "end_byte": 435,
       "containing_key": "fixtures/extraction/vbnet/cross_file/source.vb:Run:10:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

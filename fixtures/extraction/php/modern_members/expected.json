@@ -960,6 +960,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Status"
       }
     },
@@ -1060,6 +1061,7 @@
       "confidence": "1.000",
       "receiver_type": "Product",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1077,7 +1079,10 @@
       "end_byte": 972,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:belongsTo:call:51:26",
@@ -1113,7 +1118,10 @@
       "end_byte": 1225,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:make:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:first:variable_ref:43:17",
@@ -1129,7 +1137,10 @@
       "end_byte": 788,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:__construct:36:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:name:member_access:52:24",
@@ -1145,7 +1156,10 @@
       "end_byte": 1092,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:name:member_access:57:52",
@@ -1163,6 +1177,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$this"
       }
     },
@@ -1180,7 +1195,10 @@
       "end_byte": 717,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:__construct:36:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:other:variable_ref:48:8",
@@ -1196,7 +1214,10 @@
       "end_byte": 882,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:other:variable_ref:52:15",
@@ -1212,7 +1233,10 @@
       "end_byte": 1085,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:plain:variable_ref:42:29",
@@ -1228,7 +1252,10 @@
       "end_byte": 754,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:__construct:36:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:plain:variable_ref:42:37",
@@ -1244,7 +1271,10 @@
       "end_byte": 762,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:__construct:36:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:products:member_access:57:35",
@@ -1262,6 +1292,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$this"
       }
     },
@@ -1295,7 +1326,10 @@
       "end_byte": 798,
       "containing_key": "fixtures/extraction/php/modern_members/source.php:__construct:36:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/modern_members/source.php:slug:call:48:17",
@@ -1329,6 +1363,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$this"
       }
     },
@@ -1348,6 +1383,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$this"
       }
     }

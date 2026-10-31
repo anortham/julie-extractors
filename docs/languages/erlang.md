@@ -68,3 +68,10 @@
   - other tuple patterns (`{error, R} = load()`, `{ok, A, B} = load()`) and
     `case` or `receive` clause patterns. These do not bind body locals.
   - `begin .. end` whose last expression is not one of the values above.
+
+## Variable access facts
+
+Currently emitted `variable_ref` identifiers are reads, including external
+function references and bare macro references. Ordinary Erlang variable
+occurrences and pattern bindings are not currently emitted as variable-reference
+identifiers, so assignment and pattern write facts are not available for them.

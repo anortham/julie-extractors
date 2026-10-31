@@ -1938,7 +1938,10 @@
       "end_byte": 464,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:slow:23:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:UserRepo:type_usage:50:20",
@@ -1986,7 +1989,10 @@
       "end_byte": 953,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:a:variable_ref:45:64",
@@ -2002,7 +2008,10 @@
       "end_byte": 966,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assert:call:11:22",
@@ -2269,7 +2278,10 @@
       "end_byte": 423,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:skipped:22:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:in:call:11:17",
@@ -2355,7 +2367,10 @@
       "end_byte": 1109,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:s:variable_ref:24:47",
@@ -2371,7 +2386,10 @@
       "end_byte": 532,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:with fixture:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:should:call:3:12",
@@ -2547,7 +2565,10 @@
       "end_byte": 489,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:with fixture:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:when:call:2:12",

@@ -166,15 +166,8 @@ fn extract_identifier_from_node(
                 }
             }
         }
-        // `A * B` mis-parse recovery (LOCKED CONTRACT addendum). tree-sitter-c-sharp
-        // resolves `identifier * identifier` in expression/argument position as a
-        // pointer-type `declaration_expression` (`type: (pointer_type type: (identifier A))
-        // name: (identifier B)`). C# pointer types are legal ONLY in `unsafe` contexts, so
-        // with no enclosing unsafe context this shape is really a multiplication and BOTH
-        // operand identifiers are value reads. Evaluated BEFORE the TypeUsage arm so the
-        // pointee identifier `A` becomes a `variable_ref` instead of a bogus `type_usage`,
-        // and the `name` identifier `B` (which every other arm excludes) is recovered.
-        // Genuine unsafe pointer declarations are gated out and keep today's behavior.
+        // The grammar parses `identifier * identifier` as a pointer declaration;
+        // outside `unsafe` that shape is multiplication.
         "identifier" if is_csharp_misparsed_mul_operand(base, node) => {
             let name = base.get_node_text(&node);
             if !is_csharp_builtin_type(&name) {
@@ -200,11 +193,19 @@ fn extract_identifier_from_node(
                 record_outermost_generic_type_arguments(base, node, &identifier);
             }
         }
-        // `variable_ref` complement arm: a bare `identifier` used as a value or as
-        // the object/receiver of a member access — the reads the Call/MemberAccess/
-        // TypeUsage arms above do not own. Evaluated only after the TypeUsage guard,
-        // so type positions never reach here (single row per node; no duplicates).
-        "identifier" if is_csharp_value_read_identifier(node) => {
+        "identifier"
+            if is_csharp_value_read_identifier(node)
+                || crate::base::variable_access::rules_for_language("csharp").is_some_and(
+                    |rules| {
+                        !base.has_identifier_at_node(&node)
+                            && crate::base::variable_access::is_assignment_or_increment_target(
+                                node,
+                                &base.content,
+                                rules,
+                            )
+                    },
+                ) =>
+        {
             let name = base.get_node_text(&node);
             // Rule 5: reuse the builtin/keyword filter. (`this`/`base`/`true`/`false`/
             // `null` are distinct grammar nodes, not `identifier`, so they never
@@ -532,59 +533,6 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
     }
 }
 
-// ============================================================================
-// variable_ref emission — LOCKED SEMANTIC CONTRACT (reference implementation)
-// ============================================================================
-//
-// code-kb's dead-code candidate reader decides name-liveness by whether any
-// `identifiers` row has `name = S.name` OUTSIDE S's own definition. A bare read
-// (`return VisibilityUnknown;`) or a static-access receiver (`GraphTraversal` in
-// `GraphTraversal.Reach()`) previously emitted NO identifier, so live symbols were
-// falsely flagged dead. `variable_ref` closes that gap. Every rollout task copies
-// this arm's structure verbatim, so the six rules below are load-bearing.
-//
-// Emit `IdentifierKind::VariableRef` for a name node N when ALL hold:
-//   1. Read in value or receiver position — N is used as an expression / operand /
-//      argument / initializer / return value / collection element, OR the object
-//      (receiver) of a member access (`X` in `X.Y` / `X.Y()`), OR a member-reference
-//      LHS in an initializer/named-argument context (`Bar` in `new Foo { Bar = 5 }`,
-//      `Bar` in `[Foo(Bar = 1)]`).
-//   2. Not already emitted by another arm — not a call callee (Call), not the
-//      accessed `.name` of a member access (MemberAccess/Call), not a type usage
-//      (TypeUsage). This arm is the *complement*; match ordering (TypeUsage guard
-//      first) guarantees a type identifier never reaches here.
-//   3. Not a declaration name — not the defining identifier of a type / method /
-//      constructor / property / field / enum-member / parameter / local /
-//      local-function / label / using-alias LHS.
-//   4. Not a write-only target — not the LHS of a PLAIN assignment (`x = 5`). A
-//      COMPOUND assignment (`x += 1`) IS a read. An initializer/named-argument
-//      member LHS is a read (rule 1). Liveness counts *reads*.
-//   5. Not a keyword/builtin — reuse `is_csharp_builtin_type`; `this`/`base`/
-//      `true`/`false`/`null` are distinct grammar nodes and never appear as
-//      `identifier`, so they are structurally excluded.
-//   6. `containing_symbol_id` is set via `find_containing_symbol_id`, exactly as
-//      the sibling arms do.
-//
-// NON-GOALS: `variable_ref` is NOT made resolvable (`ReferenceKind::from_identifier_kind`
-// stays call/type_usage/member_access — new rows are consumed by name-match only);
-// the `identifiers` schema / `IdentifierKind` enum / `sqlite_schema_version` are
-// unchanged (`variable_ref` is already a valid kind). Serialized string: `variable_ref`.
-//
-// HEURISTIC ADDENDUM — `A * B` pointer mis-parse recovery. tree-sitter-c-sharp
-// resolves `identifier * identifier` in expression/argument position as a pointer-type
-// `declaration_expression` (`type: (pointer_type type: (identifier A)) name: (identifier B)`):
-// `A` is emitted as a bogus `type_usage` and `B` (a declarator name) is dropped entirely,
-// so a multiplication like `Math.Max(limit * K, 24)` makes both operands invisible to
-// liveness. C# pointer types are legal ONLY in an `unsafe` context, so when NO enclosing
-// unsafe context exists (no ancestor `unsafe_statement`; no `unsafe` modifier on a
-// containing method/type/local-function) the shape is unambiguously a multiplication and
-// BOTH operands are value reads — each is emitted as a single `variable_ref` (the mis-parse
-// arm runs before the TypeUsage arm, so `A` never doubles as a type_usage). Genuine unsafe
-// pointer declarations (`Node* p;` in an unsafe method/block) are gated out and keep their
-// existing behavior (pointee `type_usage`, declarator name excluded). A literal operand
-// (`limit * 3`) cannot be a declarator and already parses as `binary_expression`.
-// See `is_csharp_misparsed_mul_operand` / `is_in_csharp_unsafe_context`.
-
 /// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
 /// receiver (the complement of the Call/MemberAccess/TypeUsage arms)? Mirrors the
 /// structure of `is_csharp_type_usage_identifier` but for value/receiver reads,
@@ -665,9 +613,6 @@ fn is_csharp_value_read_identifier(node: Node) -> bool {
         "attribute" => false,
         "attribute_argument" => true,
 
-        // Rule 4: assignment RHS is a read; the LHS is a read only for a COMPOUND
-        // operator or an object/collection-initializer member. A plain `x = 5` LHS is
-        // write-only.
         "assignment_expression" => {
             let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
             if !is_left {
@@ -706,18 +651,8 @@ fn is_csharp_value_read_identifier(node: Node) -> bool {
     }
 }
 
-/// LOCKED CONTRACT addendum — `A * B` pointer mis-parse recovery.
-///
-/// tree-sitter-c-sharp resolves `identifier * identifier` in expression/argument
-/// position as a pointer-type `declaration_expression`
-/// (`type: (pointer_type type: (identifier A)) name: (identifier B)`) — the `*`
-/// binds as a pointer declarator, not multiplication. C# pointer types are legal
-/// ONLY inside an `unsafe` context, so when NO enclosing unsafe context exists the
-/// shape is unambiguously a multiplication and both operand identifiers are value
-/// reads. Returns true for either operand identifier (`A` the pointee, or `B` the
-/// declaration_expression name) of such a non-unsafe pointer-type
-/// `declaration_expression`. A literal operand (`limit * 3`) cannot be a declarator
-/// so it already parses as `binary_expression` and never reaches this shape.
+/// Identifiers around `*` are pointer syntax in the grammar, but multiplication
+/// outside an unsafe context.
 fn is_csharp_misparsed_mul_operand(base: &BaseExtractor, node: Node) -> bool {
     let Some(parent) = node.parent() else {
         return false;

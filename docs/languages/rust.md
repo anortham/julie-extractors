@@ -328,3 +328,7 @@ attribute in parameter position. That is the same grammar limit that keeps
 
 The temporary checkouts and SQLite artifacts were removed after recording this
 evidence.
+
+## Variable access facts
+
+Variable-reference and member-access identifiers carry metadata_json.access as read, write, or read_write when the syntax is classified. Plain and compound assignment targets, match/loop bindings, and `&mut` arguments are writes; shared references are reads. Field writes classify the field, while the receiver and all computed index expressions remain reads. Bindings already represented by symbols do not get duplicate identifiers.

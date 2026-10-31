@@ -228,3 +228,12 @@ forms (`Expecto/Progress.fs` and `Expecto.Tests/Tests.fs`).
 ```bash
 node scripts/grammar-freshness-report.mjs --format json
 ```
+
+## Variable access facts
+
+Emitted `variable_ref` and `member_access` identifiers include
+`metadata_json.access` when the syntax identifies the site. Mutable assignment
+targets using `<-` and lowercase match or loop bindings are `write`; an assigned
+member is a write while its receiver remains a read. Other classified references
+are `read`. Declaration names represented by symbol rows are not emitted again
+as variable references.

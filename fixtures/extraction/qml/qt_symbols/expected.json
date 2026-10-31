@@ -1443,6 +1443,44 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/qml/qt_symbols/source.qml:badgeRow:variable_ref:43:21",
+      "name": "badgeRow",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+      "start_line": 43,
+      "start_column": 21,
+      "end_line": 43,
+      "end_column": 29,
+      "start_byte": 855,
+      "end_byte": 863,
+      "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onReady:43:12",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/qt_symbols/source.qml:badgeRow:variable_ref:54:22",
+      "name": "badgeRow",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+      "start_line": 54,
+      "start_column": 22,
+      "end_line": 54,
+      "end_column": 30,
+      "start_byte": 1033,
+      "end_byte": 1041,
+      "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:Text:53:12",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:clicked:member_access:60:16",
       "name": "clicked",
       "kind": "member_access",
@@ -1458,6 +1496,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "QQC2.Button",
         "role": "signal_handler"
       }
@@ -1518,6 +1557,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "service",
         "role": "signal_handler"
       }
@@ -1538,8 +1578,47 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Rectangle",
         "role": "value_source_target"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/qt_symbols/source.qml:console:variable_ref:26:24",
+      "name": "console",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+      "start_line": 26,
+      "start_column": 24,
+      "end_line": 26,
+      "end_column": 31,
+      "start_byte": 508,
+      "end_byte": 515,
+      "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onLabelChanged:26:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/qt_symbols/source.qml:console:variable_ref:40:16",
+      "name": "console",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+      "start_line": 40,
+      "start_column": 16,
+      "end_line": 40,
+      "end_column": 23,
+      "start_byte": 799,
+      "end_byte": 806,
+      "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onCloseRequested:39:12",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
       }
     },
     {
@@ -1558,6 +1637,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "badgeRow"
       }
     },
@@ -1577,6 +1657,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "badgeRow"
       }
     },
@@ -1596,6 +1677,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "change_handler": true,
         "receiver": "Rectangle",
         "role": "signal_handler"
@@ -1615,7 +1697,10 @@
       "end_byte": 525,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onLabelChanged:26:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:log:call:26:32",
@@ -1671,6 +1756,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "service",
         "role": "signal_handler"
       }
@@ -1689,7 +1775,10 @@
       "end_byte": 817,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onCloseRequested:39:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:reason:variable_ref:66:31",
@@ -1705,7 +1794,10 @@
       "end_byte": 1266,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:close:65:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:service:variable_ref:37:20",
@@ -1721,7 +1813,48 @@
       "end_byte": 733,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:Connections:36:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/qt_symbols/source.qml:service:variable_ref:60:27",
+      "name": "service",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+      "start_line": 60,
+      "start_column": 27,
+      "end_line": 60,
+      "end_column": 34,
+      "start_byte": 1146,
+      "end_byte": 1153,
+      "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onClicked:60:16",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/qt_symbols/source.qml:service:variable_ref:66:8",
+      "name": "service",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+      "start_line": 66,
+      "start_column": 8,
+      "end_line": 66,
+      "end_column": 15,
+      "start_byte": 1237,
+      "end_byte": 1244,
+      "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:close:65:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

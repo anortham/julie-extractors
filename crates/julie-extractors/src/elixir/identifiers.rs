@@ -18,7 +18,7 @@ pub(super) fn extract_identifiers(
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
     let containing_symbols = base.containing_symbol_index(symbols);
-    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, symbols, 0);
     walk_tree_for_typespec_type_arguments(base, tree.root_node(), &containing_symbols, 0);
     base.identifiers.clone()
 }
@@ -27,20 +27,21 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    extract_identifier_from_node(base, node, containing_symbols);
+    extract_identifier_from_node(base, node, containing_symbols, symbols);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -48,6 +49,7 @@ fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         "call" => {
@@ -147,16 +149,21 @@ fn extract_identifier_from_node(
             let containing = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
         }
-        // `variable_ref` complement arm (locked contract — see the doc comment
-        // in csharp/identifiers.rs): a bare `identifier` used as a value or as
-        // the variable receiver of a dot access (`conn` in `conn.status`) — the
-        // reads the Call/dot arms above do not own. Module receivers are `alias`
-        // nodes and stay owned by the dot/alias arms (no double emission);
-        // keyword-list keys are atoms and never reach here; `nil`/`true`/`false`
-        // are distinct grammar nodes.
         "identifier"
             if super::helpers::is_attribute_operand(base, &node)
-                || is_elixir_value_read_identifier(base, node) =>
+                || is_elixir_value_read_identifier(base, node)
+                || crate::base::variable_access::rules_for_language("elixir").is_some_and(
+                    |rules| {
+                        !base.has_identifier_at_node(&node)
+                            && crate::base::variable_access::should_emit_write_reference(
+                                node,
+                                &base.get_node_text(&node),
+                                &base.content,
+                                rules,
+                                symbols,
+                            )
+                    },
+                ) =>
         {
             let name = base.get_node_text(&node);
             // Rule 5: `__MODULE__`-style special forms are never symbol names;

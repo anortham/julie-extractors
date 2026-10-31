@@ -667,7 +667,10 @@
       "end_byte": 208,
       "containing_key": "fixtures/extraction/java/reference_targets/source.java:choose:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

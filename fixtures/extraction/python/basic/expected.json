@@ -914,7 +914,10 @@
       "end_byte": 926,
       "containing_key": "fixtures/extraction/python/basic/source.py:evaluate:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:enabled:variable_ref:45:7",
@@ -930,7 +933,10 @@
       "end_byte": 896,
       "containing_key": "fixtures/extraction/python/basic/source.py:evaluate:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:fetch_url:call:36:4",
@@ -971,6 +977,25 @@
       }
     },
     {
+      "key": "fixtures/extraction/python/basic/source.py:i:variable_ref:46:12",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "start_line": 46,
+      "start_column": 12,
+      "end_line": 46,
+      "end_column": 13,
+      "start_byte": 910,
+      "end_byte": 911,
+      "containing_key": "fixtures/extraction/python/basic/source.py:evaluate:43:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/python/basic/source.py:i:variable_ref:47:21",
       "name": "i",
       "kind": "variable_ref",
@@ -984,7 +1009,10 @@
       "end_byte": 951,
       "containing_key": "fixtures/extraction/python/basic/source.py:evaluate:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:id:member_access:11:24",
@@ -1002,6 +1030,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1021,6 +1050,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1040,6 +1070,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -1057,7 +1088,10 @@
       "end_byte": 428,
       "containing_key": "fixtures/extraction/python/basic/source.py:record_run:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:id:variable_ref:8:18",
@@ -1073,7 +1107,10 @@
       "end_byte": 148,
       "containing_key": "fixtures/extraction/python/basic/source.py:__init__:7:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:observe_run:call:21:4",
@@ -1146,7 +1183,10 @@
       "end_byte": 253,
       "containing_key": "fixtures/extraction/python/basic/source.py:default_id:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:total:variable_ref:47:12",
@@ -1162,7 +1202,10 @@
       "end_byte": 946,
       "containing_key": "fixtures/extraction/python/basic/source.py:evaluate:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:total:variable_ref:48:11",
@@ -1178,7 +1221,10 @@
       "end_byte": 968,
       "containing_key": "fixtures/extraction/python/basic/source.py:evaluate:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:value:variable_ref:31:11",
@@ -1194,7 +1240,10 @@
       "end_byte": 630,
       "containing_key": "fixtures/extraction/python/basic/source.py:helper:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

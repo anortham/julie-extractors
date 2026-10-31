@@ -1458,7 +1458,10 @@
       "end_byte": 745,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:scales %i:32:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:each:call:31:7",
@@ -1591,7 +1594,10 @@
       "end_byte": 329,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a focused case:23:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:it:variable_ref:24:2",
@@ -1607,7 +1613,10 @@
       "end_byte": 374,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a disabled case:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:items:variable_ref:13:9",
@@ -1623,7 +1632,10 @@
       "end_byte": 152,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:total:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:items:variable_ref:41:15",
@@ -1639,7 +1651,10 @@
       "end_byte": 1009,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:testTotalsHelper:40:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:length:member_access:13:15",
@@ -1657,6 +1672,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "items"
       }
     },
@@ -1674,7 +1690,10 @@
       "end_byte": 1073,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:only:call:23:5",
@@ -1710,7 +1729,10 @@
       "end_byte": 1093,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:run:call:46:11",
@@ -1785,7 +1807,10 @@
       "end_byte": 422,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a planned case:25:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:variable_ref:26:2",
@@ -1801,7 +1826,10 @@
       "end_byte": 459,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a known-failing case:26:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:variable_ref:31:2",
@@ -1817,7 +1845,10 @@
       "end_byte": 679,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:doubles %i:31:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:todo:call:25:7",
@@ -1929,7 +1960,10 @@
       "end_byte": 730,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:doubles %i:31:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:value:variable_ref:32:55",
@@ -1945,7 +1979,10 @@
       "end_byte": 795,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:scales %i:32:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:xdescribe:call:37:0",

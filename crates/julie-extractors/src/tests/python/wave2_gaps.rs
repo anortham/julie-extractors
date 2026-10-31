@@ -177,6 +177,58 @@ fn every_plain_enum_body_assignment_is_an_enum_member() {
 }
 
 #[test]
+fn enum_member_declarations_stay_symbol_only_and_rebinding_is_a_write() {
+    let source = "from enum import Enum\n\nclass Color(Enum):\n    RED = 1\n    green = 2\n    X = 3\n    RED = 4\n";
+    let result = extract("color.py", source);
+    let color = one(&result, "Color");
+
+    for name in ["RED", "green", "X"] {
+        let declaration_text = format!("{name} = ");
+        let declaration = source.find(declaration_text.as_str()).unwrap();
+        assert!(
+            !idents(&result, name).iter().any(|identifier| {
+                identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte == declaration as u32
+            }),
+            "first enum binding {name} must remain symbol-only"
+        );
+        let members: Vec<_> = result
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.name == name)
+            .collect();
+        assert!(
+            !members.is_empty(),
+            "{name} must have an enum-member symbol"
+        );
+        assert!(
+            members.iter().all(|symbol| {
+                symbol.kind == SymbolKind::EnumMember
+                    && symbol.parent_id.as_deref() == Some(color.id.as_str())
+            }),
+            "{name} must stay an enum-member symbol"
+        );
+    }
+
+    let rebound = source.rfind("RED = 4").unwrap();
+    let write = idents(&result, "RED")
+        .into_iter()
+        .find(|identifier| {
+            identifier.kind == IdentifierKind::VariableRef
+                && identifier.start_byte == rebound as u32
+        })
+        .expect("later enum-member reassignment must emit a variable reference");
+    assert_eq!(
+        write
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str),
+        Some("write")
+    );
+}
+
+#[test]
 fn builtin_generic_subscripts_record_type_arguments() {
     let result = extract(
         "generics.py",
@@ -219,16 +271,22 @@ fn builtin_generic_subscripts_record_type_arguments() {
 
 #[test]
 fn match_class_patterns_and_dotted_value_patterns_are_references() {
-    let result = extract(
-        "match.py",
-        "from app.shapes import Point, Circle\nfrom app.colors import Color\n\ndef describe(shape):\n    match shape:\n        case Point(x=0, y=0):\n            return \"origin\"\n        case Circle(radius=r) if r > 10:\n            return \"big\"\n        case Color.RED:\n            return \"red\"\n        case other:\n            return str(other)\n",
-    );
+    let source = "from app.shapes import Point, Circle\nfrom app.colors import Color\n\ndef describe(shape):\n    match shape:\n        case Point(x=0, y=0):\n            return \"origin\"\n        case Circle(radius=r) if r > 10:\n            return \"big\"\n        case Color.RED:\n            return \"red\"\n        case other:\n            return str(other)\n";
+    let result = extract("match.py", source);
     let describe = one(&result, "describe").id.clone();
     let kind_of = |name: &str| -> Vec<IdentifierKind> {
         idents(&result, name)
             .iter()
             .map(|i| i.kind.clone())
             .collect()
+    };
+    let access_at = |name: &str, start: usize| {
+        idents(&result, name)
+            .into_iter()
+            .find(|identifier| identifier.start_byte == start as u32)
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
     };
     assert_eq!(kind_of("Point"), vec![IdentifierKind::TypeUsage]);
     assert_eq!(kind_of("Circle"), vec![IdentifierKind::TypeUsage]);
@@ -239,7 +297,18 @@ fn match_class_patterns_and_dotted_value_patterns_are_references() {
             .iter()
             .all(|i| i.containing_symbol_id.as_deref() == Some(describe.as_str()))
     );
-    assert_eq!(kind_of("other"), vec![IdentifierKind::VariableRef]);
+    assert_eq!(
+        kind_of("other"),
+        vec![IdentifierKind::VariableRef, IdentifierKind::VariableRef]
+    );
+    assert_eq!(
+        access_at("other", source.find("case other:").unwrap() + "case ".len()),
+        Some("write")
+    );
+    assert_eq!(
+        access_at("other", source.find("str(other)").unwrap() + "str(".len()),
+        Some("read")
+    );
 }
 
 #[test]

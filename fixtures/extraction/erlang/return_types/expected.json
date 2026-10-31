@@ -696,7 +696,10 @@
       "end_byte": 387,
       "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/return_types/source.erl:integer:type_usage:2:18",
@@ -848,6 +851,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "workspace"
       }
     },

@@ -176,6 +176,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "input"
       }
     },
@@ -193,7 +194,10 @@
       "end_byte": 100,
       "containing_key": "fixtures/extraction/fsharp/negative/source.fs:caller:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/negative/source.fs:unknown:call:7:4",
@@ -225,7 +229,10 @@
       "end_byte": 65,
       "containing_key": "fixtures/extraction/fsharp/negative/source.fs:caller:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

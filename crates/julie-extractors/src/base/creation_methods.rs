@@ -18,8 +18,17 @@ use super::types::{
     Identifier, Relationship, RelationshipKind, Symbol, SymbolKind, SymbolOptions, TypeInfo,
     TypeNameRules, Visibility, strip_type_decorations,
 };
+use super::variable_access;
 
 impl BaseExtractor {
+    pub(crate) fn has_identifier_at_node(&self, node: &Node<'_>) -> bool {
+        let start_byte = node.start_byte() as u32;
+        let end_byte = node.end_byte() as u32;
+        self.identifiers.iter().any(|identifier| {
+            identifier.start_byte == start_byte && identifier.end_byte == end_byte
+        })
+    }
+
     /// Create a symbol - exact port of createSymbol method
     pub fn create_symbol(
         &mut self,
@@ -151,9 +160,23 @@ impl BaseExtractor {
         kind: IdentifierKind,
         containing_symbol_id: Option<String>,
         receiver_type: Option<String>,
-        metadata: Option<HashMap<String, serde_json::Value>>,
+        mut metadata: Option<HashMap<String, serde_json::Value>>,
     ) -> Identifier {
         let span = NormalizedSpan::from_node(node);
+        if matches!(
+            &kind,
+            IdentifierKind::VariableRef | IdentifierKind::MemberAccess
+        ) && metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+            && let Some(rules) = variable_access::rules_for_language(&self.language)
+            && let Some(access) = variable_access::classify(*node, &self.content, rules)
+        {
+            metadata.get_or_insert_with(HashMap::new).insert(
+                "access".to_string(),
+                serde_json::Value::String(access.as_str().to_string()),
+            );
+        }
         self.push_identifier_at_span(
             span,
             name,
@@ -727,5 +750,57 @@ mod tests {
 
         assert_eq!(identifier.metadata, Some(metadata));
         assert_eq!(base.identifiers[0], identifier);
+    }
+
+    #[test]
+    fn has_identifier_at_node_matches_an_existing_exact_span() {
+        let source = "int f() { return item.field; }";
+        let tree = parse_c(source);
+        let member_access =
+            first_node_of_kind(tree.root_node(), "field_expression").expect("member access");
+        let member = member_access
+            .child_by_field_name("field")
+            .expect("member name");
+        let receiver = member_access
+            .child_by_field_name("argument")
+            .expect("member receiver");
+        let mut base = BaseExtractor::new(
+            "c".to_string(),
+            "/repo/a.c".to_string(),
+            source.to_string(),
+            Path::new("/repo"),
+        );
+
+        assert!(!base.has_identifier_at_node(&member));
+        base.create_identifier(
+            &member,
+            "field".to_string(),
+            IdentifierKind::MemberAccess,
+            None,
+        );
+
+        assert!(base.has_identifier_at_node(&member));
+        assert!(!base.has_identifier_at_node(&receiver));
+        assert!(!base.has_identifier_at_node(&member_access));
+    }
+
+    #[test]
+    fn has_identifier_at_node_rejects_a_larger_span_with_the_same_start() {
+        let source = "int f() { return ticks(); }";
+        let tree = parse_c(source);
+        let call = first_node_of_kind(tree.root_node(), "call_expression").expect("call node");
+        let function = call.child_by_field_name("function").expect("call target");
+        let mut base = BaseExtractor::new(
+            "c".to_string(),
+            "/repo/a.c".to_string(),
+            source.to_string(),
+            Path::new("/repo"),
+        );
+        base.create_identifier(&function, "ticks".to_string(), IdentifierKind::Call, None);
+
+        assert_eq!(function.start_byte(), call.start_byte());
+        assert_ne!(function.end_byte(), call.end_byte());
+        assert!(base.has_identifier_at_node(&function));
+        assert!(!base.has_identifier_at_node(&call));
     }
 }

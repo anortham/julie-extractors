@@ -181,7 +181,10 @@
       "end_byte": 219,
       "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:MarkWorker:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:18:57",
@@ -198,7 +201,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:18:7",
@@ -215,7 +221,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:1:25",
@@ -232,7 +241,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:21:7",
@@ -249,7 +261,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:23:45",
@@ -266,7 +281,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:8:50",
@@ -283,7 +301,10 @@
       "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:MarkWorker:4:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Jobs:type_usage:2:16",
@@ -316,7 +337,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Name:member_access:1:29",
@@ -333,7 +357,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Name:member_access:23:31",
@@ -350,7 +377,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Name:member_access:8:27",
@@ -367,7 +397,10 @@
       "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:MarkWorker:4:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Workers"
+      "receiver_type": "Workers",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:ROW_NUMBER:call:18:11",
@@ -400,7 +433,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Jobs"
+      "receiver_type": "Jobs",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Workers:type_usage:19:9",

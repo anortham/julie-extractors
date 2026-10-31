@@ -85,3 +85,12 @@ another punctuation character becomes that character, and so does a Unicode or
 hex escape of a printable character. `\n`, `\t`, and other control escapes stay
 as written, so a name stays on one line. An interpolation (`#{…}`) stays as
 written.
+
+## Variable access facts
+
+Emitted `variable_ref` and `member_access` identifiers include
+`metadata_json.access` when the syntax identifies the site. Match assignments,
+generator and case-clause bindings, and assigned member names are `write`; the
+right side of a match, pinned variables, member receivers, and other classified
+references are `read`. Declaration names represented by symbol rows are not
+emitted again as variable references.

@@ -2813,7 +2813,10 @@
       "end_byte": 2183,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Account:variable_ref:84:9",
@@ -2829,7 +2832,10 @@
       "end_byte": 1598,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:84:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Account:variable_ref:90:17",
@@ -2845,7 +2851,10 @@
       "end_byte": 1713,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Animal:variable_ref:79:25",
@@ -2861,7 +2870,10 @@
       "end_byte": 1491,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Base:variable_ref:80:32",
@@ -2877,7 +2889,10 @@
       "end_byte": 1529,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Dog:call:115:16",
@@ -2909,7 +2924,10 @@
       "end_byte": 1537,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:__index:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Remote:variable_ref:81:17",
@@ -2925,7 +2943,10 @@
       "end_byte": 1554,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:113:18",
@@ -2941,7 +2962,10 @@
       "end_byte": 2148,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:129:11",
@@ -2957,7 +2981,10 @@
       "end_byte": 2634,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:default_shape:128:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:55:0",
@@ -2973,7 +3000,10 @@
       "end_byte": 974,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:__index:55:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:55:16",
@@ -2989,7 +3019,10 @@
       "end_byte": 990,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:61:9",
@@ -3005,7 +3038,10 @@
       "end_byte": 1088,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:62:34",
@@ -3021,7 +3057,10 @@
       "end_byte": 1144,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:69:9",
@@ -3037,7 +3076,10 @@
       "end_byte": 1242,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:grow:69:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:71:11",
@@ -3053,7 +3095,10 @@
       "end_byte": 1303,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:grow:69:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Shape:variable_ref:76:44",
@@ -3069,7 +3114,10 @@
       "end_byte": 1424,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:SpecialAccount:variable_ref:91:9",
@@ -3085,7 +3133,10 @@
       "end_byte": 1743,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:withdraw:91:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:134:7",
@@ -3101,7 +3152,10 @@
       "end_byte": 2699,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:15:9",
@@ -3117,7 +3171,10 @@
       "end_byte": 238,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:16:37",
@@ -3133,7 +3190,10 @@
       "end_byte": 290,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:19:9",
@@ -3149,7 +3209,10 @@
       "end_byte": 312,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:run:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:23:9",
@@ -3165,7 +3228,10 @@
       "end_byte": 366,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:log:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:44:15",
@@ -3181,7 +3247,10 @@
       "end_byte": 748,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:45:31",
@@ -3197,7 +3266,10 @@
       "end_byte": 793,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:4:0",
@@ -3213,7 +3285,10 @@
       "end_byte": 54,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:__index:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:Worker:variable_ref:4:17",
@@ -3229,7 +3304,10 @@
       "end_byte": 71,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:__index:member_access:4:7",
@@ -3247,6 +3325,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "Worker"
       }
     },
@@ -3266,6 +3345,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "Shape"
       }
     },
@@ -3285,6 +3365,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "Remote"
       }
     },
@@ -3304,6 +3385,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -3321,7 +3403,10 @@
       "end_byte": 2553,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:balance:member_access:92:24",
@@ -3339,6 +3424,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -3358,6 +3444,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -3375,7 +3462,10 @@
       "end_byte": 2296,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:class:call:78:15",
@@ -3442,7 +3532,10 @@
       "end_byte": 689,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:count:variable_ref:31:19",
@@ -3458,7 +3551,10 @@
       "end_byte": 529,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:count:variable_ref:34:11",
@@ -3474,7 +3570,10 @@
       "end_byte": 591,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:count:variable_ref:35:16",
@@ -3490,7 +3589,10 @@
       "end_byte": 622,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:create:call:40:21",
@@ -3525,7 +3627,10 @@
       "end_byte": 2472,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:default_shape:call:132:17",
@@ -3557,7 +3662,10 @@
       "end_byte": 499,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:execute:call:123:7",
@@ -3630,6 +3738,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/lua/basic/source.lua:i:variable_ref:31:12",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/basic/source.lua",
+      "start_line": 31,
+      "start_column": 12,
+      "end_line": 31,
+      "end_column": 13,
+      "start_byte": 517,
+      "end_byte": 518,
+      "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/lua/basic/source.lua:i:variable_ref:32:28",
       "name": "i",
       "kind": "variable_ref",
@@ -3643,7 +3770,10 @@
       "end_byte": 562,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:id:member_access:12:25",
@@ -3661,6 +3791,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "worker"
       }
     },
@@ -3680,6 +3811,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -3697,7 +3829,10 @@
       "end_byte": 280,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:is_even:call:107:22",
@@ -3747,6 +3882,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "list"
       }
     },
@@ -3766,6 +3902,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "vim"
       }
     },
@@ -3785,6 +3922,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -3804,6 +3942,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -3821,7 +3960,10 @@
       "end_byte": 1166,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:list:variable_ref:118:4",
@@ -3837,7 +3979,10 @@
       "end_byte": 2313,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:missing_wave2:call:24:9",
@@ -3873,7 +4018,10 @@
       "end_byte": 1963,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:is_even:103:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:n:variable_ref:104:28",
@@ -3889,7 +4037,10 @@
       "end_byte": 1980,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:is_even:103:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:n:variable_ref:107:11",
@@ -3905,7 +4056,10 @@
       "end_byte": 2021,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:is_odd:106:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:n:variable_ref:107:30",
@@ -3921,7 +4075,10 @@
       "end_byte": 2040,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:is_odd:106:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:new:call:113:24",
@@ -4038,6 +4195,25 @@
       }
     },
     {
+      "key": "fixtures/extraction/lua/basic/source.lua:o:variable_ref:85:4",
+      "name": "o",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/basic/source.lua",
+      "start_line": 85,
+      "start_column": 4,
+      "end_line": 85,
+      "end_column": 5,
+      "start_byte": 1610,
+      "end_byte": 1611,
+      "containing_key": "fixtures/extraction/lua/basic/source.lua:new:84:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/lua/basic/source.lua:o:variable_ref:85:8",
       "name": "o",
       "kind": "variable_ref",
@@ -4051,7 +4227,10 @@
       "end_byte": 1615,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:84:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:o:variable_ref:86:17",
@@ -4067,7 +4246,10 @@
       "end_byte": 1640,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:84:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:o:variable_ref:88:11",
@@ -4083,7 +4265,10 @@
       "end_byte": 1684,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:84:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:os:variable_ref:123:4",
@@ -4099,7 +4284,10 @@
       "end_byte": 2509,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:query:call:122:7",
@@ -4198,7 +4386,10 @@
       "end_byte": 2558,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:run:call:25:16",
@@ -4382,7 +4573,10 @@
       "end_byte": 2336,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:size:member_access:64:9",
@@ -4400,6 +4594,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -4419,6 +4614,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -4438,6 +4634,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -4457,6 +4654,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -4474,7 +4672,10 @@
       "end_byte": 1187,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:new:61:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:sort:call:118:15",
@@ -4510,7 +4711,29 @@
       "end_byte": 1286,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:grow:69:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/lua/basic/source.lua:total:variable_ref:32:12",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/basic/source.lua",
+      "start_line": 32,
+      "start_column": 12,
+      "end_line": 32,
+      "end_column": 17,
+      "start_byte": 545,
+      "end_byte": 550,
+      "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:total:variable_ref:32:20",
@@ -4526,7 +4749,29 @@
       "end_byte": 558,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/lua/basic/source.lua:total:variable_ref:35:8",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/basic/source.lua",
+      "start_line": 35,
+      "start_column": 8,
+      "end_line": 35,
+      "end_column": 13,
+      "start_byte": 609,
+      "end_byte": 614,
+      "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:total:variable_ref:37:11",
@@ -4542,7 +4787,10 @@
       "end_byte": 663,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:evaluate:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:v:variable_ref:92:34",
@@ -4558,7 +4806,10 @@
       "end_byte": 1791,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:withdraw:91:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:value:variable_ref:8:11",
@@ -4574,7 +4825,10 @@
       "end_byte": 145,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:helper:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:vim:variable_ref:120:4",
@@ -4590,7 +4844,10 @@
       "end_byte": 2352,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:weak:variable_ref:124:21",
@@ -4606,7 +4863,10 @@
       "end_byte": 2564,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/basic/source.lua:worker:variable_ref:12:18",
@@ -4622,7 +4882,10 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/lua/basic/source.lua:run_worker:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

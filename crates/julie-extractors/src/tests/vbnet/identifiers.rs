@@ -253,8 +253,9 @@ End Namespace
             "Bar",               // With-initializer member LHS
             "Baz",               // attribute named argument (member reference)
             "count",             // compound-assignment target
-            "seed",              // RHS / argument value read
-            "total",             // condition + return reads
+            "x",
+            "seed",  // RHS / argument value read
+            "total", // condition + return reads
         ] {
             assert!(
                 var_refs.contains(&expected),
@@ -272,7 +273,6 @@ End Namespace
 
         // --- Negative cases (rules 2/3/4/5) ---
         for forbidden in [
-            "x",           // declaration name + plain-write LHS (both grammar shapes)
             "unusedParam", // parameter name only
             "GhostToken",  // comment-only mention
             "Sample",      // type/declaration name (New Sample type position)
@@ -322,6 +322,107 @@ End Namespace
             graph_ref.containing_symbol_id.as_deref(),
             Some(evaluate.id.as_str()),
             "receiver variable_ref should be contained in Evaluate"
+        );
+    }
+
+    fn variable_access_at(identifiers: &[crate::base::Identifier], start: usize) -> Option<&str> {
+        identifiers
+            .iter()
+            .find(|identifier| identifier.start_byte as usize == start)?
+            .metadata
+            .as_ref()?
+            .get("access")?
+            .as_str()
+    }
+
+    #[test]
+    fn variable_access_facts_follow_vbnet_assignment_and_pattern_syntax() {
+        let code = r#"
+Public Class Sample
+    Public Property Value As Integer
+    Public Function Consume(value As Integer) As Integer
+        Return value
+    End Function
+    Public Function Update(output As Integer, input As Integer, box As Sample, values As Integer()) As Integer
+        output = input
+        output += 1
+        box.Value = input
+        Consume(output)
+        For Each item In values
+            Consume(item)
+        Next
+        Try
+            Consume(output)
+        Catch caught As Exception
+            Consume(caught)
+        End Try
+        If output = input Then Return output
+        Return output
+    End Function
+End Class
+"#;
+        let mut parser = init_test_parser();
+        let tree = parser.parse(code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = crate::vbnet::VbNetExtractor::new(
+            "vbnet".to_string(),
+            "test.vb".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        assert_eq!(
+            variable_access_at(&identifiers, code.find("output = input").unwrap()),
+            Some("write")
+        );
+        assert_eq!(
+            variable_access_at(&identifiers, code.find("output += 1").unwrap()),
+            Some("read_write")
+        );
+        assert_eq!(
+            variable_access_at(&identifiers, code.find("Value = input").unwrap()),
+            Some("write")
+        );
+        assert_eq!(
+            variable_access_at(&identifiers, code.find("box.Value = input").unwrap()),
+            Some("read")
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("Consume(output)").unwrap() + "Consume(".len()
+            ),
+            Some("read")
+        );
+        let item_binding = code.find("For Each item").unwrap() + "For Each ".len();
+        assert!(symbols.iter().any(|symbol| symbol.name == "item"));
+        assert!(
+            identifiers
+                .iter()
+                .all(|identifier| identifier.start_byte as usize != item_binding)
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("Consume(item)").unwrap() + "Consume(".len()
+            ),
+            Some("read")
+        );
+        let catch_binding = code.find("Catch caught").unwrap() + "Catch ".len();
+        assert!(symbols.iter().any(|symbol| symbol.name == "caught"));
+        assert!(
+            identifiers
+                .iter()
+                .all(|identifier| identifier.start_byte as usize != catch_binding)
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("If output =").unwrap() + "If ".len()
+            ),
+            Some("read")
         );
     }
 }

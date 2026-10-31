@@ -1355,7 +1355,10 @@
       "end_byte": 583,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:HandleClick:22:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:Click:member_access:22:81",
@@ -1373,6 +1376,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Button"
       }
     },
@@ -1514,7 +1518,10 @@
       "end_byte": 449,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Run:16:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:Id:variable_ref:19:26",
@@ -1530,7 +1537,10 @@
       "end_byte": 479,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Run:16:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:List:type_usage:68:52",
@@ -1663,6 +1673,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "IJob"
       }
     },
@@ -1832,7 +1843,10 @@
       "end_byte": 1722,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:count:variable_ref:60:19",
@@ -1848,7 +1862,10 @@
       "end_byte": 1799,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:enabled:variable_ref:56:15",
@@ -1864,7 +1881,10 @@
       "end_byte": 1671,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:i:variable_ref:58:29",
@@ -1880,7 +1900,10 @@
       "end_byte": 1753,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:id:variable_ref:32:37",
@@ -1896,7 +1919,10 @@
       "end_byte": 900,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:RecordRun:31:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:total:variable_ref:58:20",
@@ -1912,7 +1938,29 @@
       "end_byte": 1748,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/vbnet/basic/source.vb:total:variable_ref:61:16",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "start_line": 61,
+      "start_column": 16,
+      "end_line": 61,
+      "end_column": 21,
+      "start_byte": 1825,
+      "end_byte": 1830,
+      "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:54:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:total:variable_ref:63:19",
@@ -1928,7 +1976,10 @@
       "end_byte": 1878,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:value:variable_ref:28:19",
@@ -1944,7 +1995,10 @@
       "end_byte": 782,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Helper:25:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

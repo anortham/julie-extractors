@@ -471,7 +471,10 @@
       "end_byte": 221,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:health:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:app:variable_ref:26:0",
@@ -487,7 +490,10 @@
       "end_byte": 306,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:bp:variable_ref:12:1",
@@ -503,7 +509,10 @@
       "end_byte": 150,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:bp:variable_ref:7:1",
@@ -519,7 +528,10 @@
       "end_byte": 71,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:index:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:flask:variable_ref:4:6",
@@ -535,7 +547,10 @@
       "end_byte": 49,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:app:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:get:call:12:4",
@@ -571,7 +586,10 @@
       "end_byte": 343,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:route:call:17:5",
@@ -627,7 +645,10 @@
       "end_byte": 214,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

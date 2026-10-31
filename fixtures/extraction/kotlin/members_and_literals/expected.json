@@ -2576,7 +2576,10 @@
       "end_byte": 1714,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:User:type_usage:75:35",
@@ -2726,7 +2729,10 @@
       "end_byte": 1170,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:apply:58:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:append:call:50:13",
@@ -2808,7 +2814,10 @@
       "end_byte": 1174,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:apply:58:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:combine:call:38:15",
@@ -2888,7 +2897,10 @@
       "end_byte": 1384,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:check:69:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:helper:call:66:11",
@@ -2926,7 +2938,10 @@
       "end_byte": 1652,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:length:variable_ref:7:17",
@@ -2942,7 +2957,10 @@
       "end_byte": 156,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:get:7:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:local:variable_ref:31:19",
@@ -2958,7 +2976,10 @@
       "end_byte": 756,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:create:29:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:mapper:variable_ref:82:45",
@@ -2974,7 +2995,10 @@
       "end_byte": 1691,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:mutableMapOf:call:16:27",
@@ -3010,7 +3034,10 @@
       "end_byte": 874,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:plus:37:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:other:variable_ref:41:43",
@@ -3026,7 +3053,10 @@
       "end_byte": 931,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:combine:41:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:query:call:82:13",
@@ -3066,7 +3096,10 @@
       "end_byte": 1818,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:record:call:21:12",
@@ -3148,7 +3181,10 @@
       "end_byte": 597,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:audit:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:value:variable_ref:20:12",
@@ -3164,7 +3200,10 @@
       "end_byte": 500,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:set:20:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:value:variable_ref:21:19",
@@ -3180,7 +3219,10 @@
       "end_byte": 528,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:set:20:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:value:variable_ref:22:20",
@@ -3196,7 +3238,10 @@
       "end_byte": 555,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:set:20:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:x:member_access:41:49",
@@ -3214,6 +3259,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "other"
       }
     },
@@ -3231,7 +3277,10 @@
       "end_byte": 923,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:combine:41:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:x:variable_ref:66:18",
@@ -3247,7 +3296,10 @@
       "end_byte": 1305,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:outer:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:y:variable_ref:65:25",
@@ -3263,7 +3315,10 @@
       "end_byte": 1281,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:helper:65:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

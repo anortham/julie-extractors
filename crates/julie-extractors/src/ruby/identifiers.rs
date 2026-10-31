@@ -24,6 +24,7 @@ pub(super) fn extract_identifiers(
     let context = IdentifierContext {
         containing_symbols: &containing_symbols,
         declarations: &declarations,
+        symbols,
     };
 
     walk_tree_for_identifiers(base, tree.root_node(), &context, &mut locals, 0);
@@ -37,6 +38,7 @@ struct IdentifierContext<'a, 'b> {
     /// `(start_byte, name)` of every symbol, to tell the assignment that
     /// declares a field from a later write to it.
     declarations: &'b HashSet<(u32, &'a str)>,
+    symbols: &'b [Symbol],
 }
 
 /// Recursively walk tree extracting identifiers from each node
@@ -164,18 +166,6 @@ fn extract_identifier_from_node(
             base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing_symbol_id);
         }
 
-        // `variable_ref` complement arm (locked contract — see the doc comment in
-        // csharp/identifiers.rs): a bare `identifier` used as a value or as the
-        // receiver of a call — the reads the Call/MemberAccess/TypeUsage arms
-        // above do not own.
-        //
-        // Ruby boundary: a bare lowercase identifier in value position can be a
-        // local read OR a receiverless zero-arg method call. tree-sitter-ruby
-        // yields a `call` node only when parens/args/blocks/receivers are
-        // present (owned by the Call arm above); the bare-`identifier`
-        // complement lands here, making both meanings name-visible. Constants
-        // are `constant` nodes and stay owned by the TypeUsage arm; `self`/
-        // `nil`/`true`/`false` are distinct grammar nodes and never reach here.
         "identifier" if is_ruby_value_read_identifier(node) => {
             let name = base.get_node_text(&node);
             // Rule 5: Ruby has no builtin-type filter to reuse; the only
@@ -197,10 +187,32 @@ fn extract_identifier_from_node(
             }
         }
 
+        "identifier"
+            if should_emit_write_reference(node, &base.content, context.symbols)
+                && !base.has_identifier_at_node(&node) =>
+        {
+            let name = base.get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
         _ => {
             // Skip other node types for now
         }
     }
+}
+
+fn should_emit_write_reference(node: Node<'_>, source: &str, symbols: &[Symbol]) -> bool {
+    let Some(rules) = crate::base::variable_access::rules_for_language("ruby") else {
+        return false;
+    };
+    let name = node.utf8_text(source.as_bytes()).unwrap_or_default();
+    crate::base::variable_access::should_emit_write_reference(node, name, source, rules, symbols)
 }
 
 /// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a

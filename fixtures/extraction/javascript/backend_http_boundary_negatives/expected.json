@@ -83,7 +83,10 @@
       "end_byte": 39,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:app:variable_ref:3:2",
@@ -99,7 +102,10 @@
       "end_byte": 70,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:member_access:1:7",
@@ -117,6 +123,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "module"
       }
     },
@@ -174,7 +181,10 @@
       "end_byte": 62,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module:variable_ref:1:0",
@@ -190,7 +200,10 @@
       "end_byte": 6,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

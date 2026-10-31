@@ -1024,7 +1024,10 @@
       "end_byte": 1320,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt::38:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:client:variable_ref:10:4",
@@ -1040,7 +1043,10 @@
       "end_byte": 340,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:client:variable_ref:11:4",
@@ -1056,7 +1062,10 @@
       "end_byte": 366,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:client:variable_ref:14:4",
@@ -1072,7 +1081,10 @@
       "end_byte": 475,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:client:variable_ref:15:4",
@@ -1088,7 +1100,10 @@
       "end_byte": 505,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:client:variable_ref:9:4",
@@ -1104,7 +1119,10 @@
       "end_byte": 292,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:delete:call:11:11",
@@ -1283,7 +1301,10 @@
       "end_byte": 524,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:java:member_access:25:89",
@@ -1301,6 +1322,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "class",
         "receiver_qualifier": "String"
       }
@@ -1321,6 +1343,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "class",
         "receiver_qualifier": "String"
       }
@@ -1339,7 +1362,10 @@
       "end_byte": 884,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:status:26:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:other:variable_ref:29:22",
@@ -1355,7 +1381,10 @@
       "end_byte": 1007,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:unrelated:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:post:call:10:11",
@@ -1394,7 +1423,10 @@
       "end_byte": 785,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:legacyUser:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

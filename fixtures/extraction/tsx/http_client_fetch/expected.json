@@ -463,7 +463,10 @@
       "end_byte": 221,
       "containing_key": "fixtures/extraction/tsx/http_client_fetch/source.tsx:createUser:5:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/http_client_fetch/source.tsx:url:variable_ref:10:15",
@@ -479,7 +482,10 @@
       "end_byte": 310,
       "containing_key": "fixtures/extraction/tsx/http_client_fetch/source.tsx:dynamicFetch:9:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

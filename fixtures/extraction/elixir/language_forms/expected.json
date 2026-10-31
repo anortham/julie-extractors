@@ -1953,7 +1953,10 @@
       "end_byte": 518,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:@timeout:variable_ref:21:33",
@@ -1969,7 +1972,10 @@
       "end_byte": 633,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:Account:type_usage:12:39",
@@ -2435,6 +2441,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "user",
         "receiver_qualifier": "cart"
       }
@@ -2453,7 +2460,10 @@
       "end_byte": 722,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:belongs_to:call:66:4",
@@ -2485,7 +2495,10 @@
       "end_byte": 534,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:cart:variable_ref:20:31",
@@ -2501,7 +2514,10 @@
       "end_byte": 585,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:cart:variable_ref:21:26",
@@ -2517,7 +2533,10 @@
       "end_byte": 623,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:circle:variable_ref:58:49",
@@ -2533,7 +2552,10 @@
       "end_byte": 1303,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:encode:58:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:expr:variable_ref:35:28",
@@ -2549,7 +2571,10 @@
       "end_byte": 914,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:trace:35:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:field:call:65:4",
@@ -2581,7 +2606,29 @@
       "end_byte": 657,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/elixir/language_forms/source.ex:found:variable_ref:22:8",
+      "name": "found",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/language_forms/source.ex",
+      "start_line": 22,
+      "start_column": 8,
+      "end_line": 22,
+      "end_column": 13,
+      "start_byte": 643,
+      "end_byte": 648,
+      "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:has_many:call:67:4",
@@ -2615,6 +2662,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "cart"
       }
     },
@@ -2632,7 +2680,10 @@
       "end_byte": 337,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:fetch:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:id:variable_ref:13:28",
@@ -2648,7 +2699,10 @@
       "end_byte": 419,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:fetch:13:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:id:variable_ref:39:19",
@@ -2664,7 +2718,10 @@
       "end_byte": 970,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:get:39:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:integer:type_usage:10:14",
@@ -2728,7 +2785,10 @@
       "end_byte": 773,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:price:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:items:variable_ref:8:45",
@@ -2744,7 +2804,10 @@
       "end_byte": 263,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:totals:8:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:keyword:type_usage:12:25",
@@ -2778,6 +2841,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "ets"
       }
     },
@@ -2797,6 +2861,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Encode",
         "receiver_qualifier": "Jason"
       }
@@ -2817,6 +2882,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Enum"
       }
     },
@@ -2834,7 +2900,10 @@
       "end_byte": 610,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:new:member_access:8:32",
@@ -2852,6 +2921,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "MapSet"
       }
     },
@@ -2885,7 +2955,10 @@
       "end_byte": 728,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:opts:variable_ref:58:57",
@@ -2901,7 +2974,10 @@
       "end_byte": 1309,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:encode:58:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:price:call:8:53",
@@ -2935,6 +3011,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "mod"
       }
     },
@@ -2952,7 +3029,10 @@
       "end_byte": 1611,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:email?:79:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/language_forms/source.ex:schema:call:64:2",
@@ -3162,7 +3242,27 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "cart"
+      }
+    },
+    {
+      "key": "fixtures/extraction/elixir/language_forms/source.ex:x:variable_ref:25:20",
+      "name": "x",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/language_forms/source.ex",
+      "start_line": 25,
+      "start_column": 20,
+      "end_line": 25,
+      "end_column": 21,
+      "start_byte": 697,
+      "end_byte": 698,
+      "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
       }
     },
     {
@@ -3179,7 +3279,10 @@
       "end_byte": 703,
       "containing_key": "fixtures/extraction/elixir/language_forms/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

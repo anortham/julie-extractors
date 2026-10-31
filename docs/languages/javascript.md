@@ -330,6 +330,18 @@ A rescan at commit `bed501c695a61886399ee622875f3be933c716d8` gives 3
 The temporary checkout and SQLite artifact were removed after recording this
 evidence.
 
+## Variable access facts
+
+At the references level, variable_ref and assignment-target member_access
+identifiers carry metadata_json.access. Ordinary value uses are read; plain
+assignment, update, loop-target, and catch bindings are write; compound
+assignment is read_write. In receiver.field = value, field is written and
+receiver and value are read.
+
+A declaration remains a symbol row. Its name does not get an additional
+identifier; an identifier already emitted for its initializer is a read. Calls
+and type usages do not carry access.
+
 ## Test labels
 
 A test or a test container named by a string literal takes the text that the

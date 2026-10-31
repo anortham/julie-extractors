@@ -1649,6 +1649,61 @@ collect_files() {
             "element writes are not declarations"
         );
     }
+
+    #[test]
+    fn variable_writes_and_ambiguous_expansions_are_classified() {
+        let code = "count=0\ncount=1\n((count += 1))\nfor item in one; do echo \"$item\"; done\necho $unquoted\necho \"$quoted\"\nscalar=$quoted\n[[ $count == 1 ]]\necho \"${array[$index]}\"\narray[$lhsindex + $offset]=1\neval \"$evaluated\"\n";
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut parser = init_test_parser();
+        let tree = parser.parse(code, None).unwrap();
+        let mut extractor = BashExtractor::new(
+            "bash".to_string(),
+            "test.sh".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let access_at_kind = |start: usize, kind| {
+            identifiers
+                .iter()
+                .find(|identifier| identifier.start_byte == start as u32 && identifier.kind == kind)
+                .and_then(|identifier| identifier.metadata.as_ref())
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(serde_json::Value::as_str)
+        };
+        let access_at = |start: usize| access_at_kind(start, IdentifierKind::VariableRef);
+
+        assert!(identifiers.iter().all(|identifier| {
+            identifier.start_byte != code.find("count=0").unwrap() as u32
+                || identifier.kind != IdentifierKind::VariableRef
+        }));
+        assert_eq!(access_at(code.find("count=1").unwrap()), Some("write"));
+        assert_eq!(
+            access_at(code.find("count += 1").unwrap()),
+            Some("read_write")
+        );
+        assert_eq!(access_at(code.find("item in").unwrap()), Some("write"));
+        assert_eq!(access_at(code.find("$unquoted").unwrap() + 1), None);
+        assert_eq!(access_at(code.find("$quoted").unwrap() + 1), Some("read"));
+        let scalar_value = code.find("scalar=$quoted").unwrap() + "scalar=$".len();
+        assert_eq!(access_at(scalar_value), Some("read"));
+        assert_eq!(
+            access_at(code.find("[[ $count").unwrap() + "[[ $".len()),
+            Some("read")
+        );
+        assert_eq!(access_at(code.find("$index").unwrap() + 1), Some("read"));
+        assert_eq!(
+            access_at_kind(
+                code.find("array[$lhsindex").unwrap(),
+                IdentifierKind::MemberAccess
+            ),
+            Some("read")
+        );
+        assert_eq!(access_at(code.find("$lhsindex").unwrap() + 1), Some("read"));
+        assert_eq!(access_at(code.find("$offset").unwrap() + 1), Some("read"));
+        assert_eq!(access_at(code.find("$evaluated").unwrap() + 1), None);
+    }
 }
 
 mod complexity;

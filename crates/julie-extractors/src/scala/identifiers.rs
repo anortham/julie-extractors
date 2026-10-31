@@ -15,7 +15,7 @@ pub(super) fn extract_identifiers(
 ) -> Vec<Identifier> {
     let containing_symbols = base.containing_symbol_index(symbols);
 
-    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, symbols, 0);
 
     base.identifiers.clone()
 }
@@ -25,20 +25,21 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    extract_identifier_from_node(base, node, containing_symbols);
+    extract_identifier_from_node(base, node, containing_symbols, symbols);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -47,6 +48,7 @@ fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         // Function/method calls
@@ -176,12 +178,21 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm (locked contract — see the reference
-        // implementation doc comment in csharp/identifiers.rs): a bare `identifier`
-        // used as a value or as the object/receiver of a field access — the reads
-        // the Call/MemberAccess/TypeUsage arms above do not own. Scala type
-        // positions are `type_identifier` nodes, so they never reach this arm.
-        "identifier" if is_scala_value_read_identifier(base, node) => {
+        "identifier"
+            if is_scala_value_read_identifier(base, node)
+                || crate::base::variable_access::rules_for_language("scala").is_some_and(
+                    |rules| {
+                        !base.has_identifier_at_node(&node)
+                            && crate::base::variable_access::should_emit_write_reference(
+                                node,
+                                &base.get_node_text(&node),
+                                &base.content,
+                                rules,
+                                symbols,
+                            )
+                    },
+                ) =>
+        {
             let name = base.get_node_text(&node);
             // Rule 5: reuse the existing noise filter. (`this`/`super`/`true`/
             // `null` are distinct grammar nodes, never `identifier`.)

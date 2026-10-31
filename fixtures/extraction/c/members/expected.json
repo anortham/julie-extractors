@@ -1321,7 +1321,10 @@
       "end_byte": 1382,
       "containing_key": "fixtures/extraction/c/members/source.c:serve:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:Ops:type_usage:28:23",
@@ -1451,6 +1454,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "v"
       }
     },
@@ -1470,6 +1474,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "p"
       }
     },
@@ -1489,6 +1494,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "pos",
         "receiver_qualifier": "v"
       }
@@ -1548,6 +1554,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "srv"
       }
     },
@@ -1565,7 +1572,10 @@
       "end_byte": 1032,
       "containing_key": "fixtures/extraction/c/members/source.c:make_pun:40:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:p:variable_ref:40:56",
@@ -1581,7 +1591,10 @@
       "end_byte": 1048,
       "containing_key": "fixtures/extraction/c/members/source.c:make_pun:40:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:pos:member_access:45:26",
@@ -1599,6 +1612,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "v"
       }
     },
@@ -1637,7 +1651,10 @@
       "end_byte": 1295,
       "containing_key": "fixtures/extraction/c/members/source.c:serve:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:srv:variable_ref:50:4",
@@ -1653,7 +1670,10 @@
       "end_byte": 1321,
       "containing_key": "fixtures/extraction/c/members/source.c:serve:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:srv:variable_ref:51:6",
@@ -1669,7 +1689,10 @@
       "end_byte": 1345,
       "containing_key": "fixtures/extraction/c/members/source.c:serve:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:tag:member_access:45:49",
@@ -1687,6 +1710,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "v"
       }
     },
@@ -1704,7 +1728,10 @@
       "end_byte": 1189,
       "containing_key": "fixtures/extraction/c/members/source.c:value_int:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:v:variable_ref:45:23",
@@ -1720,7 +1747,10 @@
       "end_byte": 1201,
       "containing_key": "fixtures/extraction/c/members/source.c:value_int:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:v:variable_ref:45:46",
@@ -1736,7 +1766,10 @@
       "end_byte": 1224,
       "containing_key": "fixtures/extraction/c/members/source.c:value_int:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

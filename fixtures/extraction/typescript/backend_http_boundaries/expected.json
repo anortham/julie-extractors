@@ -554,7 +554,10 @@
       "end_byte": 680,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Router:call:20:18",
@@ -609,7 +612,10 @@
       "end_byte": 248,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:app:variable_ref:8:2",
@@ -625,7 +631,10 @@
       "end_byte": 162,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:body:member_access:21:43",
@@ -643,6 +652,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "ctx"
       }
     },
@@ -660,7 +670,10 @@
       "end_byte": 645,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:express:call:5:14",
@@ -695,7 +708,10 @@
       "end_byte": 145,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:fastify:call:12:17",
@@ -769,7 +785,10 @@
       "end_byte": 711,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koa:variable_ref:21:2",
@@ -785,7 +804,10 @@
       "end_byte": 608,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:post:call:21:6",
@@ -821,7 +843,10 @@
       "end_byte": 299,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:res:variable_ref:9:42",
@@ -837,7 +862,10 @@
       "end_byte": 229,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:route:call:10:6",
@@ -913,7 +941,10 @@
       "end_byte": 181,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:router:variable_ref:9:2",
@@ -929,7 +960,10 @@
       "end_byte": 192,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:send:call:10:57",
@@ -1005,7 +1039,10 @@
       "end_byte": 354,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:use:call:8:6",

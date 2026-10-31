@@ -2255,7 +2255,10 @@
       "end_byte": 906,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:Row:type_usage:21:31",
@@ -2351,7 +2354,10 @@
       "end_byte": 1661,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:select:56:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:canSave:variable_ref:10:28",
@@ -2367,7 +2373,10 @@
       "end_byte": 323,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:current:variable_ref:9:22",
@@ -2383,7 +2392,10 @@
       "end_byte": 261,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:defineComponent:call:28:15",
@@ -2439,6 +2451,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -2496,6 +2509,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "row"
       }
     },
@@ -2515,6 +2529,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "item"
       }
     },
@@ -2534,6 +2549,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "item"
       }
     },
@@ -2551,7 +2567,10 @@
       "end_byte": 1102,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:load:34:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:item:variable_ref:56:39",
@@ -2567,7 +2586,10 @@
       "end_byte": 1672,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:select:56:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:item:variable_ref:7:38",
@@ -2583,7 +2605,10 @@
       "end_byte": 161,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:item:variable_ref:7:67",
@@ -2599,7 +2624,10 @@
       "end_byte": 190,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:item:variable_ref:7:89",
@@ -2615,7 +2643,10 @@
       "end_byte": 212,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:items:variable_ref:57:27",
@@ -2631,7 +2662,10 @@
       "end_byte": 1711,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:reload:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:items:variable_ref:58:35",
@@ -2647,7 +2681,10 @@
       "end_byte": 1758,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:save:58:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:items:variable_ref:7:25",
@@ -2663,7 +2700,10 @@
       "end_byte": 149,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:last:member_access:32:56",
@@ -2681,6 +2721,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -2700,6 +2741,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "user"
       }
     },
@@ -2719,6 +2761,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "this"
       }
     },
@@ -2738,6 +2781,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "user"
       }
     },
@@ -2775,7 +2819,10 @@
       "end_byte": 59,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:name:member_access:22:31",
@@ -2793,6 +2840,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "row"
       }
     },
@@ -2866,7 +2914,10 @@
       "end_byte": 690,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:formatRow:21:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:row:variable_ref:22:6",
@@ -2882,7 +2933,10 @@
       "end_byte": 669,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:formatRow:21:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:row:variable_ref:25:79",
@@ -2898,7 +2952,10 @@
       "end_byte": 794,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:add:25:42",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:rows:member_access:25:69",
@@ -2916,6 +2973,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -3029,7 +3087,10 @@
       "end_byte": 1118,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:load:34:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:user:variable_ref:36:35",
@@ -3045,7 +3106,10 @@
       "end_byte": 1143,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:load:34:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:userId:member_access:38:31",
@@ -3063,6 +3127,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     }

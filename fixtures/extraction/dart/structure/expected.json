@@ -1704,7 +1704,10 @@
       "end_byte": 776,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:add:39:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:Duration:call:2:17",
@@ -1944,7 +1947,10 @@
       "end_byte": 953,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:wire:48:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:add:call:40:10",
@@ -1963,6 +1969,25 @@
       "confidence": "1.000",
       "metadata": {
         "receiver": "items"
+      }
+    },
+    {
+      "key": "fixtures/extraction/dart/structure/source.dart:button:variable_ref:49:4",
+      "name": "button",
+      "kind": "variable_ref",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/structure/source.dart",
+      "start_line": 49,
+      "start_column": 4,
+      "end_line": 49,
+      "end_column": 10,
+      "start_byte": 878,
+      "end_byte": 884,
+      "containing_key": "fixtures/extraction/dart/structure/source.dart:wire:48:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
       }
     },
     {
@@ -2183,7 +2208,10 @@
       "end_byte": 732,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:add:39:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:items:variable_ref:28:11",
@@ -2199,7 +2227,10 @@
       "end_byte": 575,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:size:27:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:items:variable_ref:40:4",
@@ -2215,7 +2246,10 @@
       "end_byte": 723,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:add:39:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:length:member_access:28:17",
@@ -2233,6 +2267,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "items"
       }
     },
@@ -2269,6 +2304,25 @@
       "confidence": "1.000",
       "metadata": {
         "receiver": "rows"
+      }
+    },
+    {
+      "key": "fixtures/extraction/dart/structure/source.dart:onPressed:variable_ref:49:11",
+      "name": "onPressed",
+      "kind": "variable_ref",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/structure/source.dart",
+      "start_line": 49,
+      "start_column": 11,
+      "end_line": 49,
+      "end_column": 20,
+      "start_byte": 885,
+      "end_byte": 894,
+      "containing_key": "fixtures/extraction/dart/structure/source.dart:wire:48:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
       }
     },
     {
@@ -2353,7 +2407,10 @@
       "end_byte": 377,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:Cart:15:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:row:variable_ref:50:50",
@@ -2369,7 +2426,10 @@
       "end_byte": 966,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:wire:48:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:rows:variable_ref:50:18",
@@ -2385,7 +2445,10 @@
       "end_byte": 935,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:wire:48:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:store:variable_ref:16:4",
@@ -2401,7 +2464,10 @@
       "end_byte": 408,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:Cart:15:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:store:variable_ref:19:23",
@@ -2417,7 +2483,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:Cart.empty:19:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:toList:call:50:56",
@@ -2481,7 +2550,10 @@
       "end_byte": 629,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:size:31:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

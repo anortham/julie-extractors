@@ -382,10 +382,6 @@ function standalone(App $app): void {
 
 #[test]
 fn test_php_variable_ref_emission() {
-    // Locked variable_ref contract (see csharp/identifiers.rs): receivers + bare
-    // value reads, the complement of the Call/MemberAccess/TypeUsage arms.
-    // PHP variable rows use the sigil-free inner `name` text ($total -> "total"),
-    // matching extract_variable_assignment symbol naming.
     let php_code = r#"<?php
 
 class Sample {
@@ -393,14 +389,14 @@ class Sample {
 
     public function evaluate(int $seed, int $unusedParam): int {
         $count = 0;
-        $count += 1;                            // compound assignment -> read count
+        $count += 1;
         $x = 5;
-        $x = 7;                                 // plain write LHS -> NOT a read
-        $total = $seed;                         // seed on RHS -> read
-        $g = GraphTraversal::reach();           // scope receiver -> read; reach -> call
-        $f = configure(mode: 5, source: $seed); // named-arg LABEL mode skipped; seed read
+        $x = 7;
+        $total = $seed;
+        $g = GraphTraversal::reach();
+        $f = configure(mode: 5, source: $seed);
         // ghostToken appears only in this comment and must never be extracted
-        echo VISIBILITY_UNKNOWN;                // bare constant read
+        echo VISIBILITY_UNKNOWN;
         return $total > 0 ? $total : $fallback;
     }
 }
@@ -423,15 +419,26 @@ class Sample {
         .filter(|id| id.kind == IdentifierKind::VariableRef)
         .map(|id| id.name.as_str())
         .collect();
+    let access = |name: &str, start: usize| {
+        identifiers
+            .iter()
+            .find(|id| {
+                id.name == name
+                    && id.kind == IdentifierKind::VariableRef
+                    && id.start_byte == start as u32
+            })
+            .and_then(|id| id.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
 
-    // Positive cases (rules 1/4)
     for expected in [
-        "count",              // compound-assignment target
-        "seed",               // RHS + named-argument VALUE read
-        "total",              // condition + ternary reads
-        "GraphTraversal",     // static-call scope receiver
-        "VISIBILITY_UNKNOWN", // bare constant read (echo)
-        "fallback",           // bare value read
+        "count",
+        "seed",
+        "total",
+        "GraphTraversal",
+        "VISIBILITY_UNKNOWN",
+        "fallback",
     ] {
         assert!(
             var_refs.contains(&expected),
@@ -439,7 +446,6 @@ class Sample {
         );
     }
 
-    // Receiver + call coexist: GraphTraversal::reach()
     assert!(
         identifiers
             .iter()
@@ -447,30 +453,28 @@ class Sample {
         "GraphTraversal::reach() must still yield a call named reach"
     );
 
-    // Negative cases (rules 2/3/4/5)
     for forbidden in [
-        "x",           // plain-write LHS only
-        "unusedParam", // parameter name only
-        "mode",        // named-argument LABEL (parameter ref, per plan)
-        "ghostToken",  // comment-only mention
-        "Sample",      // class declaration name
-        "evaluate",    // method declaration name
-        "bar",         // property declaration name
-        "this",        // receiver convention, filtered
-        "configure",   // call callee (owned by the Call arm)
-        "int",         // primitive_type node, never an identifier here
+        "unusedParam",
+        "mode",
+        "ghostToken",
+        "Sample",
+        "evaluate",
+        "bar",
+        "this",
+        "configure",
+        "int",
     ] {
         assert!(
             !var_refs.contains(&forbidden),
             "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
         );
     }
+    assert_eq!(access("x", php_code.find("$x = 7").unwrap()), Some("write"));
     assert!(
         !identifiers.iter().any(|id| id.name == "ghostToken"),
         "comment-only ghostToken must not be extracted at all"
     );
 
-    // No duplicate rows: each (name, kind, span) is unique.
     let mut keys: Vec<(String, String, u32, u32)> = identifiers
         .iter()
         .map(|id| {
@@ -501,4 +505,131 @@ class Sample {
         Some(evaluate.id.as_str()),
         "receiver variable_ref should be contained in evaluate"
     );
+}
+
+#[test]
+fn test_php_variable_access_facts() {
+    let code = r#"<?php
+$global_plain = 0;
+$global_plain = 1;
+class Holder { public $value; }
+function consume($value) {}
+function writes($initial, $box, $argument, $records) {
+    $initialized = $initial;
+    $plain = 0;
+    $plain = $initial;
+    $compound = 0;
+    $compound += $initial;
+    $box->value = $initial;
+    consume($argument);
+    foreach ($records as &$captured) {
+        consume($captured);
+    }
+}
+"#;
+    let mut parser = init_test_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = PhpExtractor::new(
+        "php".to_string(),
+        "test.php".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+    let access = |name: &str, kind: IdentifierKind, start: usize| {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == name
+                    && identifier.kind == kind
+                    && identifier.start_byte == start as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+    let has_variable_ref_at = |start: usize| {
+        identifiers.iter().any(|identifier| {
+            identifier.kind == IdentifierKind::VariableRef && identifier.start_byte == start as u32
+        })
+    };
+
+    let initialized_target = code.find("$initialized = $initial").unwrap();
+    let plain_declaration = code.find("$plain = 0").unwrap();
+    let plain = code.find("$plain = $initial").unwrap();
+    let global_declaration = code.find("$global_plain = 0").unwrap();
+    let global_write = code.find("$global_plain = 1").unwrap();
+    let compound = code.find("$compound += $initial").unwrap();
+    let member = code.find("$box->value").unwrap() + "$box->".len();
+    let argument = code.find("consume($argument)").unwrap() + "consume(".len();
+    let binding = code.find("$captured)").unwrap();
+    assert!(!has_variable_ref_at(initialized_target));
+    assert!(!has_variable_ref_at(plain_declaration));
+    assert!(!has_variable_ref_at(global_declaration));
+    assert_eq!(
+        access("global_plain", IdentifierKind::VariableRef, global_write),
+        Some("write")
+    );
+    assert_eq!(
+        access(
+            "initial",
+            IdentifierKind::VariableRef,
+            code.find("$initialized = $initial").unwrap() + "$initialized = ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        access("plain", IdentifierKind::VariableRef, plain),
+        Some("write")
+    );
+    assert_eq!(
+        access("compound", IdentifierKind::VariableRef, compound),
+        Some("read_write")
+    );
+    assert_eq!(
+        access("value", IdentifierKind::MemberAccess, member),
+        Some("write")
+    );
+    assert_eq!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.start_byte == member as u32)
+            .count(),
+        1
+    );
+    assert_eq!(
+        access("argument", IdentifierKind::VariableRef, argument),
+        Some("read")
+    );
+    let call_start = code.find("consume($argument)").unwrap();
+    let call = identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte == call_start as u32)
+        .expect("consume call identifier");
+    assert_eq!(call.name, "consume");
+    assert_eq!(call.kind, IdentifierKind::Call);
+    assert_eq!(
+        call.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access")),
+        None
+    );
+    if symbols.iter().any(|symbol| {
+        symbol.name == "captured"
+            && symbol.start_byte <= binding as u32
+            && symbol.end_byte >= (binding + "$captured".len()) as u32
+    }) {
+        assert!(
+            identifiers
+                .iter()
+                .all(|identifier| identifier.start_byte != binding as u32)
+        );
+    } else {
+        assert_eq!(
+            access("captured", IdentifierKind::VariableRef, binding),
+            Some("write")
+        );
+    }
 }

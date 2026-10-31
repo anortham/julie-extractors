@@ -2695,7 +2695,10 @@
       "end_byte": 115,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:now:7:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:User:type_usage:66:76",
@@ -2743,7 +2746,10 @@
       "end_byte": 1378,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:show:57:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:a:variable_ref:60:38",
@@ -2759,7 +2765,10 @@
       "end_byte": 1458,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:show:60:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:currentTimeMillis:call:7:27",
@@ -2828,7 +2837,10 @@
       "end_byte": 938,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:run:36:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:filter:call:39:40",
@@ -2903,7 +2915,10 @@
       "end_byte": 1081,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:double:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:i:variable_ref:46:34",
@@ -2919,7 +2934,10 @@
       "end_byte": 1121,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:positive:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:id:variable_ref:66:66",
@@ -2935,7 +2953,10 @@
       "end_byte": 1603,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:byId:66:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:id:variable_ref:67:70",
@@ -2951,7 +2972,10 @@
       "end_byte": 1689,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:fetch:67:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:loop:call:43:51",
@@ -2989,7 +3013,10 @@
       "end_byte": 505,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:Custom:25:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:map:call:39:29",
@@ -3023,6 +3050,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "a"
       }
     },
@@ -3040,7 +3068,10 @@
       "end_byte": 1025,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:loop:42:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:n:variable_ref:43:56",
@@ -3056,7 +3087,10 @@
       "end_byte": 1045,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:loop:42:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:name:variable_ref:38:26",
@@ -3072,7 +3106,10 @@
       "end_byte": 898,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:run:36:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:plus:call:38:21",
@@ -3104,7 +3141,10 @@
       "end_byte": 954,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:run:36:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:query:member_access:66:70",
@@ -3120,7 +3160,10 @@
       "end_byte": 1610,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:byId:66:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:r:member_access:63:23",
@@ -3138,6 +3181,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -3157,6 +3201,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -3174,7 +3219,10 @@
       "end_byte": 888,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:run:36:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:requests:variable_ref:67:24",
@@ -3190,7 +3238,10 @@
       "end_byte": 1649,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:fetch:67:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:s:variable_ref:63:21",
@@ -3206,7 +3257,10 @@
       "end_byte": 1512,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:area:63:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:s:variable_ref:63:27",
@@ -3222,7 +3276,10 @@
       "end_byte": 1518,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:area:63:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:tailrec:type_usage:42:20",
@@ -3288,6 +3345,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "a"
       }
     },
@@ -3344,7 +3402,10 @@
       "end_byte": 1721,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:load:68:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

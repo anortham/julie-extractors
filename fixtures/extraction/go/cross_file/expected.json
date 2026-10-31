@@ -223,7 +223,10 @@
       "end_byte": 366,
       "containing_key": "fixtures/extraction/go/cross_file/source.go:entry:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

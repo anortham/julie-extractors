@@ -152,3 +152,7 @@ edge, and fills the trigger fact from the text.
   `HAVING`, a join, a set operation, and each `MERGE` `WHEN` clause.
 - Loops: `WHILE`.
 - Views get a symbol metric. A routine metric has `parameter_count`.
+
+## Variable access facts
+
+Emitted SQL variable references carry `metadata_json.access` when the syntax identifies their access. T-SQL `SET` and `UPDATE` assignment targets are writes; other emitted variable references default to reads.

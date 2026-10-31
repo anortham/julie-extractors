@@ -928,7 +928,10 @@
       "end_byte": 290,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:call:variable_ref:15:12",
@@ -944,7 +947,10 @@
       "end_byte": 372,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:call:variable_ref:21:16",
@@ -960,7 +966,10 @@
       "end_byte": 551,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:call:variable_ref:25:16",
@@ -976,7 +985,10 @@
       "end_byte": 688,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:call:variable_ref:31:12",
@@ -992,7 +1004,10 @@
       "end_byte": 836,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:call:variable_ref:36:12",
@@ -1008,7 +1023,10 @@
       "end_byte": 984,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:call:variable_ref:39:12",
@@ -1024,7 +1042,10 @@
       "end_byte": 1061,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:call:variable_ref:45:8",
@@ -1040,7 +1061,10 @@
       "end_byte": 1187,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:call:variable_ref:9:12",
@@ -1056,7 +1080,10 @@
       "end_byte": 220,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:client:variable_ref:49:4",
@@ -1072,7 +1099,10 @@
       "end_byte": 1292,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:delete:call:14:8",
@@ -1267,7 +1297,10 @@
       "end_byte": 1041,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:map:variable_ref:50:4",
@@ -1283,7 +1316,10 @@
       "end_byte": 1318,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:post:call:11:8",

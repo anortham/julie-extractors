@@ -24,3 +24,7 @@ literal writes: bats `@test "adds \"three\""` and the ShellSpec `Describe` and
 double-quoted label, `\` before `$`, `` ` ``, `"`, or `\` writes that character,
 and every other `\` stays as written. A single-quoted label keeps its text as
 written. An expansion is `{}`.
+
+## Variable access facts
+
+Bash reference identifiers receive access metadata when the syntax is clear. Reassignment and arithmetic assignment targets are writes; compound assignments and increments are read/write. Loop bindings are writes. Variable expansions in unquoted words leave the key absent because word splitting can change which value each token names. Expansions passed to `eval` also leave the key absent. Quoted expansions, scalar assignment values, test expressions, and subscript indices remain reads. An initial assignment represented by a variable symbol does not add a duplicate reference.

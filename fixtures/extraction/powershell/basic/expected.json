@@ -1910,7 +1910,10 @@
       "end_byte": 1869,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Update-Config:105:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Config:variable_ref:111:4",
@@ -1926,7 +1929,10 @@
       "end_byte": 1893,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Update-Config:105:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Config:variable_ref:113:4",
@@ -1942,7 +1948,10 @@
       "end_byte": 1945,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Update-Config:105:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Count:member_access:102:31",
@@ -1960,6 +1969,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Widget"
       }
     },
@@ -1977,7 +1987,10 @@
       "end_byte": 432,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Count:variable_ref:24:14",
@@ -1993,7 +2006,10 @@
       "end_byte": 497,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Dictionary:type_usage:34:1",
@@ -2025,7 +2041,10 @@
       "end_byte": 394,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Export-ModuleMember:call:121:0",
@@ -2187,6 +2206,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "this"
       }
     },
@@ -2206,6 +2226,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -2287,7 +2308,29 @@
       "end_byte": 1469,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Get-First:80:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/powershell/basic/source.ps1:MAX:variable_ref:109:4",
+      "name": "MAX",
+      "kind": "variable_ref",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 109,
+      "start_column": 4,
+      "end_line": 109,
+      "end_column": 8,
+      "start_byte": 1849,
+      "end_byte": 1853,
+      "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Update-Config:105:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:MAX:variable_ref:118:85",
@@ -2303,7 +2346,10 @@
       "end_byte": 2190,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Update-Config:105:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Name:member_access:118:54",
@@ -2321,6 +2367,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "_"
       }
     },
@@ -2478,6 +2525,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "Config"
       }
     },
@@ -2495,7 +2543,10 @@
       "end_byte": 278,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Invoke-Run:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Value:variable_ref:8:11",
@@ -2511,7 +2562,10 @@
       "end_byte": 194,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Invoke-Helper:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Where-Object:call:118:63",
@@ -2703,7 +2757,10 @@
       "end_byte": 2036,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Update-Config:105:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:f:variable_ref:63:18",
@@ -2719,7 +2776,10 @@
       "end_byte": 1039,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Run:62:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:f:variable_ref:64:19",
@@ -2735,7 +2795,10 @@
       "end_byte": 1062,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Run:62:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:i:variable_ref:21:21",
@@ -2751,7 +2814,10 @@
       "end_byte": 421,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:i:variable_ref:21:36",
@@ -2767,7 +2833,10 @@
       "end_byte": 436,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:i:variable_ref:22:22",
@@ -2783,7 +2852,10 @@
       "end_byte": 466,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:id:variable_ref:40:19",
@@ -2799,7 +2871,10 @@
       "end_byte": 753,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Worker:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:made:variable_ref:115:20",
@@ -2815,7 +2890,10 @@
       "end_byte": 2022,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Update-Config:105:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:new:call:70:19",
@@ -2850,7 +2928,10 @@
       "end_byte": 1055,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Run:62:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:total:variable_ref:22:12",
@@ -2866,7 +2947,29 @@
       "end_byte": 460,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/powershell/basic/source.ps1:total:variable_ref:25:8",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 25,
+      "start_column": 8,
+      "end_line": 25,
+      "end_column": 14,
+      "start_byte": 515,
+      "end_byte": 521,
+      "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/basic/source.ps1:total:variable_ref:27:11",
@@ -2882,7 +2985,10 @@
       "end_byte": 549,
       "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Evaluate:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

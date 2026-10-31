@@ -15,7 +15,7 @@ pub(super) fn extract_identifiers(
     let containing_symbols = extractor.base.containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, symbols, 0);
 
     // Return the collected identifiers
     extractor.base.identifiers.clone()
@@ -26,6 +26,7 @@ fn walk_tree_for_identifiers(
     extractor: &mut RExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -33,7 +34,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from current node
-    extract_identifier_from_node(extractor, node, containing_symbols);
+    extract_identifier_from_node(extractor, node, containing_symbols, symbols);
 
     // Recursively process children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -41,7 +42,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -50,6 +51,7 @@ fn extract_identifier_from_node(
     extractor: &mut RExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         "call" => {
@@ -97,17 +99,39 @@ fn extract_identifier_from_node(
             }
         }
 
-        // Variable references
         "identifier" => {
             if is_placeholder(&extractor.base.get_node_text(&node)) {
                 return;
             }
             if let Some(parent) = node.parent() {
                 match parent.kind() {
-                    "argument" | "for_statement"
+                    "argument"
                         if parent.child_by_field_name("name") == Some(node)
                             || parent.child_by_field_name("variable") == Some(node) => {}
-                    // Skip if this is the function being called
+                    "for_statement"
+                        if parent.child_by_field_name("name") == Some(node)
+                            || parent.child_by_field_name("variable") == Some(node) =>
+                    {
+                        let name = extractor.base.get_node_text(&node);
+                        let rules = crate::base::variable_access::rules_for_language("r")
+                            .expect("R variable access rules are registered");
+                        if crate::base::variable_access::should_emit_write_reference(
+                            node,
+                            &name,
+                            &extractor.base.content,
+                            rules,
+                            symbols,
+                        ) && !extractor.base.has_identifier_at_node(&node)
+                        {
+                            push_identifier(
+                                extractor,
+                                node,
+                                name,
+                                IdentifierKind::VariableRef,
+                                containing_symbols,
+                            );
+                        }
+                    }
                     "call" if parent.child(0).map(|c| c.id()) == Some(node.id()) => {}
                     "extract_operator" => {
                         let name = extractor.base.get_node_text(&node);
@@ -139,9 +163,7 @@ fn extract_identifier_from_node(
                             );
                         }
                     }
-                    // Skip if this is a parameter name
                     "parameter" => {}
-                    // Check if this is the left side of an assignment
                     "binary_operator" => {
                         if let Some((target, operator)) =
                             super::superassignment::target(extractor, parent)
@@ -163,19 +185,31 @@ fn extract_identifier_from_node(
                             );
                             return;
                         }
-                        if let Some(operator) = parent.child(1) {
-                            let op_text = extractor.base.get_node_text(&operator);
-                            // Skip if this is the target of an assignment
-                            if (op_text == "<-" || op_text == "=" || op_text == "<<-")
-                                && parent.child(0).map(|c| c.id()) == Some(node.id())
+                        let rules = crate::base::variable_access::rules_for_language("r")
+                            .expect("R variable access rules are registered");
+                        if crate::base::variable_access::is_assignment_or_increment_target(
+                            node,
+                            &extractor.base.content,
+                            rules,
+                        ) {
+                            let name = extractor.base.get_node_text(&node);
+                            if crate::base::variable_access::should_emit_write_reference(
+                                node,
+                                &name,
+                                &extractor.base.content,
+                                rules,
+                                symbols,
+                            ) && !extractor.base.has_identifier_at_node(&node)
                             {
-                                return;
+                                push_identifier(
+                                    extractor,
+                                    node,
+                                    name,
+                                    IdentifierKind::VariableRef,
+                                    containing_symbols,
+                                );
                             }
-                            if (op_text == "->" || op_text == "->>")
-                                && parent.child(2).map(|c| c.id()) == Some(node.id())
-                            {
-                                return;
-                            }
+                            return;
                         }
                         let is_bare_pipe_target = parent.child(2) == Some(node)
                             && parent

@@ -275,7 +275,10 @@
       "end_byte": 48,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:PageRenderMode:variable_ref:5:22",
@@ -291,7 +294,10 @@
       "end_byte": 182,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:Ready:member_access:10:14",
@@ -309,6 +315,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "State"
       }
     },
@@ -374,7 +381,10 @@
       "end_byte": 270,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:Badge:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:state:variable_ref:8:42",
@@ -390,7 +400,10 @@
       "end_byte": 243,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:Badge:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

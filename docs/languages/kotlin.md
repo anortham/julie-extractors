@@ -551,3 +551,14 @@ character becomes that character, and so does a Unicode or hex escape of a
 printable character. `\n`, `\t`, and other control escapes stay as written, so a
 name stays on one line. `\$` is `$`. An interpolation is `{}`. A raw `"""` label
 keeps its text as written.
+
+## Variable access facts
+
+`variable_ref` and assignment-target `member_access` identifiers carry an
+optional `metadata.access`: `read`, `write`, or `read_write`. Plain assignments,
+initialized declarations represented by a variable-reference row, destructured
+bindings, loop and catch bindings, increments, and decrements are writes;
+compound assignments are read/write. For `box.value = next`, `value` is a
+write and `box` is a read. Other classified occurrences, including call
+arguments, are reads. Declaration names already represented by symbols do not
+gain duplicate identifier rows. Calls and type usages have no access key.

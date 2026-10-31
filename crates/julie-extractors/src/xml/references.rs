@@ -168,11 +168,10 @@ pub(crate) fn references(
             );
         }
         for site in build::property_references(dialect, content, root) {
-            references.push(Reference::plain(
-                site.start,
-                &site.name,
-                IdentifierKind::VariableRef,
-            ));
+            references.push(
+                Reference::plain(site.start, &site.name, IdentifierKind::VariableRef)
+                    .with_metadata("access", "read"),
+            );
         }
     }
     references.sort_by_key(|reference| (reference.start, reference.end));

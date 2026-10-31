@@ -470,3 +470,150 @@ fn domain_native_constructs_are_structural_facts() {
     assert_eq!(partial, vec![Some(false), Some(true)]);
     assert_eq!(facts(&results, "fsharp.quotation.v1").len(), 1);
 }
+
+fn variable_access_at(identifiers: &[crate::base::Identifier], start: usize) -> Option<&str> {
+    identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte as usize == start)?
+        .metadata
+        .as_ref()?
+        .get("access")?
+        .as_str()
+}
+
+#[test]
+fn variable_access_facts_follow_fsharp_assignment_and_pattern_syntax() {
+    let source = r#"
+module Sample
+type Box = { mutable Value: int }
+let consume value = value
+let update input (box: Box) =
+    let mutable output = 0
+    output <- input
+    box.Value <- input
+    for index in 0 .. 1 do
+        consume index
+    match input with
+    | captured -> captured
+"#;
+    let results = extract(source);
+
+    assert_eq!(
+        variable_access_at(
+            &results.identifiers,
+            source.find("output <- input").unwrap()
+        ),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &results.identifiers,
+            source.find("output <- input").unwrap() + "output <- ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(&results.identifiers, source.find("Value <- input").unwrap()),
+        Some("write")
+    );
+    let member_start = source.find("Value <- input").unwrap() as u32;
+    assert_eq!(
+        results
+            .identifiers
+            .iter()
+            .filter(|identifier| identifier.start_byte == member_start)
+            .map(|identifier| identifier.kind.clone())
+            .collect::<Vec<_>>(),
+        vec![IdentifierKind::MemberAccess]
+    );
+    assert_eq!(
+        variable_access_at(
+            &results.identifiers,
+            source.find("box.Value <- input").unwrap()
+        ),
+        Some("read")
+    );
+    let receiver_start = source.find("box.Value <- input").unwrap() as u32;
+    assert_eq!(
+        results
+            .identifiers
+            .iter()
+            .filter(|identifier| identifier.start_byte == receiver_start)
+            .map(|identifier| identifier.kind.clone())
+            .collect::<Vec<_>>(),
+        vec![IdentifierKind::VariableRef]
+    );
+    assert_eq!(
+        variable_access_at(
+            &results.identifiers,
+            source.find("match input").unwrap() + "match ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(
+            &results.identifiers,
+            source.find("for index").unwrap() + "for ".len()
+        ),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &results.identifiers,
+            source.find("| captured").unwrap() + "| ".len()
+        ),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &results.identifiers,
+            source.find("-> captured").unwrap() + "-> ".len()
+        ),
+        Some("read")
+    );
+    assert!(
+        results
+            .identifiers
+            .iter()
+            .all(|identifier| identifier.start_byte as usize != source.find("output = 0").unwrap())
+    );
+}
+
+#[test]
+fn explicit_reads_do_not_duplicate_fsharp_calls_or_type_paths() {
+    let source = r#"
+module Sample
+type Box = { mutable Value: int }
+let mutate (box: Box) = box.Value <- 1
+let typed () = new System.IO.MemoryStream()
+let chained (s: string) = s.Trim().ToLowerInvariant()
+let print () = System.Console.WriteLine("value")
+"#;
+    let results = extract(source);
+    let receiver_start = source.find("box.Value <-").unwrap();
+    assert_eq!(
+        variable_access_at(&results.identifiers, receiver_start),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(&results.identifiers, source.find("Value <-").unwrap()),
+        Some("write")
+    );
+    for start in [
+        source.find("System.IO").unwrap(),
+        source.find("IO.MemoryStream").unwrap(),
+        source.find("System.Console").unwrap(),
+        source.find("Console.WriteLine").unwrap(),
+        source.find("s.Trim()").unwrap(),
+        source.find("Trim()").unwrap(),
+        source.find("ToLowerInvariant").unwrap(),
+    ] {
+        assert!(
+            results.identifiers.iter().all(|identifier| {
+                identifier.kind != IdentifierKind::VariableRef
+                    || identifier.start_byte as usize != start
+            }),
+            "unexpected variable_ref at byte {start}"
+        );
+    }
+}

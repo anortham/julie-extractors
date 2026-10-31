@@ -1324,6 +1324,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "svc"
       }
     },
@@ -1357,7 +1358,10 @@
       "end_byte": 445,
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:webApp:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:GetAsync:call:32:44",
@@ -1515,7 +1519,10 @@
       "end_byte": 650,
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:webApp:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:Route:type_usage:10:2",
@@ -1611,7 +1618,10 @@
       "end_byte": 693,
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:webApp:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:getOrderHandler:variable_ref:25:36",
@@ -1627,7 +1637,10 @@
       "end_byte": 556,
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:webApp:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:id:variable_ref:15:48",
@@ -1643,7 +1656,10 @@
       "end_byte": 325,
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:Get:15:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:ignore:call:30:65",

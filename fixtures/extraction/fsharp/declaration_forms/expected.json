@@ -2376,7 +2376,10 @@
       "end_byte": 1068,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(|Even|Odd|):47:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Even:variable_ref:57:10",
@@ -2392,7 +2395,10 @@
       "end_byte": 1363,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:describe:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Interface:type_usage:11:2",
@@ -2426,6 +2432,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "stream"
       }
     },
@@ -2495,7 +2502,10 @@
       "end_byte": 690,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Find:32:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:None:variable_ref:48:53",
@@ -2511,7 +2521,10 @@
       "end_byte": 1135,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(|Positive|_|):48:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Odd:variable_ref:47:53",
@@ -2527,7 +2540,10 @@
       "end_byte": 1077,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(|Even|Odd|):47:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Odd:variable_ref:58:10",
@@ -2543,7 +2559,10 @@
       "end_byte": 1387,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:describe:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Repo:call:25:12",
@@ -2712,6 +2731,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -2731,6 +2751,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -2750,6 +2771,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -2767,7 +2789,10 @@
       "end_byte": 274,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:new:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:a:variable_ref:34:43",
@@ -2783,7 +2808,10 @@
       "end_byte": 790,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(+):34:18",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:a:variable_ref:63:16",
@@ -2799,7 +2827,10 @@
       "end_byte": 1468,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:compute:61:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:a:variable_ref:65:8",
@@ -2815,7 +2846,10 @@
       "end_byte": 1532,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:compute:61:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:b:variable_ref:65:12",
@@ -2831,7 +2865,10 @@
       "end_byte": 1536,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:compute:61:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:conn:variable_ref:31:26",
@@ -2847,7 +2884,10 @@
       "end_byte": 637,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Connection:31:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:float:type_usage:17:11",
@@ -3023,7 +3063,10 @@
       "end_byte": 1602,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:apply:66:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:left:variable_ref:33:42",
@@ -3039,7 +3082,10 @@
       "end_byte": 737,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Join:33:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:list:type_usage:69:22",
@@ -3087,7 +3133,10 @@
       "end_byte": 1825,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:lookup:72:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:map:call:66:24",
@@ -3122,7 +3171,10 @@
       "end_byte": 1050,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(|Even|Odd|):47:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:n:variable_ref:48:30",
@@ -3138,7 +3190,10 @@
       "end_byte": 1109,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(|Positive|_|):48:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:n:variable_ref:48:46",
@@ -3154,7 +3209,10 @@
       "end_byte": 1125,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(|Positive|_|):48:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:n:variable_ref:56:14",
@@ -3170,7 +3228,10 @@
       "end_byte": 1343,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:describe:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:option:type_usage:32:39",
@@ -3202,7 +3263,10 @@
       "end_byte": 745,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:Join:33:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:sqrt:call:38:25",
@@ -3362,7 +3426,10 @@
       "end_byte": 1848,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:load:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:unit:type_usage:9:19",
@@ -3394,7 +3461,10 @@
       "end_byte": 278,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:new:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:x:variable_ref:49:26",
@@ -3410,7 +3480,10 @@
       "end_byte": 1163,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(+.):49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:xs:variable_ref:66:51",
@@ -3426,7 +3499,10 @@
       "end_byte": 1610,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:apply:66:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:xs:variable_ref:68:28",
@@ -3442,7 +3518,10 @@
       "end_byte": 1701,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:first:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:xs:variable_ref:69:30",
@@ -3458,7 +3537,10 @@
       "end_byte": 1737,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:tail:69:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/declaration_forms/source.fs:y:variable_ref:49:30",
@@ -3474,7 +3556,10 @@
       "end_byte": 1167,
       "containing_key": "fixtures/extraction/fsharp/declaration_forms/source.fs:(+.):49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

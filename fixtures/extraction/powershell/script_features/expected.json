@@ -1481,7 +1481,10 @@
       "end_byte": 860,
       "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:Get-Invoice:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/script_features/source.ps1:Node:call:61:4",
@@ -1498,6 +1501,25 @@
       "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:InvoiceServer:59:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/powershell/script_features/source.ps1:Retries:variable_ref:14:0",
+      "name": "Retries",
+      "kind": "variable_ref",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/script_features/source.ps1",
+      "start_line": 14,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 8,
+      "start_byte": 205,
+      "end_byte": 213,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/script_features/source.ps1:Select-Object:call:53:27",
@@ -1545,7 +1567,10 @@
       "end_byte": 797,
       "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:Format-Line:37:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/script_features/source.ps1:WindowsFeature:call:62:8",
@@ -1625,7 +1650,10 @@
       "end_byte": 897,
       "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:Get-Invoice:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/powershell/script_features/source.ps1:irm:call:51:4",

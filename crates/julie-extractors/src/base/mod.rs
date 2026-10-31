@@ -47,6 +47,7 @@ pub mod tree_methods;
 pub mod type_arguments;
 pub mod type_models;
 pub mod types;
+pub(crate) mod variable_access;
 pub mod visibility;
 pub mod web_structural_facts;
 

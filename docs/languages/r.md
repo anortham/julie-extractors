@@ -98,3 +98,7 @@ in `"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
 another punctuation character becomes that character, and so does a Unicode or
 hex escape of a printable character. `\n`, `\t`, and other control escapes stay
 as written, so a name stays on one line.
+
+## Variable access facts
+
+An emitted `variable_ref` or assignment-target `member_access` carries `metadata_json.access` when its syntax identifies the access. Reassignments and loop bindings are writes; `%<>%` is read/write. Superassignment identifiers keep the existing `assignment` metadata and add `access: "write"`; the read side remains a read. Subscript indices and arguments to replacement calls such as `names(items) <- value` remain reads.

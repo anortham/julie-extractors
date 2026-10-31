@@ -995,7 +995,10 @@
       "end_byte": 610,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:Application:type_usage:4:19",
@@ -1027,7 +1030,10 @@
       "end_byte": 317,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:RouteCollection:type_usage:14:23",
@@ -1150,7 +1156,10 @@
       "end_byte": 714,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:URLSession:variable_ref:26:30",
@@ -1166,7 +1175,10 @@
       "end_byte": 857,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:admin:variable_ref:9:8",
@@ -1182,7 +1194,10 @@
       "end_byte": 253,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:api:variable_ref:7:4",
@@ -1198,7 +1213,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:app:variable_ref:11:4",
@@ -1214,7 +1232,10 @@
       "end_byte": 307,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:app:variable_ref:5:4",
@@ -1230,7 +1251,10 @@
       "end_byte": 79,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:app:variable_ref:6:14",
@@ -1246,7 +1270,10 @@
       "end_byte": 145,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:app:variable_ref:8:4",
@@ -1262,7 +1289,10 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:createTodo:variable_ref:7:27",
@@ -1278,7 +1308,10 @@
       "end_byte": 204,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:data:call:26:48",
@@ -1321,7 +1354,10 @@
       "end_byte": 830,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:data:variable_ref:27:8",
@@ -1337,7 +1373,10 @@
       "end_byte": 952,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:dataTask:call:24:33",
@@ -1438,7 +1477,10 @@
       "end_byte": 559,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:boot:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:get:call:17:14",
@@ -1590,7 +1632,10 @@
       "end_byte": 514,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:boot:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:on:call:11:8",
@@ -1664,7 +1709,10 @@
       "end_byte": 665,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:removeUser:variable_ref:9:42",
@@ -1680,7 +1728,10 @@
       "end_byte": 292,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:request:call:23:7",
@@ -1771,7 +1822,10 @@
       "end_byte": 468,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:boot:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:shared:member_access:24:26",
@@ -1789,6 +1843,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "URLSession"
       }
     },
@@ -1808,6 +1863,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "URLSession"
       }
     },
@@ -1825,7 +1881,10 @@
       "end_byte": 807,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:todos:variable_ref:17:8",
@@ -1841,7 +1900,10 @@
       "end_byte": 499,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:boot:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:todos:variable_ref:18:8",
@@ -1857,7 +1919,10 @@
       "end_byte": 529,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:boot:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:updateSettings:variable_ref:11:36",
@@ -1873,7 +1938,10 @@
       "end_byte": 350,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:routes:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

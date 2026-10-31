@@ -1844,7 +1844,10 @@
       "end_byte": 832,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:HashMap:call:31:41",
@@ -1902,7 +1905,10 @@
       "end_byte": 696,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:List:type_usage:21:26",
@@ -1950,7 +1956,10 @@
       "end_byte": 417,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:load:21:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:User:type_usage:29:26",
@@ -1982,7 +1991,10 @@
       "end_byte": 1103,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:f:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:compute:call:20:14",
@@ -2064,7 +2076,10 @@
       "end_byte": 925,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:f:call:51:4",
@@ -2189,7 +2204,10 @@
       "end_byte": 601,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:load:call:25:16",
@@ -2318,6 +2336,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Json"
       }
     },
@@ -2335,7 +2354,10 @@
       "end_byte": 565,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:path:variable_ref:27:29",
@@ -2351,7 +2373,10 @@
       "end_byte": 641,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:remote:variable_ref:27:16",
@@ -2367,7 +2392,10 @@
       "end_byte": 630,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:secret:call:5:38",
@@ -2405,6 +2433,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "lines"
       }
     },
@@ -2422,7 +2451,10 @@
       "end_byte": 312,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:greet:16:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:total:variable_ref:34:12",
@@ -2438,7 +2470,10 @@
       "end_byte": 933,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:x:variable_ref:22:29",
@@ -2454,7 +2489,10 @@
       "end_byte": 448,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:compute:22:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:x:variable_ref:33:37",
@@ -2470,7 +2508,10 @@
       "end_byte": 899,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:xs:variable_ref:33:19",
@@ -2486,7 +2527,10 @@
       "end_byte": 882,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

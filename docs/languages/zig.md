@@ -144,3 +144,12 @@ character becomes that character, and so does a Unicode or hex escape of a
 printable character. `\n`, `\t`, and other control escapes stay as written, so a
 name stays on one line. The signature keeps the label as written (`test "adds
 \"three\""`).
+
+## Variable access facts
+
+Emitted `variable_ref` and `member_access` identifiers include
+`metadata_json.access` when the syntax identifies the site. Assignment targets
+are `write`, compound assignment targets are `read_write`, and payload capture
+bindings are `write`; other classified references are `read`. An assigned
+member is a write while its object remains a read. Declaration names already
+represented by symbol rows are not emitted again as variable references.

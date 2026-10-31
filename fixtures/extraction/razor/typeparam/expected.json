@@ -199,7 +199,10 @@
       "end_byte": 184,
       "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/typeparam/GenericList.razor:Components:type_usage:1:18",
@@ -346,7 +349,10 @@
       "end_byte": 95,
       "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

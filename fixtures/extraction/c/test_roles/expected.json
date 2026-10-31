@@ -500,7 +500,29 @@
       "end_byte": 42,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/c/test_roles/source.c:fini:variable_ref:3:42",
+      "name": "fini",
+      "kind": "variable_ref",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "start_line": 3,
+      "start_column": 42,
+      "end_line": 3,
+      "end_column": 46,
+      "start_byte": 105,
+      "end_byte": 109,
+      "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:init:member_access:1:17",
@@ -518,7 +540,27 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "math"
+      }
+    },
+    {
+      "key": "fixtures/extraction/c/test_roles/source.c:init:variable_ref:3:22",
+      "name": "init",
+      "kind": "variable_ref",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "start_line": 3,
+      "start_column": 22,
+      "end_line": 3,
+      "end_column": 26,
+      "start_byte": 85,
+      "end_byte": 89,
+      "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
       }
     },
     {
@@ -535,7 +577,10 @@
       "end_byte": 14,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:setup_suite:variable_ref:1:24",
@@ -551,7 +596,10 @@
       "end_byte": 35,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:setup_test:variable_ref:3:29",
@@ -567,7 +615,10 @@
       "end_byte": 102,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:sum:variable_ref:5:17",
@@ -583,7 +634,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:teardown_suite:variable_ref:1:45",
@@ -599,7 +653,10 @@
       "end_byte": 59,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:teardown_test:variable_ref:3:49",
@@ -615,7 +672,10 @@
       "end_byte": 125,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

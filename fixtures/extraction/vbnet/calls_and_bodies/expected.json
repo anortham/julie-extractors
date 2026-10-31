@@ -1319,7 +1319,10 @@
       "end_byte": 525,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Value:16:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Order:type_usage:32:28",
@@ -1604,6 +1607,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:_cache:variable_ref:18:16",
+      "name": "_cache",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/calls_and_bodies/source.vb",
+      "start_line": 18,
+      "start_column": 16,
+      "end_line": 18,
+      "end_column": 22,
+      "start_byte": 482,
+      "end_byte": 488,
+      "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Value:16:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:_cache:variable_ref:20:23",
       "name": "_cache",
       "kind": "variable_ref",
@@ -1617,7 +1639,10 @@
       "end_byte": 570,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Value:16:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:_svc:variable_ref:36:17",
@@ -1633,7 +1658,10 @@
       "end_byte": 1066,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Run:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:_svc:variable_ref:39:12",
@@ -1649,7 +1677,10 @@
       "end_byte": 1129,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Run:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:a:variable_ref:25:27",
@@ -1665,7 +1696,10 @@
       "end_byte": 715,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:operator =:24:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:a:variable_ref:29:31",
@@ -1681,7 +1715,10 @@
       "end_byte": 849,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:operator <>:28:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:b:variable_ref:25:30",
@@ -1697,7 +1734,10 @@
       "end_byte": 718,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:operator =:24:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:b:variable_ref:29:34",
@@ -1713,7 +1753,10 @@
       "end_byte": 852,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:operator <>:28:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:o:variable_ref:35:24",
@@ -1729,7 +1772,10 @@
       "end_byte": 1032,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Run:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:o:variable_ref:41:32",
@@ -1745,7 +1791,10 @@
       "end_byte": 1194,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Run:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

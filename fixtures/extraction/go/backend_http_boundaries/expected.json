@@ -1946,7 +1946,10 @@
       "end_byte": 354,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:anyEcho:variable_ref:31:20",
@@ -1962,7 +1965,10 @@
       "end_byte": 773,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:anyGin:variable_ref:20:16",
@@ -1978,7 +1984,10 @@
       "end_byte": 447,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:api:variable_ref:16:1",
@@ -1994,7 +2003,10 @@
       "end_byte": 277,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:api:variable_ref:22:11",
@@ -2010,7 +2022,10 @@
       "end_byte": 502,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:apiRouter:variable_ref:26:1",
@@ -2026,7 +2041,10 @@
       "end_byte": 646,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:app:variable_ref:45:1",
@@ -2042,7 +2060,10 @@
       "end_byte": 1031,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:registerEcho:44:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:createEcho:variable_ref:30:23",
@@ -2058,7 +2079,10 @@
       "end_byte": 744,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:deepGin:variable_ref:23:25",
@@ -2074,7 +2098,10 @@
       "end_byte": 552,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:deleteOrder:variable_ref:41:29",
@@ -2090,7 +2117,10 @@
       "end_byte": 986,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:registerGin:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:dynamic:variable_ref:25:1",
@@ -2106,7 +2136,10 @@
       "end_byte": 603,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:e:variable_ref:29:7",
@@ -2122,7 +2155,10 @@
       "end_byte": 697,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:e:variable_ref:31:1",
@@ -2138,7 +2174,10 @@
       "end_byte": 748,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:echo:variable_ref:28:6",
@@ -2154,7 +2193,10 @@
       "end_byte": 682,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:gin:variable_ref:14:6",
@@ -2170,7 +2212,10 @@
       "end_byte": 238,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:group:variable_ref:41:1",
@@ -2186,7 +2231,10 @@
       "end_byte": 952,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:registerGin:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:handler:variable_ref:12:37",
@@ -2202,7 +2250,10 @@
       "end_byte": 226,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:handler:variable_ref:26:26",
@@ -2218,7 +2269,10 @@
       "end_byte": 669,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:health:variable_ref:45:20",
@@ -2234,7 +2288,10 @@
       "end_byte": 1053,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:registerEcho:44:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:hostReport:variable_ref:19:57",
@@ -2250,7 +2307,10 @@
       "end_byte": 423,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:http:variable_ref:10:1",
@@ -2266,7 +2326,10 @@
       "end_byte": 118,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:http:variable_ref:11:8",
@@ -2282,7 +2345,10 @@
       "end_byte": 167,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:http:variable_ref:18:1",
@@ -2298,7 +2364,10 @@
       "end_byte": 311,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:http:variable_ref:19:1",
@@ -2314,7 +2383,10 @@
       "end_byte": 361,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:http:variable_ref:53:1",
@@ -2330,7 +2402,10 @@
       "end_byte": 1156,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:clients:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:http:variable_ref:54:1",
@@ -2346,7 +2421,10 @@
       "end_byte": 1199,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:clients:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:manualGin:variable_ref:21:28",
@@ -2362,7 +2440,10 @@
       "end_byte": 486,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:metrics:variable_ref:49:34",
@@ -2378,7 +2459,10 @@
       "end_byte": 1129,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:register:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:mux:member_access:49:3",
@@ -2396,6 +2480,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -2413,7 +2498,10 @@
       "end_byte": 186,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:nested:variable_ref:23:1",
@@ -2429,7 +2517,10 @@
       "end_byte": 527,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:prefixFor:call:24:20",
@@ -2464,7 +2555,10 @@
       "end_byte": 258,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:r:variable_ref:20:1",
@@ -2480,7 +2574,10 @@
       "end_byte": 427,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:r:variable_ref:21:1",
@@ -2496,7 +2593,10 @@
       "end_byte": 451,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:r:variable_ref:24:12",
@@ -2512,7 +2612,10 @@
       "end_byte": 567,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:recordsGin:variable_ref:25:29",
@@ -2528,7 +2631,10 @@
       "end_byte": 634,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:router:variable_ref:39:7",
@@ -2544,7 +2650,10 @@
       "end_byte": 898,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:registerGin:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:s:variable_ref:49:1",
@@ -2560,7 +2669,10 @@
       "end_byte": 1090,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:register:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:server:type_usage:48:9",
@@ -2592,7 +2704,10 @@
       "end_byte": 153,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:showGin:variable_ref:16:23",
@@ -2608,7 +2723,10 @@
       "end_byte": 303,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:showOrder:variable_ref:40:23",
@@ -2624,7 +2742,10 @@
       "end_byte": 944,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:registerGin:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:v1:variable_ref:30:1",
@@ -2640,7 +2761,10 @@
       "end_byte": 714,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/backend_http_boundaries/source.go:v2:variable_ref:40:1",
@@ -2656,7 +2780,10 @@
       "end_byte": 915,
       "containing_key": "fixtures/extraction/go/backend_http_boundaries/source.go:registerGin:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

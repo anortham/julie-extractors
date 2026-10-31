@@ -316,7 +316,10 @@
       "end_byte": 242,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:app:variable_ref:8:2",
@@ -332,7 +335,10 @@
       "end_byte": 156,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:express:call:5:14",
@@ -367,7 +373,10 @@
       "end_byte": 139,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:fastify:call:12:17",
@@ -441,7 +450,10 @@
       "end_byte": 293,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:res:variable_ref:9:42",
@@ -457,7 +469,10 @@
       "end_byte": 223,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:route:call:10:6",
@@ -513,7 +528,10 @@
       "end_byte": 175,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:router:variable_ref:9:2",
@@ -529,7 +547,10 @@
       "end_byte": 186,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:send:call:10:57",
@@ -585,7 +606,10 @@
       "end_byte": 348,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:use:call:8:6",

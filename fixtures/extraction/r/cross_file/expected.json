@@ -223,7 +223,10 @@
       "end_byte": 327,
       "containing_key": "fixtures/extraction/r/cross_file/source.R:other:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

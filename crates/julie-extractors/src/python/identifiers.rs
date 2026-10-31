@@ -17,7 +17,7 @@ pub fn extract_identifiers(
     let containing_symbols = extractor.base().containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, symbols, 0);
 
     // Return the collected identifiers
     extractor.base_mut().identifiers.clone()
@@ -28,6 +28,7 @@ fn walk_tree_for_identifiers(
     extractor: &mut PythonExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -35,7 +36,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(extractor, node, containing_symbols);
+    extract_identifier_from_node(extractor, node, containing_symbols, symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -43,7 +44,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -52,6 +53,7 @@ fn extract_identifier_from_node(
     extractor: &mut PythonExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         // Function/method calls: foo(), bar.baz()
@@ -181,11 +183,6 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm (locked contract — see the doc comment in
-        // csharp/identifiers.rs): a bare `identifier` used as a value or as the
-        // object/receiver of an attribute access — the reads the Call/MemberAccess/
-        // TypeUsage arms above do not own. Evaluated only after the TypeUsage guard,
-        // so type positions never reach here (single row per node; no duplicates).
         "identifier" if is_python_value_read_identifier(node) => {
             let name = extractor.base_mut().get_node_text(&node);
             // Rule 5: reuse the builtin filter (`True`/`False`/`None` are distinct
@@ -207,6 +204,20 @@ fn extract_identifier_from_node(
             }
         }
 
+        "identifier"
+            if should_emit_write_reference(node, &extractor.base().content, symbols)
+                && !extractor.base().has_identifier_at_node(&node) =>
+        {
+            let name = extractor.base_mut().get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            extractor.base_mut().create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
         "string" if is_python_type_usage_node(node) => {
             record_forward_reference_usages(extractor, node, containing_symbols);
         }
@@ -215,6 +226,14 @@ fn extract_identifier_from_node(
 
         _ => {}
     }
+}
+
+fn should_emit_write_reference(node: Node, source: &str, symbols: &[Symbol]) -> bool {
+    let Some(rules) = crate::base::variable_access::rules_for_language("python") else {
+        return false;
+    };
+    let name = node.utf8_text(source.as_bytes()).unwrap_or_default();
+    crate::base::variable_access::should_emit_write_reference(node, name, source, rules, symbols)
 }
 
 /// A builtin generic such as `list` in `list[User]`: the head of a generic

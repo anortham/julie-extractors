@@ -96,3 +96,13 @@ punctuation character becomes that character, and so does a Unicode or hex
 escape of a printable character. `\n`, `\t`, and other control escapes stay as
 written, so a name stays on one line. `\$` is `$`. An interpolation is `{}`. A
 raw `r'…'` label keeps its text as written.
+
+## Variable access facts
+
+Emitted `variable_ref` and `member_access` identifiers include
+`metadata_json.access` when the syntax identifies the site. Plain assignment
+targets, increments and decrements, and loop or catch bindings are `write`;
+compound assignment targets are `read_write`; other classified references are
+`read`. An assigned member is a write while its receiver and an index expression
+remain reads. Declaration names already represented by symbol rows are not
+emitted again as variable references.

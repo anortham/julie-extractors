@@ -351,7 +351,10 @@
       "end_byte": 173,
       "containing_key": "fixtures/extraction/javascript/http_client_fetch/source.js:createUser:5:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/http_client_fetch/source.js:url:variable_ref:10:15",
@@ -367,7 +370,10 @@
       "end_byte": 235,
       "containing_key": "fixtures/extraction/javascript/http_client_fetch/source.js:dynamicFetch:9:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

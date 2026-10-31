@@ -706,7 +706,10 @@
       "end_byte": 730,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:CURLOPT_CUSTOMREQUEST:variable_ref:26:24",
@@ -722,7 +725,10 @@
       "end_byte": 944,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:CURLOPT_URL:variable_ref:19:21",
@@ -738,7 +744,10 @@
       "end_byte": 670,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:Client:type_usage:9:55",
@@ -770,7 +779,10 @@
       "end_byte": 408,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:HttpClientInterface:type_usage:9:25",
@@ -802,7 +814,10 @@
       "end_byte": 657,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:ch:variable_ref:20:16",
@@ -818,7 +833,10 @@
       "end_byte": 707,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:create:call:12:16",
@@ -949,7 +967,10 @@
       "end_byte": 482,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:guzzle:variable_ref:15:4",
@@ -965,7 +986,10 @@
       "end_byte": 521,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:guzzle:variable_ref:23:4",
@@ -981,7 +1005,10 @@
       "end_byte": 808,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:guzzle:variable_ref:24:4",
@@ -997,7 +1024,10 @@
       "end_byte": 849,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:method:variable_ref:23:21",
@@ -1013,7 +1043,10 @@
       "end_byte": 825,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:noUrl:variable_ref:26:16",
@@ -1029,7 +1062,10 @@
       "end_byte": 921,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:request:call:11:14",
@@ -1156,7 +1192,10 @@
       "end_byte": 339,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:url:variable_ref:24:28",
@@ -1172,7 +1211,10 @@
       "end_byte": 870,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

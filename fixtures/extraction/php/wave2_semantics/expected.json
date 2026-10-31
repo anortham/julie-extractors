@@ -3851,7 +3851,10 @@
       "end_byte": 216,
       "containing_key": "fixtures/extraction/php/wave2_semantics/app/Providers/RouteServiceProvider.php:boot:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/app/Providers/RouteServiceProvider.php:base_path:call:11:59",
@@ -3970,7 +3973,10 @@
       "end_byte": 50,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/routes/web.php:Route:variable_ref:5:0",
@@ -3986,7 +3992,10 @@
       "end_byte": 117,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/routes/web.php:Route:variable_ref:6:4",
@@ -4002,7 +4011,10 @@
       "end_byte": 205,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/routes/web.php:Route:variable_ref:7:4",
@@ -4018,7 +4030,10 @@
       "end_byte": 261,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/routes/web.php:ShowDashboard:type_usage:4:25",
@@ -4254,7 +4269,10 @@
       "end_byte": 1445,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:of:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:Order:variable_ref:57:16",
@@ -4270,7 +4288,10 @@
       "end_byte": 1639,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:handle:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:PDO:type_usage:68:29",
@@ -4350,7 +4371,10 @@
       "end_byte": 50,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:../vendor/autoload.php:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:a:variable_ref:81:16",
@@ -4366,7 +4390,10 @@
       "end_byte": 2366,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:remote:77:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:array_sum:call:60:17",
@@ -4417,7 +4444,10 @@
       "end_byte": 2370,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:remote:77:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:cents:variable_ref:47:23",
@@ -4433,7 +4463,10 @@
       "end_byte": 1395,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:of:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:cents:variable_ref:48:25",
@@ -4449,7 +4482,10 @@
       "end_byte": 1429,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:of:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:cents:variable_ref:49:24",
@@ -4465,7 +4501,10 @@
       "end_byte": 1462,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:of:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:define:call:15:0",
@@ -4570,6 +4609,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "$this"
       }
     },
@@ -4603,7 +4643,10 @@
       "end_byte": 1740,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:handle:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:pdo:variable_ref:70:8",
@@ -4619,7 +4662,10 @@
       "end_byte": 2027,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:refresh:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:request:call:80:29",
@@ -4655,7 +4701,10 @@
       "end_byte": 1880,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:handle:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:sprintf:call:61:45",
@@ -4799,6 +4848,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$this"
       }
     },
@@ -4818,6 +4868,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$this"
       }
     },
@@ -4835,7 +4886,10 @@
       "end_byte": 1808,
       "containing_key": "fixtures/extraction/php/wave2_semantics/source.php:handle:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/source.php:where:call:57:23",
@@ -5026,7 +5080,10 @@
       "end_byte": 83,
       "containing_key": "fixtures/extraction/php/wave2_semantics/tests/acceptance/LoginCest.php:_before:4:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/tests/acceptance/LoginCest.php:I:variable_ref:5:60",
@@ -5042,7 +5099,10 @@
       "end_byte": 169,
       "containing_key": "fixtures/extraction/php/wave2_semantics/tests/acceptance/LoginCest.php:loginWorks:5:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/wave2_semantics/tests/acceptance/LoginCest.php:amOnPage:call:4:61",

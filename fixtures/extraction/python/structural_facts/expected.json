@@ -123,7 +123,10 @@
       "end_byte": 28,
       "containing_key": "fixtures/extraction/python/structural_facts/source.py:timed:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/structural_facts/source.py:timed:variable_ref:5:1",
@@ -139,7 +142,10 @@
       "end_byte": 37,
       "containing_key": "fixtures/extraction/python/structural_facts/source.py:run:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

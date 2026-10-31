@@ -72,7 +72,13 @@ fn superassignment_with_no_binding_in_the_file_creates_a_global() {
     assert!(
         result.identifiers.iter().any(|i| i.name == "registry"
             && i.start_line == 4
-            && i.metadata.is_none()
+            && i.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("access"))
+                == Some(&serde_json::json!("read"))
+            && i.metadata
+                .as_ref()
+                .is_some_and(|metadata| !metadata.contains_key("assignment"))
             && container(&result, i) == "add"),
         "the read of registry in add stays a plain read"
     );
@@ -115,10 +121,15 @@ fn superassignment_to_a_closure_variable_writes_only_a_write_site() {
     assert_write(&result, "log", 5, "record", "<<-");
     assert_write(&result, "hits", 7, "inner", "<<-");
     assert!(
-        result
-            .identifiers
-            .iter()
-            .any(|i| i.name == "balance" && i.start_line == 2 && i.metadata.is_none()),
+        result.identifiers.iter().any(|i| i.name == "balance"
+            && i.start_line == 2
+            && i.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("access"))
+                == Some(&serde_json::json!("read"))
+            && i.metadata
+                .as_ref()
+                .is_some_and(|metadata| !metadata.contains_key("assignment"))),
         "the read of balance stays"
     );
 }
@@ -220,5 +231,122 @@ fn ordinary_assignments_write_no_write_sites() {
             .symbols
             .iter()
             .all(|s| meta(s, "assignment").is_none() && s.name != "v")
+    );
+}
+
+#[test]
+fn superassignment_records_write_and_read_access() {
+    let result = extract("update <- function(x) { x <<- x + 1 }\n");
+    let write = writes(&result, "x")[0];
+
+    assert_eq!(
+        write
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access")),
+        Some(&serde_json::json!("write"))
+    );
+    assert!(result.identifiers.iter().any(|identifier| {
+        identifier.name == "x"
+            && identifier.start_line == 1
+            && identifier.start_byte != write.start_byte
+            && identifier
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("access"))
+                == Some(&serde_json::json!("read"))
+    }));
+}
+
+#[test]
+fn ordinary_reassignments_and_loop_bindings_get_write_access() {
+    let source = "value <- 1\nvalue <- 2\nvalue %<>% increment\nitems <- list()\nitems[offset + index] <- value\nnames(items) <- value\niterate <- function(items) {\n  for (item in items) {\n    print(item)\n  }\n}\n";
+    let result = extract(source);
+    let access_at = |start: usize| {
+        result
+            .identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.start_byte == start as u32
+                    && identifier.kind == crate::base::IdentifierKind::VariableRef
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+
+    assert_eq!(access_at(source.find("value <- 1").unwrap()), None);
+    assert_eq!(access_at(source.find("value <- 2").unwrap()), Some("write"));
+    assert_eq!(
+        access_at(source.find("value %<>%").unwrap()),
+        Some("read_write")
+    );
+    assert_eq!(
+        access_at(source.find("items[offset").unwrap()),
+        Some("read")
+    );
+    assert_eq!(
+        access_at(source.find("offset + index").unwrap()),
+        Some("read")
+    );
+    assert_eq!(access_at(source.find("index] <-").unwrap()), Some("read"));
+    assert_eq!(
+        access_at(source.find("names(items)").unwrap() + "names(".len()),
+        Some("read")
+    );
+    assert_eq!(access_at(source.find("item in").unwrap()), Some("write"));
+    assert_eq!(
+        access_at(source.find("item in items").unwrap() + "item in ".len()),
+        Some("read")
+    );
+}
+
+#[test]
+fn function_and_class_declarations_are_symbols_and_same_name_reassignments_are_writes() {
+    let source = "helper <- function() {\n  helper <- 1\n  helper <- 2\n  counter <- 0\n  counter <- 1\n}\nWorker <- R6::R6Class(\"Worker\")\n";
+    let result = extract(source);
+    let access_at = |start: usize| {
+        result
+            .identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.kind == crate::base::IdentifierKind::VariableRef
+                    && identifier.start_byte == start as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+
+    let function = result
+        .symbols
+        .iter()
+        .find(|symbol| {
+            symbol.name == "helper"
+                && symbol.kind == SymbolKind::Function
+                && symbol.start_byte == source.find("helper <- function").unwrap() as u32
+        })
+        .expect("helper function symbol");
+    assert!(result.symbols.iter().any(|symbol| {
+        symbol.name == "Worker"
+            && symbol.kind == SymbolKind::Class
+            && symbol.start_byte == source.find("Worker <-").unwrap() as u32
+    }));
+    assert!(result.symbols.iter().any(|symbol| {
+        symbol.name == "helper"
+            && symbol.kind == SymbolKind::Variable
+            && symbol.parent_id.as_deref() == Some(function.id.as_str())
+            && symbol.start_byte == source.find("helper <- 1").unwrap() as u32
+    }));
+    assert_eq!(access_at(source.find("helper <- function").unwrap()), None);
+    assert_eq!(access_at(source.find("Worker <-").unwrap()), None);
+    assert_eq!(access_at(source.find("helper <- 1").unwrap()), None);
+    assert_eq!(
+        access_at(source.find("helper <- 2").unwrap()),
+        Some("write")
+    );
+    assert_eq!(
+        access_at(source.find("counter <- 1").unwrap()),
+        Some("write")
     );
 }

@@ -244,7 +244,10 @@
       "end_byte": 118,
       "containing_key": "fixtures/extraction/razor/error_recovery/Panel.razor:Panel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

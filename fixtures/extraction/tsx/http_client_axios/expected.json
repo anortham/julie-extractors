@@ -392,7 +392,10 @@
       "end_byte": 277,
       "containing_key": "fixtures/extraction/tsx/http_client_axios/source.tsx:dynamic:10:18",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/http_client_axios/source.tsx:axios:variable_ref:8:21",
@@ -408,7 +411,10 @@
       "end_byte": 117,
       "containing_key": "fixtures/extraction/tsx/http_client_axios/source.tsx:load:8:15",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/http_client_axios/source.tsx:get:call:10:41",
@@ -464,7 +470,10 @@
       "end_byte": 318,
       "containing_key": "fixtures/extraction/tsx/http_client_axios/source.tsx:UserList:7:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/http_client_axios/source.tsx:payload:variable_ref:9:80",
@@ -480,7 +489,10 @@
       "end_byte": 232,
       "containing_key": "fixtures/extraction/tsx/http_client_axios/source.tsx:create:9:17",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/http_client_axios/source.tsx:url:variable_ref:10:45",
@@ -496,7 +508,10 @@
       "end_byte": 285,
       "containing_key": "fixtures/extraction/tsx/http_client_axios/source.tsx:dynamic:10:18",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -108,3 +108,83 @@ fn reach() i32 {
         "comment-only GhostToken must not be extracted at all"
     );
 }
+
+fn variable_access_at(identifiers: &[Identifier], start: usize) -> Option<&str> {
+    identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte as usize == start)?
+        .metadata
+        .as_ref()?
+        .get("access")?
+        .as_str()
+}
+
+#[test]
+fn variable_access_facts_follow_zig_assignment_and_capture_syntax() {
+    let code = r#"
+const Box = struct { value: i32 };
+fn consume(value: i32) void {}
+fn update(input: i32, box: *Box, values: []i32) void {
+    var output: i32 = input;
+    output = input;
+    output += 1;
+    box.value = input;
+    consume(output);
+    for (values) |item| {
+        consume(item);
+    }
+}
+"#;
+    let (_, identifiers) = extract_all(code);
+
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("output = input").unwrap()),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("output = input").unwrap() + "output = ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("output += 1").unwrap()),
+        Some("read_write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("box.value = input").unwrap() + "box.".len()
+        ),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("box.value = input").unwrap()),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("consume(output)").unwrap() + "consume(".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("|item|").unwrap() + 1),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("consume(item)").unwrap() + "consume(".len()
+        ),
+        Some("read")
+    );
+    let declaration = code.find("output: i32 =").unwrap();
+    assert!(
+        identifiers
+            .iter()
+            .all(|identifier| identifier.start_byte as usize != declaration)
+    );
+}

@@ -344,7 +344,10 @@
       "end_byte": 488,
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:i:variable_ref:16:33",
@@ -360,7 +363,10 @@
       "end_byte": 496,
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:i:variable_ref:17:26",
@@ -376,7 +382,10 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:localHelper:call:15:19",
@@ -432,7 +441,10 @@
       "end_byte": 524,
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:total:variable_ref:21:15",
@@ -448,7 +460,10 @@
       "end_byte": 603,
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -672,8 +672,6 @@ type Rec = Record<string, number>;
 
 #[test]
 fn test_typescript_variable_ref_emission() {
-    // Locked variable_ref contract: receivers + bare value reads, the complement
-    // of the Call/MemberAccess/TypeUsage arms. See csharp/identifiers.rs for the 6 rules.
     let code = r#"
 // GhostToken appears only in this comment and must never be an identifier.
 const graphKit = { reach(): number { return 1; } };
@@ -686,9 +684,9 @@ const seedTone = 2;
 
 function evaluate(seed: number, unusedParam: string): number {
     let count = 0;
-    count += 1;                        // compound assignment -> read count
+    count += 1;
     let x = 5;                         // declaration name, no ref
-    x = 7;                             // plain write LHS -> NOT a read
+    writeOnlyTarget = 7;
     const total = seed;                // seed on RHS -> read
     const g = graphKit.reach();        // graphKit receiver -> read; reach -> call
     const pack = { seed };             // shorthand property -> read of seed
@@ -738,6 +736,16 @@ export { fallbackValue as exportedAlias };
             "expected variable_ref for {expected}; got {var_refs:?}"
         );
     }
+    assert_eq!(
+        identifier_access(&identifiers, code, "writeOnlyTarget"),
+        Some("write")
+    );
+    let declaration_name = code.find("let x = 5;").unwrap() as u32 + 4;
+    assert!(
+        identifiers.iter().all(|id| {
+            id.start_byte != declaration_name || id.kind != IdentifierKind::VariableRef
+        })
+    );
 
     // Receiver + call coexist: graphKit.reach()
     assert!(
@@ -756,7 +764,7 @@ export { fallbackValue as exportedAlias };
 
     // --- Negative cases (rules 2/3/4/5) ---
     for forbidden in [
-        "x",             // declaration name + plain-write LHS
+        "x",             // declaration name
         "unusedParam",   // parameter name only
         "GhostToken",    // comment-only mention
         "evaluate",      // function declaration name
@@ -799,5 +807,234 @@ export { fallbackValue as exportedAlias };
     assert!(
         count_ref.containing_symbol_id.is_some(),
         "variable_ref must carry containing_symbol_id"
+    );
+}
+
+fn identifier_access<'a>(
+    identifiers: &'a [crate::base::types::Identifier],
+    code: &str,
+    text: &str,
+) -> Option<&'a str> {
+    let start = code.find(text)? as u32;
+    identifiers
+        .iter()
+        .find(|identifier| identifier.start_byte == start)?
+        .metadata
+        .as_ref()?
+        .get("access")?
+        .as_str()
+}
+
+#[test]
+fn typescript_variable_access_facts_cover_write_sites() {
+    let code = r#"
+function update(initial: number) {
+    type WidgetShape = { value: number };
+    const initialized = declarationRead;
+    const typed: WidgetShape = typedValue;
+    plainTarget = assignmentRead;
+    compoundTarget ||= compoundRead;
+    container.field = memberValue;
+    container[index] = elementValue;
+    ({ destructuredTarget } = destructuredSource);
+    consume(argumentRead);
+    for (loopTarget of loopValues) consume(loopTarget);
+    try { consume(insideTry); } catch (caught) { consume(caught); }
+}
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "test.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    assert!(symbols.iter().any(|symbol| symbol.name == "initialized"));
+    assert!(identifiers.iter().all(|identifier| {
+        identifier.start_byte != code.find("initialized").unwrap() as u32
+            || identifier.kind != IdentifierKind::VariableRef
+    }));
+    assert_eq!(
+        identifier_access(&identifiers, code, "declarationRead"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "assignmentRead"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "plainTarget"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "compoundRead"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "compoundTarget"),
+        Some("read_write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "field"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "container"),
+        Some("read")
+    );
+    assert_eq!(identifier_access(&identifiers, code, "index"), Some("read"));
+    assert_eq!(
+        identifier_access(&identifiers, code, "elementValue"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "destructuredTarget"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "destructuredSource"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "argumentRead"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "loopTarget"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "caught"),
+        Some("write")
+    );
+    assert!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == IdentifierKind::Call)
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
+    let widget_type = identifiers
+        .iter()
+        .find(|identifier| {
+            identifier.name == "WidgetShape" && identifier.kind == IdentifierKind::TypeUsage
+        })
+        .expect("WidgetShape type usage");
+    assert!(
+        widget_type
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    );
+}
+
+#[test]
+fn tsx_variable_access_facts_cover_write_sites() {
+    let code = r#"
+function View() {
+    const initialized = declarationRead;
+    plainTarget = assignmentRead;
+    compoundTarget += compoundRead;
+    container.field = memberValue;
+    container[index] = elementValue;
+    ({ destructuredTarget } = destructuredSource);
+    consume(argumentRead);
+    for (loopTarget of loopValues) consume(loopTarget);
+    try { consume(insideTry); } catch (caught) { consume(caught); }
+    return <Panel value={jsxValue} />;
+}
+"#;
+    let mut parser = super::init_tsx_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "tsx".to_string(),
+        "View.tsx".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    assert!(symbols.iter().any(|symbol| symbol.name == "initialized"));
+    assert!(identifiers.iter().all(|identifier| {
+        identifier.start_byte != code.find("initialized").unwrap() as u32
+            || identifier.kind != IdentifierKind::VariableRef
+    }));
+    assert_eq!(
+        identifier_access(&identifiers, code, "declarationRead"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "assignmentRead"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "plainTarget"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "compoundRead"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "compoundTarget"),
+        Some("read_write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "field"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "container"),
+        Some("read")
+    );
+    assert_eq!(identifier_access(&identifiers, code, "index"), Some("read"));
+    assert_eq!(
+        identifier_access(&identifiers, code, "elementValue"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "destructuredTarget"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "destructuredSource"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "argumentRead"),
+        Some("read")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "loopTarget"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "caught"),
+        Some("write")
+    );
+    assert_eq!(
+        identifier_access(&identifiers, code, "jsxValue"),
+        Some("read")
+    );
+    assert!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == IdentifierKind::Call)
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
     );
 }

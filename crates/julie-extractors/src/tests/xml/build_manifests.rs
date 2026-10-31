@@ -132,6 +132,48 @@ fn msbuild_targets_call_each_other_and_properties_are_identifiers() {
         &CSPROJ[version.start_byte as usize..version.end_byte as usize],
         "Version"
     );
+    assert_eq!(
+        version
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str),
+        Some("read")
+    );
+    assert!(
+        results
+            .identifiers
+            .iter()
+            .filter(|identifier| matches!(
+                identifier.kind,
+                IdentifierKind::Call | IdentifierKind::TypeUsage
+            ))
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
+}
+
+#[test]
+fn ant_property_substitutions_are_reads() {
+    let source = r#"<project name="App" default="build"><target name="build"><echo message="${version}" /></target></project>"#;
+    let results = extract("build.xml", source);
+    let version = results
+        .identifiers
+        .iter()
+        .find(|identifier| identifier.kind == IdentifierKind::VariableRef)
+        .expect("${version} should be a variable_ref identifier");
+
+    assert_eq!(version.name, "version");
+    assert_eq!(
+        version
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str),
+        Some("read")
+    );
 }
 
 #[test]

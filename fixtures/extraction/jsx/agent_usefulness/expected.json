@@ -287,7 +287,10 @@
       "end_byte": 194,
       "containing_key": "fixtures/extraction/jsx/agent_usefulness/source.jsx:View:3:20",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/agent_usefulness/source.jsx:id:variable_ref:1:84",
@@ -303,7 +306,10 @@
       "end_byte": 86,
       "containing_key": "fixtures/extraction/jsx/agent_usefulness/source.jsx:'hx-get':1:59",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

@@ -44,6 +44,7 @@ const FAST_INTEGRATION_TESTS: &[&str] = &[
     "crates/julie-extract-cli/tests/references_level_sites.rs",
     "crates/julie-extract-cli/tests/sqlite_engine_contract.rs",
     "crates/julie-extract-cli/tests/test_tiers.rs",
+    "crates/julie-extract-cli/tests/variable_access.rs",
     // julie-extractors
     "crates/julie-extractors/tests/call_argument_counts.rs",
     "crates/julie-extractors/tests/call_site_containers.rs",

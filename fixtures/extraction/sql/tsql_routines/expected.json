@@ -853,7 +853,10 @@
       "end_byte": 726,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:variable_ref:28:62",
@@ -869,7 +872,10 @@
       "end_byte": 810,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:variable_ref:29:51",
@@ -885,7 +891,10 @@
       "end_byte": 874,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:variable_ref:31:31",
@@ -901,7 +910,10 @@
       "end_byte": 956,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Day:variable_ref:40:44",
@@ -917,7 +929,10 @@
       "end_byte": 1148,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_NightlyTotals:37:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Entity:variable_ref:19:48",
@@ -933,7 +948,10 @@
       "end_byte": 558,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_WriteAudit:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Total:variable_ref:27:68",
@@ -949,7 +967,10 @@
       "end_byte": 734,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Total:variable_ref:31:44",
@@ -965,7 +986,10 @@
       "end_byte": 964,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:AuditLog:type_usage:19:22",
@@ -998,7 +1022,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:CustomerId:member_access:28:49",
@@ -1015,7 +1042,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Customers"
+      "receiver_type": "Customers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:CustomerId:member_access:29:38",
@@ -1032,7 +1062,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "OrderDrafts"
+      "receiver_type": "OrderDrafts",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:Customers:type_usage:28:15",
@@ -1081,7 +1114,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_NightlyTotals:37:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "DailyTotals"
+      "receiver_type": "DailyTotals",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:Email:member_access:28:29",
@@ -1098,7 +1134,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Customers"
+      "receiver_type": "Customers",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:Email:member_access:28:37",
@@ -1115,7 +1154,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Customers"
+      "receiver_type": "Customers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:Entity:member_access:19:32",
@@ -1132,7 +1174,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_WriteAudit:16:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "AuditLog"
+      "receiver_type": "AuditLog",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:OrderDrafts:type_usage:29:20",
@@ -1181,7 +1226,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_Charge:call:31:20",

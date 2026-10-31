@@ -4657,6 +4657,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Rails"
       }
     },
@@ -4692,6 +4693,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "routes",
         "receiver_qualifier": "Rails.application"
       }
@@ -4904,6 +4906,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "application",
         "receiver_qualifier": "Rails"
       }
@@ -4972,6 +4975,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "CleanupJob"
       }
     },
@@ -5005,7 +5009,10 @@
       "end_byte": 601,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:total:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:@ledger:variable_ref:37:29",
@@ -5021,7 +5028,10 @@
       "end_byte": 708,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:reset!:37:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:@ledger:variable_ref:42:6",
@@ -5037,7 +5047,10 @@
       "end_byte": 796,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:charge:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:ActiveRecord:type_usage:88:14",
@@ -5437,7 +5450,10 @@
       "end_byte": 782,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:charge:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:attr_reader:call:53:12",
@@ -5519,6 +5535,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@ledger"
       }
     },
@@ -5536,7 +5553,10 @@
       "end_byte": 2116,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:fetch_remote:96:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:connection:call:73:4",
@@ -5568,7 +5588,10 @@
       "end_byte": 772,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:charge:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:counter:variable_ref:42:21",
@@ -5584,7 +5607,10 @@
       "end_byte": 811,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:charge:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:current_author:call:89:16",
@@ -5650,6 +5676,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Data"
       }
     },
@@ -5686,6 +5713,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:e:variable_ref:43:38",
+      "name": "e",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/wave2_semantics/source.rb",
+      "start_line": 43,
+      "start_column": 38,
+      "end_line": 43,
+      "end_column": 39,
+      "start_byte": 851,
+      "end_byte": 852,
+      "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:charge:39:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:e:variable_ref:44:18",
       "name": "e",
       "kind": "variable_ref",
@@ -5699,7 +5745,29 @@
       "end_byte": 872,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:charge:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:e:variable_ref:45:14",
+      "name": "e",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/wave2_semantics/source.rb",
+      "start_line": 45,
+      "start_column": 14,
+      "end_line": 45,
+      "end_column": 15,
+      "start_byte": 888,
+      "end_byte": 889,
+      "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:charge:39:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:e:variable_ref:46:10",
@@ -5715,7 +5783,10 @@
       "end_byte": 901,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:charge:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:email_present:call:70:11",
@@ -5765,6 +5836,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "connection"
       }
     },
@@ -5800,6 +5872,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "registry"
       }
     },
@@ -5819,6 +5892,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "conn"
       }
     },
@@ -5838,6 +5912,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HTTP",
         "receiver_qualifier": "Net"
       }
@@ -5858,6 +5933,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HTTParty"
       }
     },
@@ -5907,7 +5983,10 @@
       "end_byte": 371,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:load:19:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:include:call:8:4",
@@ -5939,7 +6018,10 @@
       "end_byte": 432,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:[]:24:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:ledger:variable_ref:28:16",
@@ -5955,7 +6037,10 @@
       "end_byte": 539,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:initialize:27:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:log:call:46:6",
@@ -6021,6 +6106,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Base"
       }
     },
@@ -6040,6 +6126,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Class"
       }
     },
@@ -6059,6 +6146,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Class"
       }
     },
@@ -6078,6 +6166,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Faraday"
       }
     },
@@ -6111,7 +6200,10 @@
       "end_byte": 1339,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:active:68:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:params:call:93:4",
@@ -6159,7 +6251,10 @@
       "end_byte": 1900,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:show:91:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:post:member_access:98:15",
@@ -6177,6 +6272,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "RestClient"
       }
     },
@@ -6244,6 +6340,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@ledger"
       }
     },
@@ -6327,6 +6424,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "params"
       }
     },
@@ -6426,6 +6524,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "@ledger"
       }
     },
@@ -6459,7 +6558,10 @@
       "end_byte": 2196,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:fetch_remote:96:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:validate:call:70:2",
@@ -6491,7 +6593,10 @@
       "end_byte": 483,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/source.rb:logger=:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/source.rb:where:call:68:22",
@@ -6701,6 +6806,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "RSpec"
       }
     },
@@ -6880,6 +6986,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "List"
       }
     },
@@ -6899,6 +7006,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "List"
       }
     },
@@ -6918,6 +7026,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Sinatra"
       }
     },
@@ -6937,6 +7046,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "List"
       }
     },
@@ -7004,6 +7114,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "is_expected"
       }
     },
@@ -7021,7 +7132,10 @@
       "end_byte": 249,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/spec/list_spec.rb:maps \"\" to nil:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/spec/list_spec.rb:to:member_access:15:21",
@@ -7037,7 +7151,10 @@
       "end_byte": 308,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/spec/list_spec.rb:is untagged:14:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/wave2_semantics/spec/support/countable_examples.rb:RSpec:type_usage:1:0",
@@ -7119,6 +7236,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "RSpec"
       }
     },
@@ -7138,6 +7256,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "subject"
       }
     },
@@ -7171,7 +7290,10 @@
       "end_byte": 104,
       "containing_key": "fixtures/extraction/ruby/wave2_semantics/spec/support/countable_examples.rb:counts its items:2:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

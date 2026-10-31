@@ -212,12 +212,19 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm (locked contract — see the reference
-        // implementation doc comment in csharp/identifiers.rs): a bare `identifier`
-        // used as a value or as the object/receiver of a member access — the reads
-        // the Call/MemberAccess/TypeUsage arms above do not own. Java type positions
-        // are `type_identifier` nodes, so they never reach this arm.
-        "identifier" if is_java_value_read_identifier(node) => {
+        "identifier"
+            if is_java_value_read_identifier(node)
+                || crate::base::variable_access::rules_for_language("java").is_some_and(
+                    |rules| {
+                        !extractor.base().has_identifier_at_node(&node)
+                            && crate::base::variable_access::is_assignment_or_increment_target(
+                                node,
+                                &extractor.base().content,
+                                rules,
+                            )
+                    },
+                ) =>
+        {
             let name = extractor.base().get_node_text(&node);
             // Rule 5: reuse the existing noise filter. (`this`/`super`/`true`/
             // `null` and primitive types are distinct grammar nodes, never
@@ -309,8 +316,6 @@ fn is_java_value_read_identifier(node: Node) -> bool {
         // Rule 3: labels are not variables.
         "labeled_statement" | "break_statement" | "continue_statement" => false,
 
-        // Rule 4: the LHS of a PLAIN assignment is write-only; a COMPOUND
-        // operator (`+=`, `|=`, …) reads. The RHS is always a read.
         "assignment_expression" => {
             !is_field("left")
                 || parent
@@ -319,8 +324,6 @@ fn is_java_value_read_identifier(node: Node) -> bool {
                     .unwrap_or(false)
         }
 
-        // Every other position — argument, operand, return value, ternary arm,
-        // array element/index, switch label constant, update expression (`i++` reads), annotation named-arg key — is a read.
         _ => true,
     }
 }

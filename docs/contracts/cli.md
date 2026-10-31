@@ -214,8 +214,13 @@ each language page says which of these its calls carry), plus
 and variable-reference sites but never text regions or type arguments;
 `type_argument_usages`, `type_arguments`, and `source_regions` stay empty.
 Complexity metrics remain exclusive to `full`; symbol annotations are empty
-at `symbols` and `facts`. The 3.10.0 hermes-agent size figures predate
-annotations at `references`; measure a fresh artifact for the 3.11.0 size. The
+at `symbols` and `facts`. On fixed Julie and hermes-agent snapshots, references
+artifacts grew from 1,542.05 to 1,552.83 MB (+10.78 MB) and 2,450.08 to
+2,503.93 MB (+53.84 MB), respectively, from 3.10.0 to 3.11.0. Total-size
+changes include access metadata and additional write-site identifiers; the
+annotation table and indexes allocated 2.25 MB (10,182 rows) for Julie and
+3.46 MB (12,025 rows) for hermes-agent. See the
+[3.11.0 storage evidence](../release-evidence/v3.11.0-access-facts.md). The
 chosen level is recorded in the `index_level` artifact-metadata key and in
 `artifact.index_level` on every report.
 

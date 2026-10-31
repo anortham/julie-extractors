@@ -843,7 +843,10 @@
       "end_byte": 556,
       "containing_key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:MyAppWeb.UserSocket:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:@dynamic_handler:variable_ref:9:30",
@@ -859,7 +862,10 @@
       "end_byte": 248,
       "containing_key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:MyAppWeb.Endpoint:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:@dynamic_path:variable_ref:8:10",
@@ -875,7 +881,10 @@
       "end_byte": 178,
       "containing_key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:MyAppWeb.Endpoint:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:@dynamic_topic:variable_ref:20:11",
@@ -891,7 +900,10 @@
       "end_byte": 485,
       "containing_key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:MyAppWeb.UserSocket:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:MyAppWeb.AliasedSocket:type_usage:34:21",
@@ -1195,7 +1207,10 @@
       "end_byte": 1197,
       "containing_key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:socket:55:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:handler:variable_ref:57:43",
@@ -1211,7 +1226,10 @@
       "end_byte": 1250,
       "containing_key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:channel:57:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:path:variable_ref:55:34",
@@ -1227,7 +1245,10 @@
       "end_byte": 1188,
       "containing_key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:socket:55:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:pipe_through:call:50:2",
@@ -1387,7 +1408,10 @@
       "end_byte": 1241,
       "containing_key": "fixtures/extraction/elixir/phoenix_websocket/source.ex:channel:57:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

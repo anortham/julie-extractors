@@ -1,0 +1,809 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:Sample:3:0",
+      "name": "Sample",
+      "kind": "class",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 3,
+      "start_byte": 34,
+      "end_byte": 284,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 1,
+        "end_line": 11,
+        "end_column": 4,
+        "start_byte": 48,
+        "end_byte": 280
+      },
+      "body_hash": "6973727661b24192ccf843c9dd38ff2e",
+      "signature": "class Sample",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:argument:4:26",
+      "name": "argument",
+      "kind": "variable",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 4,
+      "start_column": 26,
+      "end_line": 4,
+      "end_column": 34,
+      "start_byte": 73,
+      "end_byte": 81,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "argument",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:box:4:21",
+      "name": "box",
+      "kind": "variable",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 4,
+      "start_column": 21,
+      "end_line": 4,
+      "end_column": 24,
+      "start_byte": 68,
+      "end_byte": 71,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "box",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:compound:7:2",
+      "name": "compound",
+      "kind": "variable",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 7,
+      "start_column": 2,
+      "end_line": 7,
+      "end_column": 14,
+      "start_byte": 147,
+      "end_byte": 159,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "compound = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:global_plain:1:0",
+      "name": "global_plain",
+      "kind": "variable",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 16,
+      "start_byte": 0,
+      "end_byte": 16,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "global_plain = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:initial:4:12",
+      "name": "initial",
+      "kind": "variable",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 4,
+      "start_column": 12,
+      "end_line": 4,
+      "end_column": 19,
+      "start_byte": 59,
+      "end_byte": 66,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "initial",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:initialized:5:2",
+      "name": "initialized",
+      "kind": "variable",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 5,
+      "start_column": 2,
+      "end_line": 5,
+      "end_column": 23,
+      "start_byte": 94,
+      "end_byte": 115,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "initialized = initial",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:plain:6:2",
+      "name": "plain",
+      "kind": "variable",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 6,
+      "start_column": 2,
+      "end_line": 6,
+      "end_column": 11,
+      "start_byte": 118,
+      "end_byte": 127,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "plain = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:records:4:36",
+      "name": "records",
+      "kind": "variable",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 4,
+      "start_column": 36,
+      "end_line": 4,
+      "end_column": 43,
+      "start_byte": 83,
+      "end_byte": 90,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "records",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "name": "writes",
+      "kind": "method",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 4,
+      "start_column": 1,
+      "end_line": 11,
+      "end_column": 4,
+      "start_byte": 48,
+      "end_byte": 280,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 2,
+        "end_line": 10,
+        "end_column": 52,
+        "start_byte": 94,
+        "end_byte": 275
+      },
+      "body_hash": "d71ad3bbfd20099439bc3dc0068b6aa6",
+      "signature": "def writes(initial, box, argument, records)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/ruby/variable_access/source.rb:Sample:3:0",
+      "metadata": null,
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "callee_name": "box.value=",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "callee_name": "consume",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "line_number": 10,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "callee_name": "consume",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "line_number": 9,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "callee_name": "records.each",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "line_number": 10,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+        "callee_name": "box.value=",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "box.value=",
+        "terminal_name": "value=",
+        "receiver": "box",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "span": {
+        "start_line": 8,
+        "start_column": 2,
+        "end_line": 8,
+        "end_column": 11,
+        "start_byte": 183,
+        "end_byte": 192
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+        "callee_name": "consume",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "consume",
+        "terminal_name": "consume",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "span": {
+        "start_line": 10,
+        "start_column": 30,
+        "end_line": 10,
+        "end_column": 47,
+        "start_byte": 253,
+        "end_byte": 270
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+        "callee_name": "consume",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+        "line_number": 9,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "consume",
+        "terminal_name": "consume",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "span": {
+        "start_line": 9,
+        "start_column": 2,
+        "end_line": 9,
+        "end_column": 19,
+        "start_byte": 205,
+        "end_byte": 222
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+        "callee_name": "records.each",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "records.each",
+        "terminal_name": "each",
+        "receiver": "records",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "span": {
+        "start_line": 10,
+        "start_column": 2,
+        "end_line": 10,
+        "end_column": 52,
+        "start_byte": 225,
+        "end_byte": 275
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:argument:variable_ref:9:10",
+      "name": "argument",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 9,
+      "start_column": 10,
+      "end_line": 9,
+      "end_column": 18,
+      "start_byte": 213,
+      "end_byte": 221,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:box:variable_ref:8:2",
+      "name": "box",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 5,
+      "start_byte": 183,
+      "end_byte": 186,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:captured:variable_ref:10:19",
+      "name": "captured",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 10,
+      "start_column": 19,
+      "end_line": 10,
+      "end_column": 27,
+      "start_byte": 242,
+      "end_byte": 250,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:captured:variable_ref:10:38",
+      "name": "captured",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 10,
+      "start_column": 38,
+      "end_line": 10,
+      "end_column": 46,
+      "start_byte": 261,
+      "end_byte": 269,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:compound:variable_ref:7:16",
+      "name": "compound",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 7,
+      "start_column": 16,
+      "end_line": 7,
+      "end_column": 24,
+      "start_byte": 161,
+      "end_byte": 169,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:consume:call:10:30",
+      "name": "consume",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 10,
+      "start_column": 30,
+      "end_line": 10,
+      "end_column": 37,
+      "start_byte": 253,
+      "end_byte": 260,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:consume:call:9:2",
+      "name": "consume",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 9,
+      "start_column": 2,
+      "end_line": 9,
+      "end_column": 9,
+      "start_byte": 205,
+      "end_byte": 212,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:each:member_access:10:10",
+      "name": "each",
+      "kind": "member_access",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 10,
+      "start_column": 10,
+      "end_line": 10,
+      "end_column": 14,
+      "start_byte": 233,
+      "end_byte": 237,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read",
+        "receiver": "records"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:global_plain:variable_ref:2:0",
+      "name": "global_plain",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 12,
+      "start_byte": 17,
+      "end_byte": 29,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:initial:variable_ref:5:16",
+      "name": "initial",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 5,
+      "start_column": 16,
+      "end_line": 5,
+      "end_column": 23,
+      "start_byte": 108,
+      "end_byte": 115,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:initial:variable_ref:6:21",
+      "name": "initial",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 6,
+      "start_column": 21,
+      "end_line": 6,
+      "end_column": 28,
+      "start_byte": 137,
+      "end_byte": 144,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:initial:variable_ref:7:28",
+      "name": "initial",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 7,
+      "start_column": 28,
+      "end_line": 7,
+      "end_column": 35,
+      "start_byte": 173,
+      "end_byte": 180,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:initial:variable_ref:8:14",
+      "name": "initial",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 8,
+      "start_column": 14,
+      "end_line": 8,
+      "end_column": 21,
+      "start_byte": 195,
+      "end_byte": 202,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:plain:variable_ref:6:13",
+      "name": "plain",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 6,
+      "start_column": 13,
+      "end_line": 6,
+      "end_column": 18,
+      "start_byte": 129,
+      "end_byte": 134,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:records:variable_ref:10:2",
+      "name": "records",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 10,
+      "start_column": 2,
+      "end_line": 10,
+      "end_column": 9,
+      "start_byte": 225,
+      "end_byte": 232,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/ruby/variable_access/source.rb:value:member_access:8:6",
+      "name": "value",
+      "kind": "member_access",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "start_line": 8,
+      "start_column": 6,
+      "end_line": 8,
+      "end_column": 11,
+      "start_byte": 187,
+      "end_byte": 192,
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write",
+        "receiver": "box"
+      }
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/ruby/variable_access/source.rb:compound:7:2",
+      "resolved_type": "Integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "ruby",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/ruby/variable_access/source.rb:global_plain:1:0",
+      "resolved_type": "Integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "ruby",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/ruby/variable_access/source.rb:plain:6:2",
+      "resolved_type": "Integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "ruby",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "ruby.block.v1",
+      "capture_name": "block",
+      "node_kind": "do_block",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "containing_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "start_line": 10,
+      "start_column": 15,
+      "end_line": 10,
+      "end_column": 52,
+      "start_byte": 238,
+      "end_byte": 275,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "blocks"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "covered_lines": 13,
+      "covered_bytes": 285,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 285,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/ruby/variable_access/source.rb:writes:4:1",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/variable_access/source.rb",
+      "covered_lines": 6,
+      "covered_bytes": 181,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 4,
+      "start_line": 5,
+      "start_column": 2,
+      "end_line": 10,
+      "end_column": 52,
+      "start_byte": 94,
+      "end_byte": 275,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

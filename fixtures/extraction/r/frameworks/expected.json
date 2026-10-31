@@ -1049,7 +1049,10 @@
       "end_byte": 657,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:server:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:find_user:call:12:2",
@@ -1097,7 +1100,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:POST /users/<id:int>:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:input:variable_ref:26:15",
@@ -1113,7 +1119,10 @@
       "end_byte": 476,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:server:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:input:variable_ref:28:15",
@@ -1129,7 +1138,10 @@
       "end_byte": 510,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:server:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:library:call:1:0",
@@ -1241,7 +1253,10 @@
       "end_byte": 114,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:GET /echo:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:observeEvent:call:28:2",
@@ -1273,7 +1288,10 @@
       "end_byte": 569,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:server:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:plot:call:32:4",
@@ -1321,7 +1339,10 @@
       "end_byte": 15,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:plumber:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:pr:call:15:10",
@@ -1387,6 +1408,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "input"
       }
     },
@@ -1406,6 +1428,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "input"
       }
     },
@@ -1457,6 +1480,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "output"
       }
     },
@@ -1490,7 +1514,10 @@
       "end_byte": 695,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:shiny:variable_ref:2:8",
@@ -1506,7 +1533,10 @@
       "end_byte": 30,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:shiny:2:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:shinyApp:call:37:0",
@@ -1570,7 +1600,10 @@
       "end_byte": 678,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

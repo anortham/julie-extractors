@@ -7,7 +7,7 @@ mod type_arguments;
 
 use crate::base::{Identifier, IdentifierKind, Symbol, extract_type_arguments};
 use crate::javascript::identifiers::{
-    ecmascript_enclosing_class_name, is_ecmascript_value_read_identifier,
+    ecmascript_enclosing_class_name, is_ecmascript_value_read_identifier, is_ecmascript_write_site,
     is_instanceof_binary_expression, is_instanceof_rhs_terminal,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -270,13 +270,14 @@ fn extract_identifier_from_node(
             record_outermost_generic_type_arguments_ts(extractor, node, &identifier);
         }
 
-        // `variable_ref` complement arm: a bare `identifier` used as a value or as
-        // the object/receiver of a member access — the reads the Call/MemberAccess/
-        // TypeUsage arms above do not own. TS type positions use the distinct
-        // `type_identifier` node kind, and the shared predicate excludes the
-        // positions owned by the extends_clause/new_expression/JSX arms, so no
-        // node yields two rows. Predicate shared with JavaScript and Vue.
-        "identifier" if is_ecmascript_value_read_identifier(node) => {
+        "identifier"
+            if is_ecmascript_value_read_identifier(node)
+                || is_ecmascript_write_site(
+                    node,
+                    &extractor.base().content,
+                    &extractor.base().language,
+                ) =>
+        {
             let name = extractor.base().get_node_text(&node);
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             extractor.base_mut().create_identifier(
@@ -291,6 +292,23 @@ fn extract_identifier_from_node(
         // destructuring form is a distinct `shorthand_property_identifier_pattern`
         // node kind and stays excluded.
         "shorthand_property_identifier" => {
+            let name = extractor.base().get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            extractor.base_mut().create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
+        "shorthand_property_identifier_pattern"
+            if is_ecmascript_write_site(
+                node,
+                &extractor.base().content,
+                &extractor.base().language,
+            ) =>
+        {
             let name = extractor.base().get_node_text(&node);
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             extractor.base_mut().create_identifier(

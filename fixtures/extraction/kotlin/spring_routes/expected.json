@@ -477,6 +477,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "RequestMethod"
       }
     },
@@ -576,6 +577,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "RequestMethod"
       }
     },
@@ -641,7 +643,10 @@
       "end_byte": 397,
       "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:search:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/spring_routes/source.kt:RequestMethod:variable_ref:15:77",
@@ -657,7 +662,10 @@
       "end_byte": 416,
       "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:search:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/spring_routes/source.kt:RestController:type_usage:29:1",
@@ -705,7 +713,10 @@
       "end_byte": 697,
       "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:deleteUser:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

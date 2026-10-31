@@ -1666,7 +1666,10 @@
       "end_byte": 1451,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:Flags:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:B:variable_ref:81:14",
@@ -1682,7 +1685,10 @@
       "end_byte": 1472,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:Flags:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:CACHE:variable_ref:75:11",
@@ -1698,7 +1704,10 @@
       "end_byte": 1359,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:CACHE:75:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:Config:type_usage:102:9",
@@ -1746,7 +1755,10 @@
       "end_byte": 1883,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:load:103:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:Config:variable_ref:113:12",
@@ -1762,7 +1774,10 @@
       "end_byte": 2006,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:load:112:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:Flags:variable_ref:79:15",
@@ -1778,7 +1793,10 @@
       "end_byte": 1428,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:Flags:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:Mutex:type_usage:4:19",
@@ -1810,7 +1828,10 @@
       "end_byte": 1291,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:REGISTRY:71:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:Mutex:variable_ref:71:47",
@@ -1826,7 +1847,10 @@
       "end_byte": 1309,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:REGISTRY:71:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:Option:type_usage:93:18",
@@ -1858,7 +1882,10 @@
       "end_byte": 1284,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:REGISTRY:71:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:REGISTRY:variable_ref:96:4",
@@ -1874,7 +1901,10 @@
       "end_byte": 1745,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:guarded:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:RefCell:type_usage:3:15",
@@ -1906,7 +1936,10 @@
       "end_byte": 1368,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:CACHE:75:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:RefCell:variable_ref:75:33",
@@ -1922,7 +1955,10 @@
       "end_byte": 1383,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:CACHE:75:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:Self:type_usage:103:25",
@@ -2114,7 +2150,10 @@
       "end_byte": 1295,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:REGISTRY:71:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:a:variable_ref:94:18",
@@ -2130,7 +2169,10 @@
       "end_byte": 1678,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:guarded:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:area:call:20:13",
@@ -2182,7 +2224,10 @@
       "end_byte": 376,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:scaled:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:cell:type_usage:3:9",
@@ -2288,7 +2333,10 @@
       "end_byte": 1536,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:code:85:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:new:call:71:54",
@@ -2363,6 +2411,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2382,6 +2431,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2399,7 +2449,10 @@
       "end_byte": 872,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:me:46:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:side:variable_ref:67:37",
@@ -2415,7 +2468,10 @@
       "end_byte": 1207,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:GLOBAL:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:sync:type_usage:4:13",
@@ -2447,7 +2503,10 @@
       "end_byte": 814,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:outer:35:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:thread_local:call:74:0",
@@ -2479,7 +2538,10 @@
       "end_byte": 1709,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:guarded:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:twice:call:37:12",
@@ -2532,6 +2594,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "t"
       }
     },
@@ -2549,7 +2612,10 @@
       "end_byte": 785,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:outer:35:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:vec:variable_ref:71:58",
@@ -2565,7 +2631,10 @@
       "end_byte": 1318,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:REGISTRY:71:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:w:variable_ref:95:31",
@@ -2581,7 +2650,10 @@
       "end_byte": 1730,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:guarded:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:w:variable_ref:96:34",
@@ -2597,7 +2669,10 @@
       "end_byte": 1768,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:guarded:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:w:variable_ref:97:4",
@@ -2613,7 +2688,10 @@
       "end_byte": 1776,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:guarded:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:x:variable_ref:37:19",
@@ -2629,7 +2707,10 @@
       "end_byte": 699,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:inner_helper:36:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:x:variable_ref:88:13",
@@ -2645,7 +2726,29 @@
       "end_byte": 1574,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:code:85:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/items_and_macros/source.rs:x:variable_ref:88:8",
+      "name": "x",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/items_and_macros/source.rs",
+      "start_line": 88,
+      "start_column": 8,
+      "end_line": 88,
+      "end_column": 9,
+      "start_byte": 1568,
+      "end_byte": 1569,
+      "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:code:85:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     }
   ],
   "types": [

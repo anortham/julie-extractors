@@ -929,7 +929,10 @@
       "end_byte": 496,
       "containing_key": "fixtures/extraction/c/basic/source.c:evaluate:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:enabled:variable_ref:26:8",
@@ -945,7 +948,10 @@
       "end_byte": 459,
       "containing_key": "fixtures/extraction/c/basic/source.c:evaluate:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:helper:call:17:11",
@@ -980,7 +986,10 @@
       "end_byte": 488,
       "containing_key": "fixtures/extraction/c/basic/source.c:evaluate:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:i:variable_ref:27:35",
@@ -996,7 +1005,10 @@
       "end_byte": 499,
       "containing_key": "fixtures/extraction/c/basic/source.c:evaluate:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:i:variable_ref:28:21",
@@ -1012,7 +1024,10 @@
       "end_byte": 527,
       "containing_key": "fixtures/extraction/c/basic/source.c:evaluate:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:id:member_access:17:26",
@@ -1030,6 +1045,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "worker"
       }
     },
@@ -1047,7 +1063,10 @@
       "end_byte": 522,
       "containing_key": "fixtures/extraction/c/basic/source.c:evaluate:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:total:variable_ref:31:11",
@@ -1063,7 +1082,10 @@
       "end_byte": 561,
       "containing_key": "fixtures/extraction/c/basic/source.c:evaluate:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:value:variable_ref:21:11",
@@ -1079,7 +1101,10 @@
       "end_byte": 377,
       "containing_key": "fixtures/extraction/c/basic/source.c:helper:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:worker:variable_ref:17:18",
@@ -1095,7 +1120,10 @@
       "end_byte": 327,
       "containing_key": "fixtures/extraction/c/basic/source.c:worker_run:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:worker_log:call:16:4",
@@ -1130,7 +1158,10 @@
       "end_byte": 704,
       "containing_key": "fixtures/extraction/c/basic/source.c:receive_facts:40:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

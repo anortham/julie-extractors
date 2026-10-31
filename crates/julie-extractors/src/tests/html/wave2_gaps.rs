@@ -456,6 +456,18 @@ fn templated_class_and_id_values_emit_only_real_names() {
         .map(|(name, _, _)| name)
         .collect();
     assert_eq!(members, ["navbar-item", "is-active"]);
+    assert!(
+        result
+            .identifiers
+            .iter()
+            .filter(|identifier| {
+                matches!(identifier.name.as_str(), "navbar-item" | "is-active")
+            })
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
 }
 
 #[test]
@@ -486,4 +498,103 @@ fn babel_scripts_run_through_the_jsx_extractor() {
     );
     assert_eq!(symbol(&result, "Greeting").kind, SymbolKind::Function);
     symbol(&result, "App");
+}
+
+#[test]
+fn hosted_variable_access_facts_survive_host_mapping() {
+    let source = "<script>let total = 0; total += delta; save(total);</script><button onclick=\"counter += increment\">Save</button>";
+    let result = extract(source);
+    let access_values = |name: &str| {
+        let mut values: Vec<_> = result
+            .identifiers
+            .iter()
+            .filter(|identifier| identifier.name == name)
+            .filter_map(|identifier| {
+                identifier
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("access"))
+                    .and_then(serde_json::Value::as_str)
+            })
+            .collect();
+        values.sort_unstable();
+        values
+    };
+
+    assert_eq!(access_values("total"), ["read", "read_write"]);
+    assert_eq!(access_values("delta"), ["read"]);
+    assert_eq!(access_values("counter"), ["read_write"]);
+    assert_eq!(access_values("increment"), ["read"]);
+    assert!(
+        result
+            .identifiers
+            .iter()
+            .filter(|identifier| matches!(
+                identifier.kind,
+                IdentifierKind::Call | IdentifierKind::TypeUsage
+            ))
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
+    for identifier in result.identifiers.iter().filter(|identifier| {
+        matches!(
+            identifier.name.as_str(),
+            "total" | "delta" | "counter" | "increment"
+        )
+    }) {
+        assert_eq!(
+            &source[identifier.start_byte as usize..identifier.end_byte as usize],
+            identifier.name
+        );
+    }
+}
+
+#[test]
+fn jsx_variable_access_facts_survive_html_mapping() {
+    let source = "<script type=\"text/babel\">\nlet total = 0;\ntotal += delta;\nfunction Greeting() { return <span>{total}</span>; }\n</script>";
+    let result = extract(source);
+    let access_values = |name: &str| {
+        let mut values: Vec<_> = result
+            .identifiers
+            .iter()
+            .filter(|identifier| identifier.name == name)
+            .filter_map(|identifier| {
+                identifier
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("access"))
+                    .and_then(serde_json::Value::as_str)
+            })
+            .collect();
+        values.sort_unstable();
+        values
+    };
+
+    assert_eq!(access_values("total"), ["read", "read_write"]);
+    assert_eq!(access_values("delta"), ["read"]);
+    assert!(
+        result
+            .identifiers
+            .iter()
+            .filter(|identifier| matches!(
+                identifier.kind,
+                IdentifierKind::Call | IdentifierKind::TypeUsage
+            ))
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
+    for identifier in result
+        .identifiers
+        .iter()
+        .filter(|identifier| matches!(identifier.name.as_str(), "total" | "delta"))
+    {
+        assert_eq!(
+            &source[identifier.start_byte as usize..identifier.end_byte as usize],
+            identifier.name
+        );
+    }
 }

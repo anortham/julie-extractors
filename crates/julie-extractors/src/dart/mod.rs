@@ -753,6 +753,7 @@ impl DartExtractor {
             &mut self.base,
             tree.root_node(),
             &containing_symbols,
+            symbols,
             0,
         );
         self.base.identifiers.clone()

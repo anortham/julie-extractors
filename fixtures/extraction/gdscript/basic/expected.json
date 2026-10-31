@@ -1486,7 +1486,10 @@
       "end_byte": 1019,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:Node:type_usage:2:8",
@@ -1566,7 +1569,10 @@
       "end_byte": 1057,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:bool:type_usage:32:35",
@@ -1598,7 +1604,10 @@
       "end_byte": 703,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:count:variable_ref:37:9",
@@ -1614,7 +1623,10 @@
       "end_byte": 747,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:count:variable_ref:39:10",
@@ -1630,7 +1642,10 @@
       "end_byte": 786,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:enabled:variable_ref:34:7",
@@ -1646,7 +1661,10 @@
       "end_byte": 670,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:fetch_url:call:27:4",
@@ -1681,6 +1699,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:i:variable_ref:35:12",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 35,
+      "start_column": 12,
+      "end_line": 35,
+      "end_column": 13,
+      "start_byte": 684,
+      "end_byte": 685,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:i:variable_ref:36:21",
       "name": "i",
       "kind": "variable_ref",
@@ -1694,7 +1731,29 @@
       "end_byte": 732,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:id:variable_ref:10:4",
+      "name": "id",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 10,
+      "end_column": 6,
+      "start_byte": 150,
+      "end_byte": 152,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:_init:9:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:id:variable_ref:13:15",
@@ -1710,7 +1769,10 @@
       "end_byte": 198,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:run:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:id:variable_ref:14:18",
@@ -1726,7 +1788,10 @@
       "end_byte": 220,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:run:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:instantiate:call:52:38",
@@ -2100,7 +2165,29 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:total:variable_ref:38:8",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 38,
+      "start_column": 8,
+      "end_line": 38,
+      "end_column": 13,
+      "start_byte": 761,
+      "end_byte": 766,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:total:variable_ref:41:12",
@@ -2116,7 +2203,10 @@
       "end_byte": 820,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:total:variable_ref:43:12",
@@ -2132,7 +2222,10 @@
       "end_byte": 854,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:total:variable_ref:45:12",
@@ -2148,7 +2241,10 @@
       "end_byte": 888,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:total:variable_ref:46:11",
@@ -2164,7 +2260,10 @@
       "end_byte": 910,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:value:variable_ref:10:9",
@@ -2180,7 +2279,10 @@
       "end_byte": 160,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:_init:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:value:variable_ref:18:11",
@@ -2196,7 +2298,10 @@
       "end_byte": 297,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:helper:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:void:type_usage:20:35",
@@ -2324,7 +2429,10 @@
       "end_byte": 383,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:record_run:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

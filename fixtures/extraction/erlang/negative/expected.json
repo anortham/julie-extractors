@@ -593,7 +593,10 @@
       "end_byte": 733,
       "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/negative/source.erl:erlang:type_usage:19:28",
@@ -627,6 +630,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "request"
       }
     },
@@ -678,6 +682,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "request"
       }
     },
@@ -697,6 +702,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "request"
       }
     },
@@ -746,7 +752,10 @@
       "end_byte": 811,
       "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/negative/source.erl:request:type_usage:19:15",

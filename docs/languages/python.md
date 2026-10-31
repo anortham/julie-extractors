@@ -344,3 +344,7 @@ no role at all.
 
 The temporary checkouts and SQLite artifacts were removed after recording this
 evidence.
+
+## Variable access facts
+
+Variable-reference and member-access identifiers carry metadata_json.access as read, write, or read_write when the syntax is classified. Python records plain and augmented assignment targets, walrus bindings, loop targets, and unshadowed match captures. Attribute writes classify the attribute while its object and subscript/index expressions remain reads. Bindings already represented by symbols do not get duplicate identifiers.

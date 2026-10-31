@@ -98,3 +98,15 @@ rules, because Unity, CMocka, and Check are C frameworks.
   trailing comment (`#include "a.h" // see <b>`) does not change them.
   `isSystemHeader` is `true` only for `<...>`.
 - `#include MACRO` writes no row, because the header name is not in the source.
+
+## Variable access facts
+
+`variable_ref` and assignment-target `member_access` identifiers carry an
+optional `metadata.access`: `read`, `write`, or `read_write`. Plain assignments,
+initializers represented by a variable-reference row, increments, and
+decrements are writes; compound assignments are read/write. For
+`box->value = next`, `value` is a write and `box` is a read. Array bases and
+indexes remain reads on assignment. Other classified occurrences, including
+call arguments, are reads. Declaration names already represented by symbols do
+not gain duplicate identifier rows. C has no pattern-binding construct. Calls
+and type usages have no access key.

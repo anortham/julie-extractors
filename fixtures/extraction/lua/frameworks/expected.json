@@ -368,6 +368,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "vim"
       }
     },
@@ -387,6 +388,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "vim"
       }
     },
@@ -404,7 +406,10 @@
       "end_byte": 67,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:app:variable_ref:8:0",
@@ -420,7 +425,10 @@
       "end_byte": 115,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:args:member_access:13:13",
@@ -438,6 +446,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "opts"
       }
     },
@@ -457,6 +466,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "lsp",
         "receiver_qualifier": "vim"
       }
@@ -516,6 +526,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "love"
       }
     },
@@ -535,6 +546,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "vim"
       }
     },
@@ -552,7 +564,10 @@
       "end_byte": 48,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:love:variable_ref:25:9",
@@ -568,7 +583,10 @@
       "end_byte": 539,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:load:25:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:love:variable_ref:29:9",
@@ -584,7 +602,10 @@
       "end_byte": 593,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:love:variable_ref:30:2",
@@ -600,7 +621,10 @@
       "end_byte": 607,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:lsp:member_access:19:8",
@@ -618,6 +642,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "vim"
       }
     },
@@ -694,7 +719,10 @@
       "end_byte": 263,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:player:variable_ref:30:28",
@@ -710,7 +738,10 @@
       "end_byte": 635,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:player:variable_ref:30:38",
@@ -726,7 +757,10 @@
       "end_byte": 645,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:print:call:13:2",
@@ -849,7 +883,10 @@
       "end_byte": 859,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:vim:variable_ref:12:0",
@@ -865,7 +902,10 @@
       "end_byte": 197,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:vim:variable_ref:16:0",
@@ -881,7 +921,10 @@
       "end_byte": 318,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:vim:variable_ref:19:4",
@@ -897,7 +940,10 @@
       "end_byte": 416,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:vim:variable_ref:23:0",
@@ -913,7 +959,10 @@
       "end_byte": 448,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:x:member_access:30:35",
@@ -931,6 +980,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "player"
       }
     },
@@ -950,6 +1000,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "player"
       }
     }

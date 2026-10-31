@@ -156,7 +156,10 @@
       "end_byte": 329,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Area:member_access:16:14",
@@ -174,6 +177,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -193,6 +197,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "t"
       }
     },
@@ -210,7 +215,10 @@
       "end_byte": 410,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Area:member_access:17:52",
@@ -228,6 +236,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -246,7 +255,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Seed"
+      "receiver_type": "Seed",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:COL_LENGTH:call:26:3",
@@ -278,7 +290,10 @@
       "end_byte": 335,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Role:member_access:16:25",
@@ -296,6 +311,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "t"
       }
     },
@@ -315,6 +331,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },
@@ -332,7 +349,10 @@
       "end_byte": 416,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Role:member_access:17:60",
@@ -350,6 +370,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "s"
       }
     },

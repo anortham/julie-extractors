@@ -601,7 +601,10 @@
       "end_byte": 308,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:routes:9:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:Home:variable_ref:11:30",
@@ -617,7 +620,10 @@
       "end_byte": 363,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:routes:9:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:NextLink:call:30:13",
@@ -681,7 +687,10 @@
       "end_byte": 775,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:Navigation:25:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:VueDashboard:variable_ref:17:41",
@@ -697,7 +706,10 @@
       "end_byte": 495,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:vueRoutes:16:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:createBrowserRouter:call:14:22",
@@ -789,7 +801,10 @@
       "end_byte": 418,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:router:14:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:vueRoutes:variable_ref:22:12",
@@ -805,7 +820,10 @@
       "end_byte": 596,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:vueRouter:20:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

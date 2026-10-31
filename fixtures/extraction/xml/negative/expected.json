@@ -173,7 +173,10 @@
       "end_byte": 295,
       "containing_key": "fixtures/extraction/xml/negative/Negative.targets:Negative:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/xml/negative/Negative.targets:PackDependsOn:variable_ref:3:42",
@@ -189,7 +192,10 @@
       "end_byte": 160,
       "containing_key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/xml/negative/Negative.targets:Publish:call:3:78",

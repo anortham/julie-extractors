@@ -121,7 +121,10 @@
       "end_byte": 51,
       "containing_key": "fixtures/extraction/fsharp/return_types/source.fs:make:2:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/return_types/source.fs:int:type_usage:1:19",

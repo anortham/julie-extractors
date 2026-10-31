@@ -1,4 +1,4 @@
-use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
@@ -10,6 +10,7 @@ impl super::GoExtractor {
         &mut self,
         node: Node,
         containing_symbols: &ContainingSymbolIndex<'_>,
+        symbols: &[Symbol],
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -17,7 +18,7 @@ impl super::GoExtractor {
         }
 
         // Extract identifier from this node if applicable
-        self.extract_identifier_from_node(node, containing_symbols);
+        self.extract_identifier_from_node(node, containing_symbols, symbols);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -25,7 +26,7 @@ impl super::GoExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
+            self.walk_tree_for_identifiers(child, containing_symbols, symbols, child_depth);
         }
     }
 
@@ -34,6 +35,7 @@ impl super::GoExtractor {
         &mut self,
         node: Node,
         containing_symbols: &ContainingSymbolIndex<'_>,
+        symbols: &[Symbol],
     ) {
         match node.kind() {
             // Function/method calls: foo(), bar.Baz(), fn[T](args)
@@ -168,17 +170,27 @@ impl super::GoExtractor {
                 }
             }
 
-            // `variable_ref` complement arm: a bare `identifier` used as a
-            // value or as a selector receiver — the reads the Call/
-            // MemberAccess/TypeUsage arms above do not own. Type positions
-            // never reach here (`type_identifier`), member names are
-            // `field_identifier`, packages in clauses are `package_identifier`,
-            // and labels are `label_name`. See the LOCKED SEMANTIC CONTRACT
-            // doc comment in `csharp/identifiers.rs`.
             "identifier" if is_go_value_read_identifier(node) => {
                 let name = self.base.get_node_text(&node);
                 // Rule 5: reuse the TypeUsage arm's builtin filter; the
                 // blank identifier is never a read.
+                if !is_go_builtin_type(&name) && name != "_" {
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
+                }
+            }
+
+            "identifier"
+                if should_emit_write_reference(node, &self.base.content, symbols)
+                    && !self.base.has_identifier_at_node(&node) =>
+            {
+                let name = self.base.get_node_text(&node);
                 if !is_go_builtin_type(&name) && name != "_" {
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
@@ -282,6 +294,14 @@ impl super::GoExtractor {
             }
         }
     }
+}
+
+fn should_emit_write_reference(node: Node<'_>, source: &str, symbols: &[Symbol]) -> bool {
+    let Some(rules) = crate::base::variable_access::rules_for_language("go") else {
+        return false;
+    };
+    let name = node.utf8_text(source.as_bytes()).unwrap_or_default();
+    crate::base::variable_access::should_emit_write_reference(node, name, source, rules, symbols)
 }
 
 /// Derive a Go call's carrier from its callee.

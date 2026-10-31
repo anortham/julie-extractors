@@ -76,6 +76,14 @@ f() -> fun lists:reverse/1.
         only(&identifiers, "reverse").kind,
         IdentifierKind::VariableRef
     );
+    assert_eq!(
+        only(&identifiers, "reverse")
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str),
+        Some("read")
+    );
 }
 
 #[test]
@@ -157,6 +165,14 @@ f(X) ->
     assert_eq!(
         only(&identifiers, "LIMIT").kind,
         IdentifierKind::VariableRef
+    );
+    assert_eq!(
+        only(&identifiers, "LIMIT")
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str),
+        Some("read")
     );
     assert_eq!(
         only(&identifiers, "LOG").containing_symbol_id.as_deref(),
@@ -262,6 +278,27 @@ f(#account{id = Id}) -> Id.
     assert_eq!(
         record.containing_symbol_id.as_deref(),
         Some(find(&symbols, "f").id.as_str())
+    );
+}
+
+#[test]
+fn record_pattern_field_labels_are_not_writes() {
+    let source = "-module(m).\n-record(account, {id}).\nopen(#account{id = Id} = Account) -> {Id, Account}.\n";
+    let (_, identifiers) = extract_with_identifiers(source);
+    let field = identifiers
+        .iter()
+        .find(|identifier| {
+            identifier.name == "id" && identifier.kind == IdentifierKind::MemberAccess
+        })
+        .expect("record pattern field reference");
+
+    assert_eq!(
+        field
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str),
+        Some("read")
     );
 }
 

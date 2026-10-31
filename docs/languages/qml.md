@@ -320,3 +320,7 @@ Representative rows prove both registrations:
 
 The temporary checkout and SQLite artifact were removed after recording this
 evidence.
+
+## Variable access facts
+
+JavaScript expressions in QML use the JavaScript `metadata_json.access` rules. Assignments and compound assignments write their targets; compound assignments are read/write. A member assignment writes its terminal member and reads its receiver. A `Behavior on property` target is a read because the value source observes the property it animates. QML declarations represented by symbols do not gain duplicate variable-reference identifiers.

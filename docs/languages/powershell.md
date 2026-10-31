@@ -142,3 +142,7 @@ before a punctuation character writes that character, and `""` writes `"`. A
 backtick before a letter (`` `n ``, `` `t ``) stays as written, so a name stays
 on one line. In a single-quoted label, `''` writes `'`. A variable stays as
 written.
+
+## Variable access facts
+
+Existing `variable_ref` identifiers carry `metadata_json.access` when the syntax identifies the access. Reassignments, loop bindings, increments, and explicit `[ref]` targets are writes; compound assignments are read/write. An initial assignment represented by a variable symbol does not add a duplicate reference. Member and element receivers stay reads, as do element indices.

@@ -1937,7 +1937,10 @@
       "end_byte": 333,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:stdClass:type_usage:19:16",

@@ -95,3 +95,13 @@ another punctuation character becomes that character, and so does a Unicode or
 hex escape of a printable character. `\n`, `\t`, and other control escapes stay
 as written, so a name stays on one line. A long bracket label (`[[…]]`) keeps
 its text as written.
+
+## Variable access facts
+
+Emitted `variable_ref` and `member_access` identifiers include
+`metadata_json.access` when the syntax identifies the site. Assignment targets
+and numeric or generic loop bindings are `write` when the extractor emits a
+reference row; other classified references are `read`. An assigned member is a
+write while its table or index receiver remains a read. Declaration names and
+first global bindings represented by symbol rows are not emitted again as
+variable references.

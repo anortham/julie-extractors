@@ -196,3 +196,34 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
     assert!(legacy.kind_coverage.literals.supported.is_empty());
     assert!(legacy.kind_coverage.source_regions.supported.is_empty());
 }
+
+#[test]
+fn test_capability_snapshot_deserializes_identifier_access_coverage() {
+    let json = r#"
+{
+  "languages": [{
+    "language": "rust",
+    "parser_crate": "tree-sitter-rust",
+    "extensions": ["rs"],
+    "dependency_status": "current",
+    "target_capabilities": {"symbols": true, "relationships": true, "pending_relationships": true, "identifiers": true, "types": true},
+    "capabilities": {"symbols": true, "relationships": true, "pending_relationships": true, "identifiers": true, "types": true},
+    "kind_coverage": {
+      "identifier_metadata": {
+        "supported": ["identifiers.access"],
+        "not_applicable": [],
+        "open_gaps": []
+      }
+    },
+    "fixtures": []
+  }]
+}
+"#;
+    let snapshot = CapabilitySnapshot::from_json_str(json).expect("snapshot should parse");
+
+    let coverage = serde_json::to_value(&snapshot.get("rust").unwrap().kind_coverage).unwrap();
+    assert_eq!(
+        coverage["identifier_metadata"]["supported"],
+        serde_json::json!(["identifiers.access"])
+    );
+}

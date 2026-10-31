@@ -65,8 +65,20 @@ fn argument_names_loop_variables_and_placeholders_are_not_references() {
     );
     assert_eq!(
         refs.iter().filter(|name| **name == "col").count(),
-        1,
+        2,
         "{refs:?}"
+    );
+    assert_eq!(
+        result
+            .identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte == source.find("col in").unwrap() as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access")),
+        Some(&serde_json::json!("write"))
     );
 }
 

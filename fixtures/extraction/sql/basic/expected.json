@@ -441,7 +441,10 @@
       "containing_key": "fixtures/extraction/sql/basic/source.sql:active_workers:13:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:16:6",
@@ -458,7 +461,10 @@
       "containing_key": "fixtures/extraction/sql/basic/source.sql:active_workers:13:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:21:11",
@@ -475,7 +481,10 @@
       "containing_key": "fixtures/extraction/sql/basic/source.sql:recent_workers:20:5",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:21:39",
@@ -492,7 +501,10 @@
       "containing_key": "fixtures/extraction/sql/basic/source.sql:recent_workers:20:5",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:23:9",
@@ -511,6 +523,7 @@
       "confidence": "1.000",
       "receiver_type": "workers",
       "metadata": {
+        "access": "read",
         "receiver": "w"
       }
     },
@@ -531,6 +544,7 @@
       "confidence": "1.000",
       "receiver_type": "recent_workers",
       "metadata": {
+        "access": "read",
         "receiver": "rw"
       }
     },
@@ -551,6 +565,7 @@
       "confidence": "1.000",
       "receiver_type": "workers",
       "metadata": {
+        "access": "read",
         "receiver": "w"
       }
     },
@@ -569,7 +584,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:14:11",
@@ -586,7 +604,10 @@
       "containing_key": "fixtures/extraction/sql/basic/source.sql:active_workers:13:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:18:42",
@@ -603,7 +624,10 @@
       "containing_key": "fixtures/extraction/sql/basic/source.sql:idx_workers_name:18:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:21:15",
@@ -620,7 +644,10 @@
       "containing_key": "fixtures/extraction/sql/basic/source.sql:recent_workers:20:5",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:23:15",
@@ -639,6 +666,7 @@
       "confidence": "1.000",
       "receiver_type": "workers",
       "metadata": {
+        "access": "read",
         "receiver": "w"
       }
     },
@@ -657,7 +685,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:recent_workers:type_usage:24:5",
@@ -689,7 +720,10 @@
       "end_byte": 289,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:chk_worker_id_positive:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:workers:type_usage:15:5",

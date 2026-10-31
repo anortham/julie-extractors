@@ -274,17 +274,21 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm (locked contract in csharp/identifiers.rs):
-        // a bare `identifier` used as a value or as the object/receiver of a member
-        // access — the reads the Call/MemberAccess/TypeUsage arms above do not own.
-        // The other arms match on PARENT node kinds (`invocation`, `member_access`,
-        // `generic_type`), so this arm fires once per identifier node and the
-        // predicate excludes every position those arms own (no duplicate rows).
-        // VB keywords (`Me`, `MyBase`, `True`, `Nothing`) and primitive types
-        // (`Integer`, `Object`) are distinct grammar node kinds — never `identifier`
-        // — so rule 5 is satisfied structurally (verified against
-        // tree-sitter-vb-dotnet rev 25dca4a).
-        "identifier" if is_vbnet_value_read_identifier(node) => {
+        "identifier"
+            if is_vbnet_value_read_identifier(node)
+                || crate::base::variable_access::rules_for_language("vbnet").is_some_and(
+                    |rules| {
+                        !base.has_identifier_at_node(&node)
+                            && crate::base::variable_access::should_emit_write_reference(
+                                node,
+                                &base.get_node_text(&node),
+                                &base.content,
+                                rules,
+                                containing_symbols.symbols,
+                            )
+                    },
+                ) =>
+        {
             let name = base.get_node_text(&node);
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(

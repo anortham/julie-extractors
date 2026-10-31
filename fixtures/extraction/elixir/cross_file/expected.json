@@ -257,6 +257,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/elixir/cross_file/source.ex:acc:variable_ref:14:10",
+      "name": "acc",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
+      "start_line": 14,
+      "start_column": 10,
+      "end_line": 14,
+      "end_column": 13,
+      "start_byte": 482,
+      "end_byte": 485,
+      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/elixir/cross_file/source.ex:acc:variable_ref:14:17",
       "name": "acc",
       "kind": "variable_ref",
@@ -270,7 +289,29 @@
       "end_byte": 492,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/elixir/cross_file/source.ex:i:variable_ref:13:12",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
+      "start_line": 13,
+      "start_column": 12,
+      "end_line": 13,
+      "end_column": 13,
+      "start_byte": 448,
+      "end_byte": 449,
+      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/cross_file/source.ex:i:variable_ref:14:23",
@@ -286,7 +327,10 @@
       "end_byte": 496,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/cross_file/source.ex:local_helper:call:12:9",
@@ -336,6 +380,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Router"
       }
     },
@@ -353,7 +398,10 @@
       "end_byte": 569,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

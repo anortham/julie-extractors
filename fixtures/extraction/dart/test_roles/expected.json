@@ -748,7 +748,10 @@
       "end_byte": 224,
       "containing_key": "fixtures/extraction/dart/test_roles/source.dart:emits one after increment:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/test_roles/source.dart:callback:call:26:2",
@@ -780,7 +783,10 @@
       "end_byte": 342,
       "containing_key": "fixtures/extraction/dart/test_roles/source.dart:emits one after increment:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/test_roles/source.dart:equals:call:9:20",

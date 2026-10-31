@@ -1940,7 +1940,10 @@
       "end_byte": 413,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:~Conn:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:Point:type_usage:11:26",
@@ -2036,7 +2039,10 @@
       "end_byte": 1163,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:fill:37:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:allocate:call:37:67",
@@ -2156,7 +2162,10 @@
       "end_byte": 433,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:~Conn:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:fd:variable_ref:18:55",
@@ -2172,7 +2181,10 @@
       "end_byte": 495,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:operator<<:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:fd:variable_ref:19:44",
@@ -2188,7 +2200,10 @@
       "end_byte": 563,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:operator bool:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:label:member_access:11:68",
@@ -2206,6 +2221,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "o"
       }
     },
@@ -2223,7 +2239,10 @@
       "end_byte": 291,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:operator==:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:o:variable_ref:11:66",
@@ -2239,7 +2258,10 @@
       "end_byte": 294,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:operator==:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:ostream:type_usage:22:16",
@@ -2287,7 +2309,10 @@
       "end_byte": 498,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:operator<<:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:s:variable_ref:54:22",
@@ -2303,7 +2328,10 @@
       "end_byte": 1520,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:range_for:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:s:variable_ref:55:14",
@@ -2319,7 +2347,10 @@
       "end_byte": 1544,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:range_for:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:s:variable_ref:55:34",
@@ -2335,7 +2366,10 @@
       "end_byte": 1564,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:range_for:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:s:variable_ref:56:11",
@@ -2351,7 +2385,10 @@
       "end_byte": 1660,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:range_for:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:shared_ptr:type_usage:41:17",
@@ -2415,7 +2452,10 @@
       "end_byte": 1515,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:range_for:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:vector:type_usage:41:5",
@@ -2486,7 +2526,10 @@
       "end_byte": 1525,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:range_for:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

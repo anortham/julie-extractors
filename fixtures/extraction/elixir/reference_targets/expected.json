@@ -837,6 +837,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/elixir/reference_targets/source.ex:item:variable_ref:5:35",
+      "name": "item",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/reference_targets/source.ex",
+      "start_line": 5,
+      "start_column": 35,
+      "end_line": 5,
+      "end_column": 39,
+      "start_byte": 142,
+      "end_byte": 146,
+      "containing_key": "fixtures/extraction/elixir/reference_targets/source.ex:run_imported:5:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/elixir/reference_targets/source.ex:item:variable_ref:5:43",
       "name": "item",
       "kind": "variable_ref",
@@ -850,7 +869,29 @@
       "end_byte": 154,
       "containing_key": "fixtures/extraction/elixir/reference_targets/source.ex:run_imported:5:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/elixir/reference_targets/source.ex:item:variable_ref:6:34",
+      "name": "item",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/reference_targets/source.ex",
+      "start_line": 6,
+      "start_column": 34,
+      "end_line": 6,
+      "end_column": 38,
+      "start_byte": 194,
+      "end_byte": 198,
+      "containing_key": "fixtures/extraction/elixir/reference_targets/source.ex:run_piped:6:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/reference_targets/source.ex:item:variable_ref:6:42",
@@ -866,7 +907,10 @@
       "end_byte": 206,
       "containing_key": "fixtures/extraction/elixir/reference_targets/source.ex:run_piped:6:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/reference_targets/source.ex:items:variable_ref:3:22",
@@ -882,7 +926,10 @@
       "end_byte": 77,
       "containing_key": "fixtures/extraction/elixir/reference_targets/source.ex:map:3:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/reference_targets/source.ex:map:call:4:21",
@@ -962,7 +1009,10 @@
       "end_byte": 325,
       "containing_key": "fixtures/extraction/elixir/reference_targets/source.ex:work:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/reference_targets/source.ex:value:variable_ref:11:39",
@@ -978,7 +1028,10 @@
       "end_byte": 316,
       "containing_key": "fixtures/extraction/elixir/reference_targets/source.ex:work:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/reference_targets/source.ex:work:member_access:15:23",
@@ -996,6 +1049,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Worker"
       }
     },
@@ -1015,6 +1069,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Worker"
       }
     }

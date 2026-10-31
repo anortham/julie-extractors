@@ -199,6 +199,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -232,7 +233,10 @@
       "end_byte": 273,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:11:0",
@@ -248,7 +252,10 @@
       "end_byte": 333,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:12:0",
@@ -264,7 +271,10 @@
       "end_byte": 390,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:15:0",
@@ -280,7 +290,10 @@
       "end_byte": 495,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:18:0",
@@ -296,7 +309,10 @@
       "end_byte": 632,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:19:0",
@@ -312,7 +328,10 @@
       "end_byte": 683,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:22:0",
@@ -328,7 +347,10 @@
       "end_byte": 787,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:23:4",
@@ -344,7 +366,10 @@
       "end_byte": 835,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:24:4",
@@ -360,7 +385,10 @@
       "end_byte": 904,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:28:0",
@@ -376,7 +404,10 @@
       "end_byte": 1020,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:29:4",
@@ -392,7 +423,10 @@
       "end_byte": 1096,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:34:0",
@@ -408,7 +442,10 @@
       "end_byte": 1318,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:35:0",
@@ -424,7 +461,10 @@
       "end_byte": 1377,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:Route:variable_ref:36:0",
@@ -440,7 +480,10 @@
       "end_byte": 1443,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:10:27",
@@ -809,7 +852,10 @@
       "end_byte": 1335,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:post:call:11:7",
@@ -882,7 +928,10 @@
       "end_byte": 1402,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

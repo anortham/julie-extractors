@@ -1367,7 +1367,10 @@
       "end_byte": 251,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:Enumerable:variable_ref:32:12",
@@ -1383,7 +1386,10 @@
       "end_byte": 826,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:EventHandler:type_usage:48:25",
@@ -1570,6 +1576,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/csharp/csharp14/source.cs:Message:variable_ref:55:8",
+      "name": "Message",
+      "kind": "variable_ref",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
+      "start_line": 55,
+      "start_column": 8,
+      "end_line": 55,
+      "end_column": 15,
+      "start_byte": 1252,
+      "end_byte": 1259,
+      "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:53:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:MutableCounter:call:18:18",
       "name": "MutableCounter",
       "kind": "call",
@@ -1640,6 +1665,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "customer"
       }
     },
@@ -1821,7 +1847,10 @@
       "end_byte": 1546,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:operator +=:71:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:Where:call:32:23",
@@ -1884,7 +1913,10 @@
       "end_byte": 1556,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:operator +=:71:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:counter:variable_ref:19:0",
@@ -1900,7 +1932,10 @@
       "end_byte": 475,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:customer:variable_ref:15:0",
@@ -1916,7 +1951,29 @@
       "end_byte": 326,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/csharp/csharp14/source.cs:field:variable_ref:45:15",
+      "name": "field",
+      "kind": "variable_ref",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
+      "start_line": 45,
+      "start_column": 15,
+      "end_line": 45,
+      "end_column": 20,
+      "start_byte": 1039,
+      "end_byte": 1044,
+      "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:Message:42:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:predicate:variable_ref:32:37",
@@ -1932,7 +1989,10 @@
       "end_byte": 850,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:result:variable_ref:17:67",
@@ -1948,7 +2008,10 @@
       "end_byte": 429,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:parse$lambda:17:22",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:source:variable_ref:27:44",
@@ -1964,7 +2027,10 @@
       "end_byte": 673,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:EnumerableExtensions:25:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:source:variable_ref:29:32",
@@ -1980,7 +2046,10 @@
       "end_byte": 719,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:IsEmpty:29:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:source:variable_ref:32:29",
@@ -1996,7 +2065,10 @@
       "end_byte": 839,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:text:variable_ref:17:57",
@@ -2012,7 +2084,10 @@
       "end_byte": 417,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:parse$lambda:17:22",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:value:variable_ref:45:23",
@@ -2028,7 +2103,10 @@
       "end_byte": 1052,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:Message:42:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:value:variable_ref:45:71",
@@ -2044,7 +2122,10 @@
       "end_byte": 1100,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:Message:42:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

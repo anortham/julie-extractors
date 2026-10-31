@@ -175,7 +175,10 @@
       "end_byte": 64,
       "containing_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/zig/test_roles/source.zig:testing:member_access:4:12",
@@ -193,6 +196,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "std"
       }
     }

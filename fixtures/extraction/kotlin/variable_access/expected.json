@@ -1,0 +1,1005 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:Box:1:0",
+      "name": "Box",
+      "kind": "class",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 32,
+      "start_byte": 0,
+      "end_byte": 32,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 10,
+        "end_line": 1,
+        "end_column": 32,
+        "start_byte": 10,
+        "end_byte": 32
+      },
+      "body_hash": "5176d25011735a22e32e2d0d802ee244",
+      "signature": "class Box",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:box:3:8",
+      "name": "box",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 3,
+      "start_column": 8,
+      "end_line": 3,
+      "end_column": 16,
+      "start_byte": 70,
+      "end_byte": 78,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "box: Box",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:call:2:0",
+      "name": "call",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 28,
+      "start_byte": 33,
+      "end_byte": 61,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 23,
+        "end_line": 2,
+        "end_column": 28,
+        "start_byte": 56,
+        "end_byte": 61
+      },
+      "body_hash": "2063c1608d6e0baf80249c42e2be5804",
+      "signature": "fun call(value: Int) = value",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:compound:6:4",
+      "name": "compound",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 20,
+      "start_byte": 202,
+      "end_byte": 218,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 19,
+        "end_line": 6,
+        "end_column": 20,
+        "start_byte": 217,
+        "end_byte": 218
+      },
+      "body_hash": "cfcd208495d565ef66e7dff9f98764da",
+      "signature": "var compound = 0",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "metadata": {
+        "isVal": "false",
+        "isVar": "true",
+        "modifiers": "",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:initialized:4:4",
+      "name": "initialized",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 26,
+      "start_byte": 137,
+      "end_byte": 159,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 22,
+        "end_line": 4,
+        "end_column": 26,
+        "start_byte": 155,
+        "end_byte": 159
+      },
+      "body_hash": "fe4c0f30aa359c41d9f9a5f69c8c4192",
+      "signature": "var initialized = seed",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "metadata": {
+        "isVal": "false",
+        "isVar": "true",
+        "modifiers": "",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:pair:3:29",
+      "name": "pair",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 3,
+      "start_column": 29,
+      "end_line": 3,
+      "end_column": 49,
+      "start_byte": 91,
+      "end_byte": 111,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "pair: Pair<Int, Int>",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:pair:9:4",
+      "name": "pair",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 32,
+      "start_byte": 303,
+      "end_byte": 331,
+      "body_span": {
+        "start_line": 9,
+        "start_column": 28,
+        "end_line": 9,
+        "end_column": 32,
+        "start_byte": 327,
+        "end_byte": 331
+      },
+      "body_hash": "33c9b363aa666f43190fa83fce543646",
+      "signature": "val pair = pair",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "metadata": {
+        "isVal": "true",
+        "isVar": "false",
+        "modifiers": "",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:plain:5:4",
+      "name": "plain",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 17,
+      "start_byte": 164,
+      "end_byte": 177,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 16,
+        "end_line": 5,
+        "end_column": 17,
+        "start_byte": 176,
+        "end_byte": 177
+      },
+      "body_hash": "cfcd208495d565ef66e7dff9f98764da",
+      "signature": "var plain = 0",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "metadata": {
+        "isVal": "false",
+        "isVar": "true",
+        "modifiers": "",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "name": "run",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 62,
+      "end_byte": 352,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 69,
+        "end_line": 11,
+        "end_column": 1,
+        "start_byte": 131,
+        "end_byte": 352
+      },
+      "body_hash": "63ab761f0e7a9928694c55152776242a",
+      "signature": "fun run(box: Box, seed: Int, pair: Pair<Int, Int>, values: IntArray)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:seed:3:18",
+      "name": "seed",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 3,
+      "start_column": 18,
+      "end_line": 3,
+      "end_column": 27,
+      "start_byte": 80,
+      "end_byte": 89,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "seed: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:value:1:12",
+      "name": "value",
+      "kind": "property",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 1,
+      "start_column": 12,
+      "end_line": 1,
+      "end_column": 30,
+      "start_byte": 12,
+      "end_byte": 30,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 29,
+        "end_line": 1,
+        "end_column": 30,
+        "start_byte": 29,
+        "end_byte": 30
+      },
+      "body_hash": "cfcd208495d565ef66e7dff9f98764da",
+      "signature": "var value: Int = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:Box:1:0",
+      "metadata": {
+        "isVal": "false",
+        "isVar": "true",
+        "modifiers": "",
+        "propertyType": "Int",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:value:2:9",
+      "name": "value",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 2,
+      "start_column": 9,
+      "end_line": 2,
+      "end_column": 19,
+      "start_byte": 42,
+      "end_byte": 52,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: Int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:call:2:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:values:3:51",
+      "name": "values",
+      "kind": "variable",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 3,
+      "start_column": 51,
+      "end_line": 3,
+      "end_column": 67,
+      "start_byte": 113,
+      "end_byte": 129,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "values: IntArray",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "to_key": "fixtures/extraction/kotlin/variable_access/source.kt:call:2:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "line_number": 10,
+      "span": {
+        "start_line": 10,
+        "start_column": 4,
+        "end_line": 10,
+        "end_column": 18,
+        "start_byte": 336,
+        "end_byte": 350
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "to_key": "fixtures/extraction/kotlin/variable_access/source.kt:call:2:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "line_number": 5,
+      "span": {
+        "start_line": 5,
+        "start_column": 27,
+        "end_line": 5,
+        "end_column": 37,
+        "start_byte": 187,
+        "end_byte": 197
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:Box:type_usage:3:13",
+      "name": "Box",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 3,
+      "start_column": 13,
+      "end_line": 3,
+      "end_column": 16,
+      "start_byte": 75,
+      "end_byte": 78,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:IntArray:type_usage:3:59",
+      "name": "IntArray",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 3,
+      "start_column": 59,
+      "end_line": 3,
+      "end_column": 67,
+      "start_byte": 121,
+      "end_byte": 129,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:Pair:type_usage:3:35",
+      "name": "Pair",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 3,
+      "start_column": 35,
+      "end_line": 3,
+      "end_column": 39,
+      "start_byte": 97,
+      "end_byte": 101,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:box:variable_ref:7:4",
+      "name": "box",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 7,
+      "start_byte": 250,
+      "end_byte": 253,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:call:call:10:4",
+      "name": "call",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 10,
+      "end_column": 8,
+      "start_byte": 336,
+      "end_byte": 340,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:call:call:5:27",
+      "name": "call",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 5,
+      "start_column": 27,
+      "end_line": 5,
+      "end_column": 31,
+      "start_byte": 187,
+      "end_byte": 191,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "Int"
+        ]
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:captured:variable_ref:10:9",
+      "name": "captured",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 10,
+      "start_column": 9,
+      "end_line": 10,
+      "end_column": 17,
+      "start_byte": 341,
+      "end_byte": 349,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:captured:variable_ref:9:9",
+      "name": "captured",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 9,
+      "start_column": 9,
+      "end_line": 9,
+      "end_column": 17,
+      "start_byte": 308,
+      "end_byte": 316,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:compound:variable_ref:6:22",
+      "name": "compound",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 6,
+      "start_column": 22,
+      "end_line": 6,
+      "end_column": 30,
+      "start_byte": 220,
+      "end_byte": 228,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:compound:variable_ref:6:37",
+      "name": "compound",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 6,
+      "start_column": 37,
+      "end_line": 6,
+      "end_column": 45,
+      "start_byte": 235,
+      "end_byte": 243,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:compound:variable_ref:7:16",
+      "name": "compound",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 7,
+      "start_column": 16,
+      "end_line": 7,
+      "end_column": 24,
+      "start_byte": 262,
+      "end_byte": 270,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:compound:variable_ref:8:19",
+      "name": "compound",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 8,
+      "start_column": 19,
+      "end_line": 8,
+      "end_column": 27,
+      "start_byte": 290,
+      "end_byte": 298,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:other:variable_ref:9:19",
+      "name": "other",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 9,
+      "start_column": 19,
+      "end_line": 9,
+      "end_column": 24,
+      "start_byte": 318,
+      "end_byte": 323,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:pair:variable_ref:9:28",
+      "name": "pair",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 9,
+      "start_column": 28,
+      "end_line": 9,
+      "end_column": 32,
+      "start_byte": 327,
+      "end_byte": 331,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:plain:variable_ref:5:19",
+      "name": "plain",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 5,
+      "start_column": 19,
+      "end_line": 5,
+      "end_column": 24,
+      "start_byte": 179,
+      "end_byte": 184,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:seed:variable_ref:4:22",
+      "name": "seed",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 4,
+      "start_column": 22,
+      "end_line": 4,
+      "end_column": 26,
+      "start_byte": 155,
+      "end_byte": 159,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:seed:variable_ref:5:32",
+      "name": "seed",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 5,
+      "start_column": 32,
+      "end_line": 5,
+      "end_column": 36,
+      "start_byte": 192,
+      "end_byte": 196,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:seed:variable_ref:8:11",
+      "name": "seed",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 8,
+      "start_column": 11,
+      "end_line": 8,
+      "end_column": 15,
+      "start_byte": 282,
+      "end_byte": 286,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:value:member_access:7:8",
+      "name": "value",
+      "kind": "member_access",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 7,
+      "start_column": 8,
+      "end_line": 7,
+      "end_column": 13,
+      "start_byte": 254,
+      "end_byte": 259,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write",
+        "receiver": "box"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:value:variable_ref:2:23",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 2,
+      "start_column": 23,
+      "end_line": 2,
+      "end_column": 28,
+      "start_byte": 56,
+      "end_byte": 61,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:call:2:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/kotlin/variable_access/source.kt:values:variable_ref:8:4",
+      "name": "values",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 10,
+      "start_byte": 275,
+      "end_byte": 281,
+      "containing_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/kotlin/variable_access/source.kt:box:3:8",
+      "resolved_type": "Box",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/variable_access/source.kt:pair:3:29",
+      "resolved_type": "Pair",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": {
+        "declared": "Pair<Int, Int>"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/variable_access/source.kt:seed:3:18",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/variable_access/source.kt:value:1:12",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/variable_access/source.kt:value:2:9",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/kotlin/variable_access/source.kt:values:3:51",
+      "resolved_type": "IntArray",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "covered_lines": 12,
+      "covered_bytes": 353,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 353,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/variable_access/source.kt:call:2:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "covered_lines": 1,
+      "covered_bytes": 5,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 2,
+      "start_column": 23,
+      "end_line": 2,
+      "end_column": 28,
+      "start_byte": 56,
+      "end_byte": 61,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/variable_access/source.kt:run:3:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "covered_lines": 9,
+      "covered_bytes": 221,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 4,
+      "start_line": 3,
+      "start_column": 69,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 131,
+      "end_byte": 352,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/kotlin/variable_access/source.kt:Pair:type_usage:3:35",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/variable_access/source.kt",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Int",
+          "children": []
+        },
+        {
+          "ordinal": 1,
+          "type_name": "Int",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

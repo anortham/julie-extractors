@@ -1226,7 +1226,10 @@
       "end_byte": 1168,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:describe:call:50:7",
@@ -1284,6 +1287,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "test"
       }
     },
@@ -1303,6 +1307,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "test"
       }
     },
@@ -1399,7 +1404,10 @@
       "end_byte": 382,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:variable_ref:16:17",
@@ -1415,7 +1423,10 @@
       "end_byte": 419,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:variable_ref:24:12",
@@ -1431,7 +1442,10 @@
       "end_byte": 688,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:records a step:22:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:parallel:call:33:14",
@@ -1487,7 +1501,10 @@
       "end_byte": 1101,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:serial:call:29:14",
@@ -1640,7 +1657,10 @@
       "end_byte": 208,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:beforeEach:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:11:2",
@@ -1656,7 +1676,10 @@
       "end_byte": 243,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:afterEach:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:12:2",
@@ -1672,7 +1695,10 @@
       "end_byte": 277,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:afterAll:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:19:2",
@@ -1688,7 +1714,10 @@
       "end_byte": 456,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:keeps a focused case:19:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:20:2",
@@ -1704,7 +1733,10 @@
       "end_byte": 509,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:keeps a disabled case:20:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:23:10",
@@ -1720,7 +1752,10 @@
       "end_byte": 635,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:records a step:22:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:29:0",
@@ -1736,7 +1771,10 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout in order:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:33:0",
@@ -1752,7 +1790,10 @@
       "end_byte": 814,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout at once:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:8:0",
@@ -1768,7 +1809,10 @@
       "end_byte": 138,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:9:2",
@@ -1784,7 +1828,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:beforeAll:9:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:title:call:16:22",

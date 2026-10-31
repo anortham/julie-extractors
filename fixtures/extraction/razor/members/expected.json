@@ -1477,7 +1477,10 @@
       "end_byte": 1164,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:OnInitializedAsync:43:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:ModelBase:type_usage:37:29",
@@ -1509,7 +1512,10 @@
       "end_byte": 1178,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:OnInitializedAsync:43:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:NavigateTo:call:46:12",
@@ -1672,7 +1678,10 @@
       "end_byte": 1148,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:OnInitializedAsync:43:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:current:variable_ref:35:57",
@@ -1688,7 +1697,10 @@
       "end_byte": 901,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:Counter:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:currentCount:variable_ref:7:19",
@@ -1704,7 +1716,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:Counter:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:first:variable_ref:8:17",
@@ -1720,7 +1735,10 @@
       "end_byte": 201,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:Counter:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:i:variable_ref:33:39",
@@ -1736,7 +1754,10 @@
       "end_byte": 833,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:Counter:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:items:variable_ref:33:33",
@@ -1752,7 +1773,10 @@
       "end_byte": 831,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:Counter:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

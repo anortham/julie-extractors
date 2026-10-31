@@ -323,7 +323,10 @@
       "end_byte": 330,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:screenWidth:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:Math:variable_ref:9:23",
@@ -339,7 +342,10 @@
       "end_byte": 238,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:Math:variable_ref:9:9",
@@ -355,7 +361,10 @@
       "end_byte": 224,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:Number:call:7:10",
@@ -390,7 +399,10 @@
       "end_byte": 303,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:screenWidth:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:call:13:9",
@@ -464,7 +476,10 @@
       "end_byte": 246,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:maxWidth:member_access:13:45",
@@ -482,6 +497,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Geometry"
       }
     },
@@ -519,7 +535,10 @@
       "end_byte": 210,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:min:variable_ref:9:18",
@@ -535,7 +554,10 @@
       "end_byte": 232,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:n:variable_ref:8:16",
@@ -551,7 +573,10 @@
       "end_byte": 197,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:n:variable_ref:9:37",
@@ -567,7 +592,10 @@
       "end_byte": 249,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:screen:variable_ref:13:24",
@@ -583,7 +611,10 @@
       "end_byte": 316,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:screenWidth:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:value:variable_ref:7:17",
@@ -599,7 +630,10 @@
       "end_byte": 178,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:width:call:13:18",

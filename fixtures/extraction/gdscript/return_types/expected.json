@@ -273,7 +273,10 @@
       "end_byte": 57,
       "containing_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/return_types/source.gd:make:call:6:12",

@@ -525,7 +525,10 @@
       "end_byte": 373,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/test_roles/source.jsx:test:call:21:9",
@@ -580,7 +583,10 @@
       "end_byte": 206,
       "containing_key": "fixtures/extraction/jsx/test_roles/source.jsx:renders a JSX test case:5:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

@@ -310,7 +310,10 @@
       "end_byte": 447,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/cross_file/source.scala:apply:call:16:10",
@@ -334,6 +337,25 @@
       }
     },
     {
+      "key": "fixtures/extraction/scala/cross_file/source.scala:i:variable_ref:14:11",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "start_line": 14,
+      "start_column": 11,
+      "end_line": 14,
+      "end_column": 12,
+      "start_byte": 405,
+      "end_byte": 406,
+      "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/scala/cross_file/source.scala:i:variable_ref:14:36",
       "name": "i",
       "kind": "variable_ref",
@@ -347,7 +369,10 @@
       "end_byte": 431,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:call:13:8",
@@ -403,7 +428,10 @@
       "end_byte": 426,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/scala/cross_file/source.scala:total:variable_ref:17:4",
@@ -419,7 +447,10 @@
       "end_byte": 465,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/scala/cross_file/source.scala:until:call:14:18",

@@ -1372,6 +1372,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "ns"
       }
     },
@@ -1520,7 +1521,10 @@
       "end_byte": 1118,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:count:variable_ref:59:19",
@@ -1536,7 +1540,10 @@
       "end_byte": 1192,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:enabled:variable_ref:55:12",
@@ -1552,7 +1559,10 @@
       "end_byte": 1076,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:fetchUrl:call:36:8",
@@ -1604,7 +1614,10 @@
       "end_byte": 1109,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:i:variable_ref:56:40",
@@ -1620,7 +1633,10 @@
       "end_byte": 1121,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:i:variable_ref:57:25",
@@ -1636,7 +1652,10 @@
       "end_byte": 1153,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:id:variable_ref:29:33",
@@ -1652,7 +1671,10 @@
       "end_byte": 570,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:recordRun:28:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:m:variable_ref:21:13",
@@ -1668,7 +1690,10 @@
       "end_byte": 442,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:buildIndex:20:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:missingWave2:call:46:13",
@@ -1688,6 +1713,25 @@
       "receiver_type": "source",
       "metadata": {
         "receiver": "this"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/basic/source.qml:ns:variable_ref:50:24",
+      "name": "ns",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "start_line": 50,
+      "start_column": 24,
+      "end_line": 50,
+      "end_column": 26,
+      "start_byte": 968,
+      "end_byte": 970,
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:seed:45:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
       }
     },
     {
@@ -1723,6 +1767,44 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/qml/basic/source.qml:root:variable_ref:66:14",
+      "name": "root",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "start_line": 66,
+      "start_column": 14,
+      "end_line": 66,
+      "end_column": 18,
+      "start_byte": 1285,
+      "end_byte": 1289,
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/basic/source.qml:root:variable_ref:66:26",
+      "name": "root",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "start_line": 66,
+      "start_column": 26,
+      "end_line": 66,
+      "end_column": 30,
+      "start_byte": 1297,
+      "end_byte": 1301,
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/qml/basic/source.qml:title:member_access:66:31",
       "name": "title",
       "kind": "member_access",
@@ -1738,6 +1820,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "root"
       }
     },
@@ -1755,7 +1838,10 @@
       "end_byte": 219,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:label:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:total:variable_ref:57:16",
@@ -1771,7 +1857,29 @@
       "end_byte": 1148,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/basic/source.qml:total:variable_ref:60:12",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "start_line": 60,
+      "start_column": 12,
+      "end_line": 60,
+      "end_column": 17,
+      "start_byte": 1212,
+      "end_byte": 1217,
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:total:variable_ref:62:15",
@@ -1787,7 +1895,10 @@
       "end_byte": 1252,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:evaluate:53:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:trim:call:17:21",
@@ -1809,6 +1920,25 @@
       }
     },
     {
+      "key": "fixtures/extraction/qml/basic/source.qml:value:variable_ref:17:15",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "start_line": 17,
+      "start_column": 15,
+      "end_line": 17,
+      "end_column": 20,
+      "start_byte": 347,
+      "end_byte": 352,
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:format:16:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/qml/basic/source.qml:workerId:variable_ref:25:18",
       "name": "workerId",
       "kind": "variable_ref",
@@ -1822,7 +1952,10 @@
       "end_byte": 497,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:run:24:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

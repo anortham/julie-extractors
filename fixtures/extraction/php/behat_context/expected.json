@@ -1493,6 +1493,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "$this"
       }
     },
@@ -1512,6 +1513,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "$this"
       }
     },
@@ -1531,6 +1533,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$this"
       }
     },
@@ -1550,6 +1553,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "$this"
       }
     },
@@ -1569,6 +1573,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "$this"
       }
     },
@@ -1588,6 +1593,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "$this"
       }
     },
@@ -1637,7 +1643,10 @@
       "end_byte": 484,
       "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:iAddItems:20:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/behat_context/FeatureContext.php:count:variable_ref:29:38",
@@ -1653,7 +1662,10 @@
       "end_byte": 646,
       "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:theCartHolds:26:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

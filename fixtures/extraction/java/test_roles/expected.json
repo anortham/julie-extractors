@@ -3212,7 +3212,10 @@
       "end_byte": 2074,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:afterSuite:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:105:8",
@@ -3228,7 +3231,10 @@
       "end_byte": 2186,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:beforeTest:103:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:110:8",
@@ -3244,7 +3250,10 @@
       "end_byte": 2298,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:afterTest:108:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:115:8",
@@ -3260,7 +3269,10 @@
       "end_byte": 2416,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:beforeGroups:113:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:120:8",
@@ -3276,7 +3288,10 @@
       "end_byte": 2532,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:afterGroups:118:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:125:8",
@@ -3292,7 +3307,10 @@
       "end_byte": 2650,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:beforeMethod:123:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:130:8",
@@ -3308,7 +3326,10 @@
       "end_byte": 2766,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:afterMethod:128:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:134:8",
@@ -3324,7 +3345,10 @@
       "end_byte": 2845,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithTestNg:133:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:138:15",
@@ -3340,7 +3364,10 @@
       "end_byte": 2928,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:helperTotal:137:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:144:24",
@@ -3356,7 +3383,10 @@
       "end_byte": 3067,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:148:8",
@@ -3372,7 +3402,10 @@
       "end_byte": 3144,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:combineLegacy:147:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:154:8",
@@ -3388,7 +3421,10 @@
       "end_byte": 3254,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:testDataForLedger:153:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:15:18",
@@ -3404,7 +3440,10 @@
       "end_byte": 311,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:seed:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:22:8",
@@ -3420,7 +3459,10 @@
       "end_byte": 474,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:beforeAll:20:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:27:8",
@@ -3436,7 +3478,10 @@
       "end_byte": 581,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:afterAll:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:42:8",
@@ -3452,7 +3497,10 @@
       "end_byte": 850,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:addsTwoNumbers:40:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:47:8",
@@ -3468,7 +3516,10 @@
       "end_byte": 969,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:buildsDynamicCases:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:52:8",
@@ -3484,7 +3535,10 @@
       "end_byte": 1077,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:runsTemplate:50:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:57:8",
@@ -3500,7 +3554,10 @@
       "end_byte": 1193,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:addsEachPair:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:62:8",
@@ -3516,7 +3573,10 @@
       "end_byte": 1303,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:addsRepeatedly:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:69:12",
@@ -3532,7 +3592,10 @@
       "end_byte": 1478,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:reportsZero:67:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:77:8",
@@ -3548,7 +3611,10 @@
       "end_byte": 1606,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:before:75:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:82:8",
@@ -3564,7 +3630,10 @@
       "end_byte": 1695,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:after:80:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:87:8",
@@ -3580,7 +3649,10 @@
       "end_byte": 1792,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:addsWithJUnit4:85:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:variable_ref:95:8",
@@ -3596,7 +3668,10 @@
       "end_byte": 1962,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:beforeSuite:93:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:Nested:type_usage:65:27",
@@ -3911,7 +3986,10 @@
       "end_byte": 168,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:total:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:push:call:166:17",
@@ -3936,6 +4014,44 @@
       }
     },
     {
+      "key": "fixtures/extraction/java/test_roles/test_source.java:running:variable_ref:15:8",
+      "name": "running",
+      "kind": "variable_ref",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
+      "start_line": 15,
+      "start_column": 8,
+      "end_line": 15,
+      "end_column": 15,
+      "start_byte": 288,
+      "end_byte": 295,
+      "containing_key": "fixtures/extraction/java/test_roles/test_source.java:seed:14:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/java/test_roles/test_source.java:running:variable_ref:37:8",
+      "name": "running",
+      "kind": "variable_ref",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
+      "start_line": 37,
+      "start_column": 8,
+      "end_line": 37,
+      "end_column": 15,
+      "start_byte": 749,
+      "end_byte": 756,
+      "containing_key": "fixtures/extraction/java/test_roles/test_source.java:tearDown:35:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/java/test_roles/test_source.java:running:variable_ref:42:28",
       "name": "running",
       "kind": "variable_ref",
@@ -3949,7 +4065,10 @@
       "end_byte": 864,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:addsTwoNumbers:40:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:second:variable_ref:7:23",
@@ -3965,7 +4084,10 @@
       "end_byte": 177,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:total:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:seed:call:32:8",

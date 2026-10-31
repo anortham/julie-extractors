@@ -1437,7 +1437,10 @@
       "end_byte": 1140,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:account:type_usage:19:20",
@@ -1599,6 +1602,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1618,6 +1622,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1637,6 +1642,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1654,7 +1660,10 @@
       "end_byte": 1166,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:binary:type_usage:20:19",
@@ -1723,6 +1732,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1742,6 +1752,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1761,6 +1772,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "account"
       }
     },
@@ -1780,6 +1792,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "req"
       }
     },
@@ -1861,7 +1874,10 @@
       "end_byte": 1199,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/basic/source.erl:lists:type_usage:45:10",

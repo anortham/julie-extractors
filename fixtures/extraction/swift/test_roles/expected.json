@@ -2845,7 +2845,29 @@
       "end_byte": 394,
       "containing_key": "fixtures/extraction/swift/test_roles/production_roles.swift:makeSubject:24:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/production_roles.swift:subject:variable_ref:8:8",
+      "name": "subject",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/production_roles.swift",
+      "start_line": 8,
+      "start_column": 8,
+      "end_line": 8,
+      "end_column": 15,
+      "start_byte": 99,
+      "end_byte": 106,
+      "containing_key": "fixtures/extraction/swift/test_roles/production_roles.swift:init:7:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/swift/test_roles/production_roles.swift:value:variable_ref:21:16",
@@ -2861,7 +2883,10 @@
       "end_byte": 334,
       "containing_key": "fixtures/extraction/swift/test_roles/production_roles.swift:addsManyNumbers:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:AsyncSpec:type_usage:96:33",

@@ -1123,7 +1123,10 @@
       "end_byte": 881,
       "containing_key": "fixtures/extraction/cpp/qt_header/source.h:~ColumnViewAttached:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/qt_header/source.h:QList:type_usage:39:4",

@@ -540,8 +540,6 @@ public class Controller {
 
     #[test]
     fn test_csharp_variable_ref_emission() {
-        // Locked variable_ref contract: receivers + bare value reads, cross-cutting
-        // the call/member/type arms. See identifiers.rs doc-comment for the 6 rules.
         let csharp_code = r#"
 namespace Demo;
 
@@ -559,7 +557,7 @@ public class Sample {
     public int Evaluate(int seed, int unusedParam) {
         count += 1;                          // compound assignment -> read count
         int x = 5;                           // declaration name, no ref
-        x = 7;                               // plain write LHS -> NOT a read
+        x = 7;                               // plain write target
         var total = seed;                    // seed on RHS -> read
         var g = GraphTraversal.Reach();      // GraphTraversal receiver -> read; Reach -> call
         var f = new Sample { Bar = seed };   // Bar initializer member -> read
@@ -604,6 +602,7 @@ public class Decorated {
             "Bar",               // object-initializer member LHS
             "Baz",               // attribute named argument
             "count",             // compound-assignment target
+            "x",                 // plain assignment target
             "seed",              // RHS / argument value read
         ] {
             assert!(
@@ -622,7 +621,6 @@ public class Decorated {
 
         // --- Negative cases (rules 2/3/4/5) ---
         for forbidden in [
-            "x",           // declaration name + plain-write LHS
             "unusedParam", // parameter name only
             "int",         // builtin type
             "GhostToken",  // comment-only mention
@@ -640,6 +638,24 @@ public class Decorated {
         assert!(
             !identifiers.iter().any(|id| id.name == "GhostToken"),
             "comment-only GhostToken must not be extracted at all"
+        );
+
+        let plain_write_start = csharp_code.find("x = 7").unwrap() as u32;
+        let declaration_start = csharp_code.find("int x = 5").unwrap() as u32 + 4;
+        assert!(identifiers.iter().any(|id| {
+            id.start_byte == plain_write_start
+                && id.kind == IdentifierKind::VariableRef
+                && id
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("access"))
+                    .and_then(|access| access.as_str())
+                    == Some("write")
+        }));
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.start_byte == declaration_start)
         );
 
         // No duplicate rows: each (name, kind, span) is unique.
@@ -797,5 +813,181 @@ public class Controller {
                 Some(build.id.as_str())
             );
         }
+    }
+
+    #[test]
+    fn test_csharp_variable_access_facts() {
+        let code = r#"
+class Box { public int Value; public int Order; }
+class Sample {
+    int Call(int value) => value;
+    void Ref(ref int value) { }
+    void Out(out int value) { value = 0; }
+    int GetIndex(int value) => value;
+    int GetIndexRef(ref int value) => value;
+    void Run(Box box, Box? customer, int seed, int[] values) {
+        int plain = seed;
+        plain = Call(seed);
+        int compound = seed;
+        compound += 1;
+        compound++;
+        box.Value = compound;
+        customer?.Order = compound;
+        Ref(ref box.Value);
+        Out(out compound);
+        values[GetIndex(seed)] = compound;
+        values[GetIndexRef(ref seed)] = compound;
+        values[seed] = compound;
+        if (seed is int captured) { Call(captured); }
+    }
+}
+"#;
+        let (symbols, identifiers) = extract_all(code);
+        let plain_start = code.find("plain = Call").unwrap() as u32;
+        let compound_start = code.find("compound +=").unwrap() as u32;
+        let increment_start = code.find("compound++").unwrap() as u32;
+        let member_start = code.find("box.Value =").unwrap() as u32 + 4;
+        let member_receiver_start = code.find("box.Value =").unwrap() as u32;
+        let nullable_target_start =
+            code.find("customer?.Order").unwrap() as u32 + "customer?.".len() as u32;
+        let nullable_receiver_start = code.find("customer?.Order").unwrap() as u32;
+        let ref_member_start = code.find("Ref(ref box.Value)").unwrap() as u32 + 12;
+        let ref_receiver_start = code.find("Ref(ref box.Value)").unwrap() as u32 + 8;
+        let out_start = code.find("Out(out compound)").unwrap() as u32 + 8;
+        let call_target_argument_start =
+            code.find("GetIndex(seed)").unwrap() as u32 + "GetIndex(".len() as u32;
+        let ref_call_target_argument_start =
+            code.find("GetIndexRef(ref seed)").unwrap() as u32 + "GetIndexRef(ref ".len() as u32;
+        let array_start = code.find("values[seed]").unwrap() as u32;
+        let index_start = array_start + 7;
+        let argument_start = code.find("Call(seed)").unwrap() as u32 + 5;
+        let pattern_use_start = code.find("Call(captured)").unwrap() as u32 + 5;
+        let access = |start: u32, name: &str, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|id| id.start_byte == start && id.name == name && id.kind == kind)
+                .and_then(|id| id.metadata.as_ref()?.get("access")?.as_str())
+                .map(str::to_owned)
+        };
+        assert_eq!(
+            access(plain_start, "plain", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(compound_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("read_write")
+        );
+        assert_eq!(
+            access(increment_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(member_start, "Value", IdentifierKind::MemberAccess).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(nullable_target_start, "Order", IdentifierKind::MemberAccess).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(
+                nullable_receiver_start,
+                "customer",
+                IdentifierKind::VariableRef
+            )
+            .as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            identifiers
+                .iter()
+                .filter(|id| {
+                    id.start_byte == nullable_target_start
+                        && id.name == "Order"
+                        && id.kind == IdentifierKind::MemberAccess
+                })
+                .count(),
+            1
+        );
+        assert!(!identifiers.iter().any(|id| {
+            id.start_byte == nullable_target_start
+                && id.name == "Order"
+                && id.kind == IdentifierKind::VariableRef
+        }));
+        assert_eq!(
+            access(member_receiver_start, "box", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(ref_member_start, "Value", IdentifierKind::MemberAccess).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(ref_receiver_start, "box", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(out_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(
+                call_target_argument_start,
+                "seed",
+                IdentifierKind::VariableRef
+            )
+            .as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(
+                ref_call_target_argument_start,
+                "seed",
+                IdentifierKind::VariableRef
+            )
+            .as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(array_start, "values", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(index_start, "seed", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(argument_start, "seed", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(pattern_use_start, "captured", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        let pattern_start =
+            code.find("seed is int captured").unwrap() as u32 + "seed is int ".len() as u32;
+        let pattern_identifier = identifiers.iter().find(|id| {
+            id.start_byte == pattern_start
+                && id.name == "captured"
+                && id.kind == IdentifierKind::VariableRef
+        });
+        let pattern_symbol = symbols.iter().any(|symbol| {
+            symbol.name == "captured"
+                && symbol.start_byte <= pattern_start
+                && symbol.end_byte >= pattern_start + "captured".len() as u32
+        });
+        let pattern_identifier_is_write = pattern_identifier.is_some_and(|id| {
+            id.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(|access| access.as_str())
+                == Some("write")
+        });
+        assert!(pattern_identifier_is_write || pattern_symbol);
+        assert!(!(pattern_identifier.is_some() && pattern_symbol));
+        let call_start = code.find("Call(seed)").unwrap() as u32;
+        assert_eq!(access(call_start, "Call", IdentifierKind::Call), None);
+        let type_start = code.find("Box box").unwrap() as u32;
+        assert_eq!(access(type_start, "Box", IdentifierKind::TypeUsage), None);
     }
 }

@@ -135,15 +135,18 @@ impl CppExtractor {
                 record_outermost_cpp_type_arguments(&mut self.base, node, &identifier);
             }
 
-            // `variable_ref` complement arm: a bare `identifier` used as a
-            // value or as a qualified static-member value read — the reads the
-            // Call/MemberAccess/TypeUsage arms above do not own. Type positions
-            // never reach here (C++ uses the distinct `type_identifier` kind),
-            // member names are `field_identifier`, and `this` is its own node
-            // kind. See the LOCKED SEMANTIC CONTRACT doc comment in
-            // `csharp/identifiers.rs`.
             "identifier"
-                if is_cpp_value_read_identifier(node)
+                if (is_cpp_value_read_identifier(node)
+                    || crate::base::variable_access::rules_for_language("cpp").is_some_and(
+                        |rules| {
+                            !self.base.has_identifier_at_node(&node)
+                                && crate::base::variable_access::is_assignment_or_increment_target(
+                                    node,
+                                    &self.base.content,
+                                    rules,
+                                )
+                        },
+                    ))
                     && !node
                         .parent()
                         .filter(|arguments| arguments.kind() == "argument_list")
@@ -451,8 +454,6 @@ fn is_cpp_value_read_identifier(node: Node) -> bool {
             .map(|gp| gp.kind() != "attribute_specifier")
             .unwrap_or(true),
 
-        // Rule 4: plain-assignment LHS is write-only; compound assignment
-        // reads its target. `x++`/`x--` are `update_expression` (reads).
         "assignment_expression" => {
             let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
             if !is_left {

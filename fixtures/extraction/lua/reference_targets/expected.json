@@ -555,7 +555,10 @@
       "end_byte": 384,
       "containing_key": "fixtures/extraction/lua/reference_targets/source.lua:owned:25:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/reference_targets/source.lua:Table:variable_ref:28:4",
@@ -571,7 +574,10 @@
       "end_byte": 437,
       "containing_key": "fixtures/extraction/lua/reference_targets/source.lua:table_caller:27:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/lua/reference_targets/source.lua:hidden:call:20:4",

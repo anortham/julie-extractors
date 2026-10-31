@@ -270,7 +270,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/go/malformed_recovery/source.go:VariadicFunction:13:5",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/malformed_recovery/source.go:format:variable_ref:13:22",
@@ -286,7 +289,10 @@
       "end_byte": 161,
       "containing_key": "fixtures/extraction/go/malformed_recovery/source.go:VariadicFunction:13:5",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

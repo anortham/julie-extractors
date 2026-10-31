@@ -408,8 +408,6 @@ private:
 
     #[test]
     fn test_cpp_variable_ref_emission() {
-        // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
-        // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
         let cpp_code = r#"
 namespace demo {
 
@@ -427,7 +425,7 @@ public:
     int evaluate(int seed, int unused_param) {
         int local = seed;                    // declaration name, seed read
         int dead_local = 1;                  // declaration name, never read
-        local = 7;                           // plain write LHS -> NOT a read
+        local = 7;                           // plain write target
         local += seed;                       // compound assignment -> read local
         int got = GraphTraversal::reach();   // GraphTraversal scope receiver -> read
         int lim = GraphTraversal::limit;     // limit static-member value -> read
@@ -506,5 +504,140 @@ public:
             !identifiers.iter().any(|id| id.name == "GhostToken"),
             "comment-only GhostToken must not be extracted at all"
         );
+    }
+
+    #[test]
+    fn test_cpp_variable_access_facts() {
+        let code = r#"
+struct Box { int value; };
+int call(int value) { return value; }
+int& ref_at(int value);
+int run(Box *box, int seed, int *values) {
+    int plain = seed;
+    plain = call(seed);
+    int compound = seed;
+    compound += 1;
+    compound++;
+    box->value = compound;
+    values[seed] = compound;
+    ref_at(seed) = 1;
+    auto [captured, other] = std::pair{seed, 2};
+    return call(captured);
+}
+"#;
+        let mut parser = init_test_parser();
+        let tree = parser.parse(code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor =
+            CppExtractor::new("test.cpp".to_string(), code.to_string(), &workspace_root);
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let plain_start = code.find("plain = call").unwrap() as u32;
+        let compound_start = code.find("compound +=").unwrap() as u32;
+        let increment_start = code.find("compound++").unwrap() as u32;
+        let member_start = code.find("box->value =").unwrap() as u32 + 5;
+        let member_receiver_start = code.find("box->value =").unwrap() as u32;
+        let array_start = code.find("values[seed]").unwrap() as u32;
+        let index_start = array_start + 7;
+        let argument_start = code.find("call(seed)").unwrap() as u32 + 5;
+        let pattern_use_start = code.find("call(captured)").unwrap() as u32 + 5;
+        let ref_target_argument_start =
+            code.find("ref_at(seed)").unwrap() as u32 + "ref_at(".len() as u32;
+        let ref_target_callee_start = code.find("ref_at(seed)").unwrap() as u32;
+        let access = |start: u32, name: &str, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|id| id.start_byte == start && id.name == name && id.kind == kind)
+                .and_then(|id| id.metadata.as_ref()?.get("access")?.as_str())
+                .map(str::to_owned)
+        };
+        assert_eq!(
+            access(plain_start, "plain", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(compound_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("read_write")
+        );
+        assert_eq!(
+            access(increment_start, "compound", IdentifierKind::VariableRef).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(member_start, "value", IdentifierKind::MemberAccess).as_deref(),
+            Some("write")
+        );
+        assert_eq!(
+            access(member_receiver_start, "box", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(array_start, "values", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(index_start, "seed", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(argument_start, "seed", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        assert_eq!(
+            access(
+                ref_target_argument_start,
+                "seed",
+                IdentifierKind::VariableRef
+            )
+            .as_deref(),
+            Some("read")
+        );
+        assert!(identifiers.iter().any(|id| {
+            id.start_byte == ref_target_callee_start
+                && id.name == "ref_at"
+                && id.kind == IdentifierKind::Call
+        }));
+        assert!(!identifiers.iter().any(|id| {
+            id.start_byte == ref_target_callee_start
+                && id.name == "ref_at"
+                && id.kind == IdentifierKind::VariableRef
+        }));
+        assert_eq!(
+            access(pattern_use_start, "captured", IdentifierKind::VariableRef).as_deref(),
+            Some("read")
+        );
+        let pattern_start = code.find("captured, other").unwrap() as u32;
+        for (name, start) in [
+            ("captured", pattern_start),
+            ("other", pattern_start + "captured, ".len() as u32),
+        ] {
+            let pattern_identifier = identifiers.iter().find(|id| {
+                id.start_byte == start && id.name == name && id.kind == IdentifierKind::VariableRef
+            });
+            let pattern_symbol = symbols.iter().any(|symbol| {
+                symbol.name == name
+                    && symbol.start_byte <= start
+                    && symbol.end_byte >= start + name.len() as u32
+            });
+            let pattern_identifier_is_write = pattern_identifier.is_some_and(|id| {
+                id.metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("access"))
+                    .and_then(|access| access.as_str())
+                    == Some("write")
+            });
+            assert!(
+                pattern_identifier_is_write || pattern_symbol,
+                "missing binding fact for {name}"
+            );
+            assert!(
+                !(pattern_identifier.is_some() && pattern_symbol),
+                "duplicate binding fact for {name}"
+            );
+        }
+        let call_start = code.find("call(seed)").unwrap() as u32;
+        assert_eq!(access(call_start, "call", IdentifierKind::Call), None);
+        let type_start = code.find("Box *box").unwrap() as u32;
+        assert_eq!(access(type_start, "Box", IdentifierKind::TypeUsage), None);
     }
 }

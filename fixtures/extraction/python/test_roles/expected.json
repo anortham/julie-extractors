@@ -1724,6 +1724,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "mark",
         "receiver_qualifier": "pytest"
       }
@@ -1780,7 +1781,10 @@
       "end_byte": 142,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:temporary_operands:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:contextmanager:member_access:13:12",
@@ -1798,6 +1802,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "contextlib"
       }
     },
@@ -1817,6 +1822,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "pytest"
       }
     },
@@ -1834,7 +1840,10 @@
       "end_byte": 359,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:cached_total:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:left:variable_ref:20:11",
@@ -1850,7 +1859,10 @@
       "end_byte": 322,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:left:variable_ref:20:35",
@@ -1866,7 +1878,10 @@
       "end_byte": 346,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:load_total:call:30:17",
@@ -1923,6 +1938,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "pytest"
       }
     },
@@ -1942,6 +1958,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "pytest"
       }
     },
@@ -1999,7 +2016,10 @@
       "end_byte": 210,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:pytest:variable_ref:28:1",
@@ -2015,7 +2035,10 @@
       "end_byte": 426,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_async_total:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:pytest:variable_ref:8:1",
@@ -2031,7 +2054,10 @@
       "end_byte": 75,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:arithmetic_operands:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:right:variable_ref:20:18",
@@ -2047,7 +2073,10 @@
       "end_byte": 330,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:right:variable_ref:20:27",
@@ -2063,7 +2092,10 @@
       "end_byte": 339,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:skipIf:call:69:14",
@@ -2101,6 +2133,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -2120,6 +2153,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -2139,6 +2173,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2158,6 +2193,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -2177,6 +2213,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "self"
       }
     },
@@ -2196,6 +2233,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2215,6 +2253,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2234,6 +2273,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -2251,7 +2291,10 @@
       "end_byte": 946,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:unittest:variable_ref:69:5",
@@ -2267,7 +2310,10 @@
       "end_byte": 1160,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

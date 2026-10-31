@@ -619,3 +619,66 @@ fn partials_view_components_layouts_and_bindings_emit_facts() {
         vec![(Some("AdminLayout"), Some("directive"))]
     );
 }
+
+#[test]
+fn hosted_variable_access_facts_survive_host_mapping() {
+    let source = "<ChildWidget />\n@code {\n    void Update() {\n        List<int> items = new();\n        int total = 0;\n        total += amount;\n        model.Count = total;\n        Save(total);\n    }\n}";
+    let result = extract("Components/Counter.razor", source);
+    let access_values = |name: &str| {
+        let mut values: Vec<_> = result
+            .identifiers
+            .iter()
+            .filter(|identifier| identifier.name == name)
+            .filter_map(|identifier| {
+                identifier
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("access"))
+                    .and_then(serde_json::Value::as_str)
+            })
+            .collect();
+        values.sort_unstable();
+        values
+    };
+
+    assert_eq!(access_values("total"), ["read", "read", "read_write"]);
+    assert_eq!(access_values("amount"), ["read"]);
+    assert_eq!(access_values("model"), ["read"]);
+    assert_eq!(access_values("Count"), ["write"]);
+    assert!(result.identifiers.iter().any(|identifier| {
+        identifier.kind == IdentifierKind::TypeUsage && identifier.name == "List"
+    }));
+    assert!(result.identifiers.iter().any(|identifier| {
+        identifier.kind == IdentifierKind::TypeUsage && identifier.name == "ChildWidget"
+    }));
+    assert!(
+        result
+            .identifiers
+            .iter()
+            .any(|identifier| identifier.kind == IdentifierKind::Call && identifier.name == "Save")
+    );
+    assert!(
+        result
+            .identifiers
+            .iter()
+            .filter(|identifier| matches!(
+                identifier.kind,
+                IdentifierKind::Call | IdentifierKind::TypeUsage
+            ))
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
+    for identifier in result.identifiers.iter().filter(|identifier| {
+        matches!(
+            identifier.name.as_str(),
+            "total" | "amount" | "model" | "Count"
+        )
+    }) {
+        assert_eq!(
+            &source[identifier.start_byte as usize..identifier.end_byte as usize],
+            identifier.name
+        );
+    }
+}

@@ -3,7 +3,7 @@
 // Methods for extracting identifier usages (function calls, member access, etc.)
 
 use super::helpers::{find_child_by_type, get_node_text};
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, OwnerIndex};
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, OwnerIndex, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
@@ -12,6 +12,7 @@ pub(super) fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &OwnerIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -19,7 +20,7 @@ pub(super) fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, containing_symbols);
+    extract_identifier_from_node(base, node, containing_symbols, symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -27,7 +28,7 @@ pub(super) fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -35,6 +36,7 @@ fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &OwnerIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         "call_expression" => {
@@ -198,14 +200,25 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm (locked contract — see the reference
-        // implementation doc comment in csharp/identifiers.rs): a bare `identifier`
-        // used as a value or as the object/receiver of a member access — the reads
-        // the Call/MemberAccess/TypeUsage arms above do not own. Dart type
-        // positions are `type_identifier` nodes, so they never reach this arm.
-        // (`this`/`super`/`true`/`null` are distinct grammar tokens, never
-        // `identifier`, so rule 5 is structurally satisfied.)
-        "identifier" if is_dart_value_read_identifier(node) => {
+        "identifier"
+            if is_dart_value_read_identifier(node)
+                || crate::base::variable_access::rules_for_language("dart").is_some_and(
+                    |rules| {
+                        !base.has_identifier_at_node(&node)
+                            && (crate::base::variable_access::should_emit_write_reference(
+                                node,
+                                &get_node_text(&node),
+                                &base.content,
+                                rules,
+                                symbols,
+                            ) || crate::base::variable_access::is_explicit_read_reference(
+                                node,
+                                &base.content,
+                                rules,
+                            ))
+                    },
+                ) =>
+        {
             let name = get_node_text(&node);
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(

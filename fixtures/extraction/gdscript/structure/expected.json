@@ -1416,7 +1416,10 @@
       "end_byte": 1025,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:FileAccess:variable_ref:56:28",
@@ -1432,7 +1435,10 @@
       "end_byte": 1052,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:ItemStack:type_usage:45:22",
@@ -1464,7 +1470,10 @@
       "end_byte": 882,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:_init:49:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:ObjectPool:variable_ref:13:12",
@@ -1480,7 +1489,10 @@
       "end_byte": 293,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:pool:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:RefCounted:type_usage:32:24",
@@ -1512,7 +1524,10 @@
       "end_byte": 1040,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:Timer:type_usage:12:20",
@@ -1546,6 +1561,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "FileAccess"
       }
     },
@@ -1631,7 +1647,10 @@
       "end_byte": 662,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:add:35:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:float:type_usage:23:11",
@@ -1761,8 +1780,28 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "stats",
         "receiver_qualifier": "player"
+      }
+    },
+    {
+      "key": "fixtures/extraction/gdscript/structure/source.gd:health:variable_ref:18:2",
+      "name": "health",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/structure/source.gd",
+      "start_line": 18,
+      "start_column": 2,
+      "end_line": 18,
+      "end_column": 8,
+      "start_byte": 388,
+      "end_byte": 394,
+      "containing_key": "fixtures/extraction/gdscript/structure/source.gd:health:16:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
       }
     },
     {
@@ -1926,7 +1965,10 @@
       "end_byte": 667,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:add:35:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:n:variable_ref:47:12",
@@ -1942,7 +1984,10 @@
       "end_byte": 822,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:add:46:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:new:call:13:23",
@@ -1996,7 +2041,10 @@
       "end_byte": 1000,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:queue_free:call:54:30",
@@ -2076,7 +2124,10 @@
       "end_byte": 873,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:_init:49:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:stats:member_access:55:16",
@@ -2094,6 +2145,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "player"
       }
     },
@@ -2111,7 +2163,10 @@
       "end_byte": 409,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:health:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:void:type_usage:35:21",
@@ -2255,7 +2310,10 @@
       "end_byte": 746,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:push:42:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

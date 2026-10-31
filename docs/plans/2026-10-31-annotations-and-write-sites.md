@@ -120,10 +120,24 @@ Integration is in `.worktrees/release-3.11.0` on `release/3.11.0`. Independent
 workers share this worktree with separate file ownership; the lead owns commits.
 
 - [x] Task A implementation and focused verification (14 level tests, SQLite persistence, CLI help).
-- [ ] References artifact size measurements on this repository and Hermes.
-- [ ] Task B wave 1, shared classifier, and per-language tests.
-- [ ] Task B wave 2 and per-language documentation.
-- [ ] Golden fixture refresh, row review, and strict capability report.
-- [ ] Version/contract integration and all verification gates.
-- [ ] Release binary and code-kb dogfood copy.
+- [x] References artifact size measurements on this repository and Hermes.
+- [x] Task B wave 1, shared classifier, and per-language tests.
+- [x] Task B wave 2 and per-language documentation.
+- [x] Golden fixture refresh, row review, and strict capability report.
+- [x] Version/contract integration and all verification gates.
+- [x] Release binary and code-kb dogfood copy.
 - [ ] User approval for push and release.
+
+All required gates passed. The default suite took 76 seconds. Compatibility
+against 3.10.0 produced the declared `compatible` notice. The strict quality
+report has zero silent cells and zero quality-bar debts.
+
+The final row audit preserves existing identifier kinds and non-access facts.
+It covers 274 changed existing fixtures, 14 new fixtures, and 3,692 access rows.
+Review regressions cover duplicate member/call ownership, C# conditional
+receivers, Swift discards, Erlang record labels, QML Behavior references, and
+Vue call promotion. The GDScript receiver integration test now selects the
+intended member kind while separately asserting its new unqualified write.
+
+Storage measurements and binary provenance are recorded in
+[release evidence](../release-evidence/v3.11.0-access-facts.md).

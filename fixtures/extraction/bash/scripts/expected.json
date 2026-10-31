@@ -349,7 +349,10 @@
       "end_byte": 81,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:common:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:HOSTS:member_access:18:16",
@@ -365,7 +368,10 @@
       "end_byte": 399,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:ROUTES:member_access:18:30",
@@ -381,7 +387,10 @@
       "end_byte": 414,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:count_items:call:23:0",
@@ -461,7 +470,10 @@
       "end_byte": 299,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:limit:variable_ref:16:26",
@@ -477,7 +489,10 @@
       "end_byte": 334,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:limit:variable_ref:17:22",
@@ -493,7 +508,10 @@
       "end_byte": 365,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:n:variable_ref:17:18",
@@ -509,7 +527,10 @@
       "end_byte": 357,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:n:variable_ref:17:29",
@@ -525,7 +546,10 @@
       "end_byte": 368,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:n:variable_ref:18:22",
@@ -541,7 +565,10 @@
       "end_byte": 401,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:set:call:2:0",
@@ -621,7 +648,10 @@
       "end_byte": 290,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:total:variable_ref:16:14",
@@ -637,7 +667,29 @@
       "end_byte": 322,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/bash/scripts/source.sh:total:variable_ref:16:4",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/scripts/source.sh",
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 9,
+      "start_byte": 307,
+      "end_byte": 312,
+      "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/bash/scripts/source.sh:total:variable_ref:20:10",
@@ -653,7 +705,10 @@
       "end_byte": 447,
       "containing_key": "fixtures/extraction/bash/scripts/source.sh:count_items:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

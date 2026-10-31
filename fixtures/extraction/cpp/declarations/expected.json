@@ -2256,7 +2256,10 @@
       "end_byte": 344,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:~Repo:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:variable_ref:33:7",
@@ -2272,7 +2275,10 @@
       "end_byte": 706,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo::~Repo:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:Writer:call:53:17",
@@ -2384,7 +2390,10 @@
       "end_byte": 1127,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:g_current:44:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:g_second:variable_ref:45:21",
@@ -2400,7 +2409,10 @@
       "end_byte": 1158,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:g_first:45:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:hash:type_usage:41:19",
@@ -2540,7 +2552,10 @@
       "end_byte": 1269,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:path:variable_ref:50:30",
@@ -2556,7 +2571,10 @@
       "end_byte": 1305,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:split:call:50:24",
@@ -2674,7 +2692,10 @@
       "end_byte": 1424,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

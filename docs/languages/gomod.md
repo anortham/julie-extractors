@@ -108,3 +108,8 @@ with the forked grammar gave the same counts. None of those files has a
 A scan of `~/source/cobra` selected its `go.mod` as `gomod` with 6 symbols, 4
 `Imports` edges, 6 structural facts, and 0 parse diagnostics, and its `go.sum`
 as `gosum`.
+
+## Variable access facts
+
+Go module manifests declare dependencies and replacements, not variable
+assignments. The extractor does not claim identifiers.access for gomod.

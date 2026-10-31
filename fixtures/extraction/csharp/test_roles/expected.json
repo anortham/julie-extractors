@@ -1683,7 +1683,10 @@
       "end_byte": 693,
       "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitSourcedCase:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/test_roles/source.cs:Cases:variable_ref:48:26",
@@ -1699,7 +1702,10 @@
       "end_byte": 1289,
       "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:ParameterizedFixture:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/test_roles/source.cs:CollectionDefinition:type_usage:36:1",
@@ -1733,6 +1739,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Task"
       }
     },
@@ -1752,6 +1759,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Task"
       }
     },
@@ -1929,7 +1937,10 @@
       "end_byte": 892,
       "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:InitializeAsync:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/test_roles/source.cs:Task:variable_ref:68:37",
@@ -1945,7 +1956,10 @@
       "end_byte": 1682,
       "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:InitializeAsync:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/test_roles/source.cs:TearDown:type_usage:5:5",

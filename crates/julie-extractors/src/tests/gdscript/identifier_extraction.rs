@@ -469,8 +469,6 @@ func process(entity: PandoraEntity) -> void:
 
     #[test]
     fn test_gdscript_variable_ref_emission() {
-        // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
-        // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
         let gdscript_code = r#"
 extends Node
 
@@ -480,20 +478,20 @@ var health := 10
 enum State { IDLE, RUNNING }
 
 func evaluate(seed, unused_param) -> int:
-    health -= seed              # compound target + RHS -> both reads
+    health -= seed
     var local_x = 5
-    local_x = 7                 # plain write LHS -> NOT a read
-    var total = speed           # bare RHS read
-    var g = GraphUtil.reach()   # receiver read; reach stays a call
-    var fn_ref = compute        # bare read of a function name
-    var arr = [seed, health]    # collection elements -> reads
+    local_x = 7
+    var total = speed
+    var g = GraphUtil.reach()
+    var fn_ref = compute
+    var arr = [seed, health]
     for item in items:
         total += item
-    var w = self.hp             # self receiver is a keyword, not a variable_ref
+    var w = self.hp
     match total:
         speed:
             pass
-        _:                      # wildcard pattern is not a read
+        _:
             pass
     # GhostToken appears only in this comment
     return total
@@ -519,15 +517,15 @@ func compute(v: int) -> int:
             .map(|id| id.name.as_str())
             .collect();
 
-        // --- Positive cases (rules 1/4) ---
         for expected in [
-            "GraphUtil", // member-access receiver
-            "speed",     // bare RHS read
-            "seed",      // compound-assignment RHS + array element
-            "health",    // compound-assignment target
-            "compute",   // bare read of a function name (method-group analogue)
-            "total",     // augmented target + bare return read
-            "items",     // for-loop collection
+            "GraphUtil",
+            "speed",
+            "seed",
+            "health",
+            "compute",
+            "total",
+            "items",
+            "local_x",
         ] {
             assert!(
                 var_refs.contains(&expected),
@@ -535,7 +533,6 @@ func compute(v: int) -> int:
             );
         }
 
-        // Receiver + call coexist: GraphUtil.reach()
         assert!(
             identifiers
                 .iter()
@@ -543,17 +540,15 @@ func compute(v: int) -> int:
             "GraphUtil.reach() must still yield a call named reach"
         );
 
-        // --- Negative cases (rules 2/3/4/5) ---
         for forbidden in [
-            "local_x",      // declaration name + plain-write LHS only
-            "unused_param", // parameter name only
-            "int",          // type annotation -> TypeUsage territory
-            "GhostToken",   // comment-only mention
-            "evaluate",     // function declaration name (a `name` node)
-            "IDLE",         // enum member declaration name
-            "self",         // keyword receiver
-            "reach",        // call callee, owned by the Call arm
-            "_",            // match wildcard pattern, not a read
+            "unused_param",
+            "int",
+            "GhostToken",
+            "evaluate",
+            "IDLE",
+            "self",
+            "reach",
+            "_",
         ] {
             assert!(
                 !var_refs.contains(&forbidden),
@@ -564,8 +559,19 @@ func compute(v: int) -> int:
             !identifiers.iter().any(|id| id.name == "GhostToken"),
             "comment-only GhostToken must not be extracted at all"
         );
+        assert_eq!(
+            identifiers
+                .iter()
+                .find(|identifier| {
+                    identifier.kind == IdentifierKind::VariableRef
+                        && identifier.start_byte
+                            == gdscript_code.find("local_x = 7").unwrap() as u32
+                })
+                .and_then(|identifier| identifier.metadata.as_ref())
+                .and_then(|metadata| metadata.get("access")),
+            Some(&serde_json::json!("write"))
+        );
 
-        // No duplicate rows: each (name, kind, span) is unique.
         let mut keys: Vec<(String, String, u32, u32)> = identifiers
             .iter()
             .map(|id| {
@@ -582,7 +588,6 @@ func compute(v: int) -> int:
         keys.dedup();
         assert_eq!(before, keys.len(), "duplicate identifier rows detected");
 
-        // containing_symbol_id is populated on a variable_ref.
         let evaluate = symbols
             .iter()
             .find(|s| s.name == "evaluate")
@@ -595,6 +600,107 @@ func compute(v: int) -> int:
             graph_ref.containing_symbol_id.as_deref(),
             Some(evaluate.id.as_str()),
             "receiver variable_ref should be contained in evaluate"
+        );
+    }
+
+    #[test]
+    fn assignments_and_pattern_bindings_get_write_access() {
+        let code = r#"
+var total = 0
+var model = {}
+func update(seed, values):
+    total = seed
+    total += seed
+    model.count = seed
+    model.inner.count = seed
+    model[index + offset] = seed
+    for item in values:
+        total = item
+    match seed:
+        var captured:
+            total = captured
+    return total
+"#;
+        let tree = init_parser(code, "gdscript");
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = GDScriptExtractor::new(
+            "gdscript".to_string(),
+            "test.gd".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let access_at = |start: usize, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|identifier| identifier.start_byte == start as u32 && identifier.kind == kind)
+                .and_then(|identifier| identifier.metadata.as_ref())
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(serde_json::Value::as_str)
+        };
+
+        assert_eq!(
+            access_at(
+                code.find("total = seed").unwrap(),
+                IdentifierKind::VariableRef
+            ),
+            Some("write")
+        );
+        assert_eq!(
+            access_at(
+                code.find("total += seed").unwrap(),
+                IdentifierKind::VariableRef
+            ),
+            Some("read_write")
+        );
+        let member = code.find("model.count").unwrap();
+        assert_eq!(access_at(member, IdentifierKind::VariableRef), Some("read"));
+        assert_eq!(
+            access_at(member + "model.".len(), IdentifierKind::MemberAccess),
+            Some("write")
+        );
+        let chained_member = code.find("model.inner.count").unwrap();
+        assert_eq!(
+            access_at(
+                chained_member + "model.".len(),
+                IdentifierKind::MemberAccess
+            ),
+            Some("read")
+        );
+        assert_eq!(
+            access_at(
+                chained_member + "model.inner.".len(),
+                IdentifierKind::MemberAccess
+            ),
+            Some("write")
+        );
+        let subscript = code.find("model[index + offset]").unwrap();
+        assert_eq!(
+            access_at(subscript, IdentifierKind::VariableRef),
+            Some("read")
+        );
+        assert_eq!(
+            access_at(subscript + "model[".len(), IdentifierKind::VariableRef),
+            Some("read")
+        );
+        assert_eq!(
+            access_at(
+                subscript + "model[index + ".len(),
+                IdentifierKind::VariableRef
+            ),
+            Some("read")
+        );
+        assert_eq!(
+            access_at(code.find("item in").unwrap(), IdentifierKind::VariableRef),
+            Some("write")
+        );
+        assert_eq!(
+            access_at(
+                code.find("var captured").unwrap() + "var ".len(),
+                IdentifierKind::VariableRef
+            ),
+            Some("write")
         );
     }
 }

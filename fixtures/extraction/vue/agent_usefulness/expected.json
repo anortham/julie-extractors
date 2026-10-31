@@ -269,7 +269,10 @@
       "end_byte": 207,
       "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/agent_usefulness/source.vue:id:variable_ref:2:84",
@@ -285,7 +288,10 @@
       "end_byte": 101,
       "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:'hx-get':2:59",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

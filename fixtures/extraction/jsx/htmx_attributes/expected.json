@@ -120,7 +120,10 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/jsx/htmx_attributes/source.jsx:TodoList:1:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

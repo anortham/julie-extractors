@@ -176,7 +176,10 @@
       "end_byte": 48,
       "containing_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveDashboard:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:ThemeContext:type_usage:8:11",

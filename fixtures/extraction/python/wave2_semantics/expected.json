@@ -2243,7 +2243,10 @@
       "end_byte": 1710,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:describe:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:Enum:type_usage:38:17",
@@ -2389,6 +2392,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Color"
       }
     },
@@ -2518,7 +2522,10 @@
       "end_byte": 923,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:withdraw:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:asyncio:variable_ref:26:17",
@@ -2534,7 +2541,10 @@
       "end_byte": 523,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:EchoServer:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:balance:member_access:53:13",
@@ -2552,6 +2562,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read_write",
         "receiver": "self"
       }
     },
@@ -2569,7 +2580,10 @@
       "end_byte": 1199,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:build:72:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:cls:call:73:15",
@@ -2636,7 +2650,10 @@
       "end_byte": 676,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:Color:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:fn:variable_ref:77:22",
@@ -2652,7 +2669,10 @@
       "end_byte": 1285,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:lambda_77:77:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:get:call:82:16",
@@ -2688,7 +2708,10 @@
       "end_byte": 1056,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:first:58:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:list:type_usage:58:30",
@@ -2707,6 +2730,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/python/wave2_semantics/source.py:other:variable_ref:101:13",
+      "name": "other",
+      "kind": "variable_ref",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/wave2_semantics/source.py",
+      "start_line": 101,
+      "start_column": 13,
+      "end_line": 101,
+      "end_column": 18,
+      "start_byte": 1754,
+      "end_byte": 1759,
+      "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:describe:93:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:other:variable_ref:102:23",
       "name": "other",
       "kind": "variable_ref",
@@ -2720,7 +2762,29 @@
       "end_byte": 1789,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:describe:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/python/wave2_semantics/source.py:r:variable_ref:97:27",
+      "name": "r",
+      "kind": "variable_ref",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/wave2_semantics/source.py",
+      "start_line": 97,
+      "start_column": 27,
+      "end_line": 97,
+      "end_column": 28,
+      "start_byte": 1653,
+      "end_byte": 1654,
+      "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:describe:93:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:r:variable_ref:97:33",
@@ -2736,7 +2800,10 @@
       "end_byte": 1660,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:describe:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:repo:variable_ref:82:11",
@@ -2752,7 +2819,10 @@
       "end_byte": 1389,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:fetch:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:retry:call:80:1",
@@ -2807,7 +2877,10 @@
       "end_byte": 1566,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:describe:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:state:variable_ref:82:20",
@@ -2823,7 +2896,10 @@
       "end_byte": 1399,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:fetch:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:str:call:102:19",

@@ -755,7 +755,10 @@
       "end_byte": 344,
       "containing_key": "fixtures/extraction/swift/current_syntax/source.swift:handle:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/current_syntax/source.swift:iOS:variable_ref:30:11",
@@ -771,7 +774,10 @@
       "end_byte": 442,
       "containing_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/swift/current_syntax/source.swift:perform:call:21:12",

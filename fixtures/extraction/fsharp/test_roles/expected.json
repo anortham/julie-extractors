@@ -1183,7 +1183,10 @@
       "end_byte": 467,
       "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:Increments:25:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/test_roles/source.fs:input:variable_ref:25:65",
@@ -1199,7 +1202,10 @@
       "end_byte": 442,
       "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:Increments:25:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/test_roles/source.fs:int:type_usage:25:31",
@@ -1279,7 +1285,10 @@
       "end_byte": 203,
       "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:helper:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/test_roles/source.fs:value:variable_ref:9:42",
@@ -1295,7 +1304,10 @@
       "end_byte": 128,
       "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:adds_numbers_from_data:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

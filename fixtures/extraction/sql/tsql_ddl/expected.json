@@ -424,7 +424,10 @@
       "end_byte": 266,
       "containing_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Items:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_ddl/source.sql:UPPER:call:9:25",

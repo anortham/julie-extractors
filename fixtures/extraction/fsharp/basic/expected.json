@@ -1985,6 +1985,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "point"
       }
     },
@@ -2004,6 +2005,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "point"
       }
     },
@@ -2021,7 +2023,10 @@
       "end_byte": 748,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:createPoint:38:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:Y:variable_ref:38:36",
@@ -2037,7 +2042,10 @@
       "end_byte": 755,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:createPoint:38:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:count:variable_ref:60:7",
@@ -2053,7 +2061,10 @@
       "end_byte": 1235,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:flow:59:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:count:variable_ref:61:12",
@@ -2069,7 +2080,10 @@
       "end_byte": 1262,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:flow:59:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:count:variable_ref:67:14",
@@ -2085,7 +2099,10 @@
       "end_byte": 1362,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:flow:59:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:float:type_usage:10:24",
@@ -2197,7 +2214,10 @@
       "end_byte": 1299,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:flow:59:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:n:variable_ref:63:24",
@@ -2213,7 +2233,29 @@
       "end_byte": 1308,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:flow:59:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/fsharp/basic/source.fs:n:variable_ref:63:8",
+      "name": "n",
+      "kind": "variable_ref",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "start_line": 63,
+      "start_column": 8,
+      "end_line": 63,
+      "end_column": 9,
+      "start_byte": 1291,
+      "end_byte": 1292,
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:flow:59:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:point:variable_ref:46:10",
@@ -2229,7 +2271,10 @@
       "end_byte": 936,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:callPoint:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:string:type_usage:39:45",
@@ -2261,7 +2306,10 @@
       "end_byte": 439,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Value:25:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:value:variable_ref:28:24",
@@ -2277,7 +2325,10 @@
       "end_byte": 497,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Calculate:27:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:value:variable_ref:28:9",
@@ -2293,7 +2344,10 @@
       "end_byte": 482,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Calculate:27:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:value:variable_ref:39:58",
@@ -2309,7 +2363,10 @@
       "end_byte": 825,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:convert:39:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:value:variable_ref:43:20",
@@ -2325,7 +2382,10 @@
       "end_byte": 891,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:local:43:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:y:variable_ref:41:36",
@@ -2341,7 +2401,10 @@
       "end_byte": 864,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:f:41:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

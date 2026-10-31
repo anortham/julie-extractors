@@ -216,7 +216,7 @@ impl GoExtractor {
     /// Following the Rust extractor reference implementation pattern
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
         let containing_symbols = self.base.containing_symbol_index(symbols);
-        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
+        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, symbols, 0);
         self.base.identifiers.clone()
     }
 

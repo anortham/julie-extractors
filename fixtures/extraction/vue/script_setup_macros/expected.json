@@ -1315,7 +1315,10 @@
       "end_byte": 645,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:visible:22:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:Props:type_usage:20:39",
@@ -1366,7 +1369,10 @@
       "end_byte": 95,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:count:variable_ref:4:27",
@@ -1382,7 +1388,10 @@
       "end_byte": 133,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:defineEmits:call:21:13",
@@ -1509,7 +1518,10 @@
       "end_byte": 121,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:name:member_access:27:46",
@@ -1527,6 +1539,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "props"
       }
     },
@@ -1544,7 +1557,10 @@
       "end_byte": 64,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:navigateTo:call:38:8",
@@ -1579,7 +1595,10 @@
       "end_byte": 778,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:label:27:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:props:variable_ref:27:40",
@@ -1595,7 +1614,10 @@
       "end_byte": 764,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:label:27:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:push:call:33:9",
@@ -1650,7 +1672,10 @@
       "end_byte": 946,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:goHome:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:useFetch:call:28:30",
@@ -1706,6 +1731,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "page"
       }
     },
@@ -1723,7 +1749,10 @@
       "end_byte": 35,
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/script_setup_macros/source.vue:withDefaults:call:20:14",

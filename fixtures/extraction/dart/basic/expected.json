@@ -1676,7 +1676,10 @@
       "end_byte": 568,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:Future:type_usage:16:2",
@@ -1852,7 +1855,10 @@
       "end_byte": 1228,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:66:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:enabled:variable_ref:68:6",
@@ -1868,7 +1874,10 @@
       "end_byte": 1195,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:66:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:fetchUrl:call:60:2",
@@ -1932,7 +1941,10 @@
       "end_byte": 640,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:i:variable_ref:69:20",
@@ -1948,7 +1960,10 @@
       "end_byte": 1220,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:66:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:i:variable_ref:69:31",
@@ -1964,7 +1979,10 @@
       "end_byte": 1231,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:66:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:i:variable_ref:70:15",
@@ -1980,7 +1998,10 @@
       "end_byte": 1253,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:66:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:id:variable_ref:12:14",
@@ -1996,7 +2017,10 @@
       "end_byte": 143,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:run:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:id:variable_ref:13:18",
@@ -2012,7 +2036,10 @@
       "end_byte": 166,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:run:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:id:variable_ref:17:24",
@@ -2028,7 +2055,10 @@
       "end_byte": 235,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:loadRemote:16:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:id:variable_ref:51:27",
@@ -2044,7 +2074,10 @@
       "end_byte": 865,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:recordRun:50:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:int:type_usage:11:2",
@@ -2255,7 +2288,10 @@
       "end_byte": 449,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:persist:call:30:9",
@@ -2346,7 +2382,10 @@
       "end_byte": 1248,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:66:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:total:variable_ref:73:9",
@@ -2362,7 +2401,10 @@
       "end_byte": 1279,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:66:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:value:variable_ref:46:9",
@@ -2378,7 +2420,10 @@
       "end_byte": 747,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:helper:45:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

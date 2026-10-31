@@ -215,3 +215,12 @@ another punctuation character becomes that character, and so does a Unicode or
 hex escape of a printable character. `\n`, `\t`, and other control escapes stay
 as written, so a name stays on one line. A triple-quoted label keeps its text as
 written. An interpolation is `{}`.
+
+## Variable access facts
+
+Emitted `variable_ref` and `member_access` identifiers include
+`metadata_json.access` when the syntax identifies the site. Reads and member
+receivers are `read`; plain assignment targets and lowercase case or
+for-comprehension bindings are `write`; compound assignment targets are
+`read_write`. Uppercase stable case patterns are reads. Declaration names
+represented by symbol rows are not emitted again as variable references.

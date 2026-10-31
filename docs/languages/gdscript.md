@@ -93,3 +93,7 @@ inner classes with the same name never share functions.
   global functions such as `load()`.
 
 Other files are out of scope because each file is extracted alone.
+
+## Variable access facts
+
+Existing `variable_ref` identifiers carry `metadata_json.access` when the syntax identifies the access. Plain assignments and loop or match-pattern bindings are writes; augmented assignments are read/write. For `object.member = value`, the member is the write target and the object variable is a read. Subscript indices remain reads.

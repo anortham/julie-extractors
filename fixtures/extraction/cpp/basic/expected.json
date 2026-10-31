@@ -1642,7 +1642,10 @@
       "end_byte": 841,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:evaluate:47:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:enabled:variable_ref:49:8",
@@ -1658,7 +1661,10 @@
       "end_byte": 804,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:evaluate:47:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:helper:call:18:14",
@@ -1742,7 +1748,10 @@
       "end_byte": 833,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:evaluate:47:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:i:variable_ref:50:35",
@@ -1758,7 +1767,10 @@
       "end_byte": 844,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:evaluate:47:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:i:variable_ref:51:21",
@@ -1774,7 +1786,10 @@
       "end_byte": 872,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:evaluate:47:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:id:call:33:10",
@@ -1833,7 +1848,10 @@
       "end_byte": 207,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:Worker:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:id_:variable_ref:18:21",
@@ -1849,7 +1867,10 @@
       "end_byte": 344,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:run:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:id_:variable_ref:19:22",
@@ -1865,7 +1886,10 @@
       "end_byte": 372,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:run:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:log:call:17:8",
@@ -1924,7 +1948,10 @@
       "end_byte": 867,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:evaluate:47:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:total:variable_ref:54:11",
@@ -1940,7 +1967,10 @@
       "end_byte": 906,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:evaluate:47:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:value:variable_ref:26:15",
@@ -1956,7 +1986,10 @@
       "end_byte": 469,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:helper:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:value:variable_ref:40:11",
@@ -1972,7 +2005,10 @@
       "end_byte": 670,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:helper_value:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

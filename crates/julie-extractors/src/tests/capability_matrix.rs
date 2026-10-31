@@ -48,6 +48,8 @@ pub(crate) struct CapabilityKindCoverage {
     pub(crate) relationships: KindCoverage,
     #[serde(default)]
     pub(crate) identifiers: KindCoverage,
+    #[serde(default)]
+    pub(crate) identifier_metadata: KindCoverage,
     pub(crate) body_spans: Option<KindCoverage>,
 }
 
@@ -1130,6 +1132,48 @@ fn capability_matrix_requires_annotations_coverage_domain() {
 }
 
 #[test]
+fn capability_matrix_requires_identifier_metadata_coverage_domain() {
+    require_kind_coverage_domain("identifier_metadata", "identifier metadata claims");
+}
+
+#[test]
+fn capability_matrix_identifier_access_claims_have_golden_evidence() {
+    assert_golden_domain_claims_match(
+        "identifier_metadata",
+        "metadata key",
+        observed_identifier_access_keys,
+    );
+}
+
+#[test]
+fn capability_matrix_identifier_access_not_applicable_claims_have_no_golden_evidence() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let coverage = &row["kind_coverage"]["identifier_metadata"];
+        let not_applicable = coverage["not_applicable"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| value.as_str() == Some("identifiers.access"));
+        if !not_applicable {
+            continue;
+        }
+        let observed = observed_golden_domain(&root, row, observed_identifier_access_keys);
+        if observed.contains("identifiers.access") {
+            errors.push(format!(
+                "{language} marks identifiers.access not applicable but a golden fixture emits it"
+            ));
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
 fn capability_matrix_requires_doc_comments_coverage_domain() {
     require_kind_coverage_domain("doc_comments", "doc-comment claims");
 }
@@ -1160,6 +1204,7 @@ fn capability_matrix_has_no_silent_kind_coverage_cells() {
             "symbols",
             "relationships",
             "identifiers",
+            "identifier_metadata",
             "body_spans",
             "structural_facts",
             "complexity_metrics",
@@ -1880,6 +1925,27 @@ fn observed_annotation_symbol_kinds(expected: &Value, into: &mut BTreeSet<String
         if has_annotations && let Some(kind) = symbol.get("kind").and_then(Value::as_str) {
             into.insert(kind.to_string());
         }
+    }
+}
+
+fn observed_identifier_access_keys(expected: &Value, into: &mut BTreeSet<String>) {
+    for identifier in golden_items(expected, "identifiers") {
+        let Some(access) = identifier
+            .get("metadata")
+            .and_then(|metadata| metadata.get("access"))
+        else {
+            continue;
+        };
+        let kind = identifier.get("kind").and_then(Value::as_str).unwrap_or("");
+        assert!(
+            matches!(kind, "variable_ref" | "member_access"),
+            "identifier access metadata is invalid on {kind}"
+        );
+        assert!(
+            matches!(access.as_str(), Some("read" | "write" | "read_write")),
+            "identifier access metadata has invalid value {access}"
+        );
+        into.insert("identifiers.access".to_string());
     }
 }
 

@@ -3717,7 +3717,10 @@
       "end_byte": 2848,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:hapiServer:118:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:KoaRouter:call:116:16",
@@ -3790,7 +3793,10 @@
       "end_byte": 1872,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:clear:86:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:Queue:variable_ref:87:0",
@@ -3806,7 +3812,10 @@
       "end_byte": 1934,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:drain:87:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:Queue:variable_ref:88:0",
@@ -3822,7 +3831,10 @@
       "end_byte": 1994,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:create:88:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:Resolver:call:62:13",
@@ -3857,7 +3869,10 @@
       "end_byte": 264,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:Router:call:75:14",
@@ -3912,7 +3927,10 @@
       "end_byte": 2335,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:Widget:103:15",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:Thing:variable_ref:23:0",
@@ -3928,7 +3946,10 @@
       "end_byte": 618,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:legacy:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:a:variable_ref:108:9",
@@ -3944,7 +3965,10 @@
       "end_byte": 2519,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:a:variable_ref:12:29",
@@ -3960,7 +3984,10 @@
       "end_byte": 449,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:add:12:19",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:a:variable_ref:14:9",
@@ -3976,7 +4003,10 @@
       "end_byte": 495,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:mul:13:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:add:call:62:51",
@@ -4011,7 +4041,10 @@
       "end_byte": 1682,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:admin:variable_ref:79:0",
@@ -4027,7 +4060,10 @@
       "end_byte": 1690,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:after:call:68:15",
@@ -4081,7 +4117,10 @@
       "end_byte": 1577,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:app:variable_ref:77:0",
@@ -4097,7 +4136,10 @@
       "end_byte": 1609,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:app:variable_ref:78:0",
@@ -4113,7 +4155,10 @@
       "end_byte": 1649,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:b:variable_ref:108:12",
@@ -4129,7 +4174,10 @@
       "end_byte": 2522,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:b:variable_ref:12:33",
@@ -4145,7 +4193,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:add:12:19",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:b:variable_ref:14:13",
@@ -4161,7 +4212,10 @@
       "end_byte": 499,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:mul:13:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:body:member_access:117:44",
@@ -4179,6 +4233,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "ctx"
       }
     },
@@ -4196,7 +4251,10 @@
       "end_byte": 1771,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:cb:call:70:4",
@@ -4274,6 +4332,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "prototype",
         "receiver_qualifier": "Queue"
       }
@@ -4294,6 +4353,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "Queue"
       }
     },
@@ -4311,7 +4371,10 @@
       "end_byte": 2809,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:db:variable_ref:29:9",
@@ -4327,7 +4390,10 @@
       "end_byte": 758,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:helper:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:db:variable_ref:47:21",
@@ -4343,7 +4409,10 @@
       "end_byte": 1010,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:getUser:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:describe:call:65:0",
@@ -4378,7 +4447,10 @@
       "end_byte": 1485,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:waits for both:67:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:drain:member_access:87:16",
@@ -4396,6 +4468,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "prototype",
         "receiver_qualifier": "Queue"
       }
@@ -4414,7 +4487,10 @@
       "end_byte": 587,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:handle:19:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:exports:variable_ref:28:0",
@@ -4430,7 +4506,10 @@
       "end_byte": 717,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:helper:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:express:call:74:12",
@@ -4465,7 +4544,10 @@
       "end_byte": 1755,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:books:80:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:fetchPage:call:24:9",
@@ -4616,7 +4698,10 @@
       "end_byte": 1319,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:get:call:117:4",
@@ -4691,7 +4776,10 @@
       "end_byte": 1312,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:hapiServer:variable_ref:119:0",
@@ -4707,7 +4795,10 @@
       "end_byte": 2883,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:helper:member_access:28:8",
@@ -4725,6 +4816,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "exports"
       }
     },
@@ -4744,6 +4836,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "params",
         "receiver_qualifier": "r"
       }
@@ -4762,7 +4855,10 @@
       "end_byte": 1018,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:getUser:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:it:call:67:2",
@@ -4799,6 +4895,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "this"
       }
     },
@@ -4856,7 +4953,10 @@
       "end_byte": 2769,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:label:variable_ref:62:22",
@@ -4872,7 +4972,10 @@
       "end_byte": 1303,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:legacy:member_access:23:16",
@@ -4890,6 +4993,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "prototype",
         "receiver_qualifier": "Thing"
       }
@@ -4929,6 +5033,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "this"
       }
     },
@@ -4948,6 +5053,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -4984,7 +5090,10 @@
       "end_byte": 1087,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:resolve:52:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:ns:variable_ref:110:12",
@@ -5000,7 +5109,10 @@
       "end_byte": 2573,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:observable:variable_ref:99:3",
@@ -5016,7 +5128,10 @@
       "end_byte": 2210,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:items:99:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:params:member_access:119:73",
@@ -5034,6 +5149,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "r"
       }
     },
@@ -5051,7 +5167,10 @@
       "end_byte": 1259,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:prototype:member_access:23:6",
@@ -5069,6 +5188,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Thing"
       }
     },
@@ -5088,6 +5208,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Queue"
       }
     },
@@ -5107,6 +5228,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Queue"
       }
     },
@@ -5124,7 +5246,10 @@
       "end_byte": 2945,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:handler:119:55",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:repo:variable_ref:94:39",
@@ -5140,7 +5265,10 @@
       "end_byte": 2129,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:loadUser:94:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:require:call:114:18",
@@ -5346,7 +5474,10 @@
       "end_byte": 1675,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:res:variable_ref:79:34",
@@ -5362,7 +5493,10 @@
       "end_byte": 1722,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:res:variable_ref:83:21",
@@ -5378,7 +5512,10 @@
       "end_byte": 1819,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:rest:variable_ref:62:45",
@@ -5394,7 +5531,10 @@
       "end_byte": 1325,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:route:call:119:11",
@@ -5470,7 +5610,10 @@
       "end_byte": 1227,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:store:member_access:100:28",
@@ -5488,6 +5631,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "write",
         "receiver": "this"
       }
     },
@@ -5505,7 +5649,10 @@
       "end_byte": 2264,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:store:100:23",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:toggle:call:59:2",
@@ -5540,7 +5687,10 @@
       "end_byte": 1273,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:track:call:105:0",
@@ -5655,7 +5805,10 @@
       "end_byte": 1034,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:getUser:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:usersRouter:variable_ref:76:18",
@@ -5671,7 +5824,10 @@
       "end_byte": 1603,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/language_gaps/source.js:validate:call:60:2",
@@ -5706,7 +5862,10 @@
       "end_byte": 679,
       "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:legacy:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

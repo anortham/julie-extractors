@@ -1109,7 +1109,10 @@
       "end_byte": 872,
       "containing_key": "fixtures/extraction/html/basic/source.html:WorkerCard:30:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:event:variable_ref:12:34",
@@ -1125,7 +1128,10 @@
       "end_byte": 280,
       "containing_key": "fixtures/extraction/html/basic/source.html:button:12:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:event:variable_ref:13:66",
@@ -1141,7 +1147,10 @@
       "end_byte": 404,
       "containing_key": "fixtures/extraction/html/basic/source.html:button:13:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:event:variable_ref:25:13",
@@ -1157,7 +1166,10 @@
       "end_byte": 717,
       "containing_key": "fixtures/extraction/html/basic/source.html:saveWorker:24:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:fetch:call:28:8",
@@ -1362,7 +1374,10 @@
       "end_byte": 600,
       "containing_key": "fixtures/extraction/html/basic/source.html:helper:20:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:var:call:17:23",

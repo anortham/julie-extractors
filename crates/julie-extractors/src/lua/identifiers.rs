@@ -21,7 +21,7 @@ pub(super) fn extract_identifiers(
     let containing_symbols = extractor.base().containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, symbols, 0);
 
     // Return the collected identifiers
     extractor.base().identifiers.clone()
@@ -32,6 +32,7 @@ fn walk_tree_for_identifiers(
     extractor: &mut LuaExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -39,7 +40,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(extractor, node, containing_symbols);
+    extract_identifier_from_node(extractor, node, containing_symbols, symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -47,7 +48,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -56,6 +57,7 @@ fn extract_identifier_from_node(
     extractor: &mut LuaExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         // Function calls: foo(), require("module")
@@ -159,12 +161,21 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm (locked contract — see the doc comment
-        // in csharp/identifiers.rs): a bare `identifier` used as a value or as
-        // the table receiver of a dot/method index — the reads the Call/
-        // MemberAccess arms above do not own. `nil`/`true`/`false` are distinct
-        // grammar nodes and never reach here.
-        "identifier" if is_lua_value_read_identifier(node) => {
+        "identifier"
+            if is_lua_value_read_identifier(node)
+                || crate::base::variable_access::rules_for_language("lua").is_some_and(
+                    |rules| {
+                        !extractor.base().has_identifier_at_node(&node)
+                            && crate::base::variable_access::should_emit_write_reference(
+                                node,
+                                &extractor.base().get_node_text(&node),
+                                &extractor.base().content,
+                                rules,
+                                symbols,
+                            )
+                    },
+                ) =>
+        {
             let name = extractor.base().get_node_text(&node);
             // Rule 5: `self` is a receiver convention, never a symbol name.
             if name != "self" {

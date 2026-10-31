@@ -229,7 +229,10 @@
       "end_byte": 380,
       "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/structural_facts/source.rs:read_volatile:call:22:19",
@@ -266,7 +269,10 @@
       "end_byte": 406,
       "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/structural_facts/source.rs:value:variable_ref:33:4",
@@ -282,7 +288,10 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:double_flag:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/structural_facts/source.rs:value:variable_ref:44:4",
@@ -298,7 +307,10 @@
       "end_byte": 667,
       "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:halve_flag:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -1350,7 +1350,10 @@
       "end_byte": 1069,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:section:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:error:variable_ref:26:24",
@@ -1366,7 +1369,10 @@
       "end_byte": 1079,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:section:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:foot:member_access:33:24",
@@ -1449,7 +1455,10 @@
       "end_byte": 1282,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:badge:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:menu:member_access:14:9",
@@ -1483,6 +1492,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "error"
       }
     },
@@ -1500,7 +1510,10 @@
       "end_byte": 1546,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:Greeting:35:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:onSelect:call:25:96",
@@ -1551,7 +1564,10 @@
       "end_byte": 1030,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:app-order-row:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:order:variable_ref:25:77",
@@ -1567,7 +1583,10 @@
       "end_byte": 1002,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:app-order-row:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:orders:member_access:24:15",
@@ -1615,7 +1634,10 @@
       "end_byte": 966,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:app-order-row:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:panel:member_access:24:30",
@@ -1791,7 +1813,10 @@
       "end_byte": 986,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:app-order-row:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

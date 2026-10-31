@@ -375,7 +375,10 @@
       "end_byte": 488,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Html:variable_ref:13:7",
@@ -391,7 +394,10 @@
       "end_byte": 446,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Html:variable_ref:16:1",
@@ -407,7 +413,10 @@
       "end_byte": 581,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Id:member_access:7:54",
@@ -423,7 +432,10 @@
       "end_byte": 236,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:InvokeAsync:call:14:17",
@@ -474,7 +486,10 @@
       "end_byte": 715,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Model:variable_ref:7:45",
@@ -490,7 +505,10 @@
       "end_byte": 230,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Name:member_access:20:16",
@@ -508,6 +526,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "product"
       }
     },
@@ -562,6 +581,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "product"
       }
     },
@@ -614,7 +634,10 @@
       "end_byte": 650,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:count:variable_ref:14:43",
@@ -630,7 +653,10 @@
       "end_byte": 520,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:id:variable_ref:16:51",
@@ -646,7 +672,10 @@
       "end_byte": 629,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:product:variable_ref:20:28",
@@ -662,7 +691,10 @@
       "end_byte": 754,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:product:variable_ref:20:8",
@@ -678,7 +710,10 @@
       "end_byte": 734,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:value:variable_ref:4:35",
@@ -694,7 +729,10 @@
       "end_byte": 88,
       "containing_key": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml:Price:4:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

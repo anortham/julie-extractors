@@ -1702,7 +1702,7 @@ export default {
       let count = 0;
       count += 1;                    // compound assignment -> read count
       let x = 5;                     // declaration name, no ref
-      x = 7;                         // plain write LHS -> NOT a read
+      x = 7;
       const total = seed;            // seed on RHS -> read
       const g = graphKit.reach();    // graphKit receiver -> read; reach -> call
       const pack = { seed };         // shorthand property -> read of seed
@@ -1732,7 +1732,19 @@ export default {
                 .any(|id| id.name == "reach" && id.kind == IdentifierKind::Call),
             "graphKit.reach() must still yield a call named reach"
         );
-        for forbidden in ["x", "unusedParam", "GhostToken", "evaluate"] {
+        let write_site = identifiers
+            .iter()
+            .find(|id| id.name == "x" && id.kind == IdentifierKind::VariableRef)
+            .expect("plain assignment write site");
+        assert_eq!(
+            write_site
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(serde_json::Value::as_str),
+            Some("write")
+        );
+        for forbidden in ["unusedParam", "GhostToken", "evaluate"] {
             assert!(
                 !var_refs.contains(&forbidden),
                 "{forbidden} must NOT be a variable_ref; got {var_refs:?}"

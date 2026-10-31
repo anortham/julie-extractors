@@ -586,7 +586,10 @@
       "end_byte": 610,
       "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:kv_test_:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:cleanup:variable_ref:17:38",
@@ -602,7 +605,10 @@
       "end_byte": 699,
       "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:loop_test_:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:helper:call:25:32",
@@ -666,7 +672,10 @@
       "end_byte": 715,
       "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:loop_test_:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:put_then_get:variable_ref:14:45",
@@ -682,7 +691,10 @@
       "end_byte": 631,
       "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:kv_test_:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:setup:variable_ref:14:16",
@@ -698,7 +710,10 @@
       "end_byte": 595,
       "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:kv_test_:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:setup:variable_ref:17:25",
@@ -714,7 +729,10 @@
       "end_byte": 684,
       "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:loop_test_:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

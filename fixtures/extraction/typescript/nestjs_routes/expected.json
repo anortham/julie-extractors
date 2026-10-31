@@ -737,7 +737,10 @@
       "end_byte": 440,
       "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/nestjs_routes/source.ts:suffix:variable_ref:37:16",
@@ -753,7 +756,10 @@
       "end_byte": 568,
       "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

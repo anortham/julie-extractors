@@ -126,7 +126,10 @@
       "end_byte": 120,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:defineEventHandler:call:1:15",
@@ -161,7 +164,10 @@
       "end_byte": 90,
       "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:body:2:10",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:readBody:call:2:23",

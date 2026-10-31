@@ -160,7 +160,10 @@
       "end_byte": 189,
       "containing_key": "fixtures/extraction/vue/http_client/source.vue:load:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/vue/http_client/source.vue:fetch:call:9:8",

@@ -204,7 +204,16 @@ fn extract_identifier_from_node(
             }
         }
 
-        "identifier" if is_qml_value_read_identifier(&extractor.base, node) => {
+        "identifier" => {
+            let value_read = is_qml_value_read_identifier(&extractor.base, node);
+            let write_site = crate::javascript::identifiers::is_ecmascript_write_site(
+                node,
+                &extractor.base.content,
+                "javascript",
+            );
+            if !value_read && (!write_site || extractor.base.has_identifier_at_node(&node)) {
+                return;
+            }
             let name = extractor.base.get_node_text(&node);
             let containing_symbol_id = containing_symbols.find(node);
             extractor.base.create_identifier(
@@ -337,7 +346,8 @@ fn is_qml_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
         return false;
     };
     match parent.kind() {
-        "call_expression" | "member_expression" | "nested_identifier" => false,
+        "call_expression" | "nested_identifier" => false,
+        "member_expression" => parent.child_by_field_name("object") == Some(node),
         "ui_import"
         | "ui_pragma"
         | "ui_signal"

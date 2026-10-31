@@ -483,7 +483,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/r/runit/runit.money.R:testMoneyPrint:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/r/runit/runit.money.R:x:variable_ref:18:9",
@@ -499,7 +502,10 @@
       "end_byte": 298,
       "containing_key": "fixtures/extraction/r/runit/runit.money.R:format_money:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

@@ -861,7 +861,10 @@
       "end_byte": 456,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:scalesQuantity:19:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:it:call:6:2",
@@ -898,6 +901,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "test"
       }
     },
@@ -915,7 +919,10 @@
       "end_byte": 663,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:params:call:17:3",
@@ -971,6 +978,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "input"
       }
     },
@@ -988,7 +996,10 @@
       "end_byte": 230,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:test:call:36:9",
@@ -1024,7 +1035,10 @@
       "end_byte": 256,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:test:variable_ref:14:3",
@@ -1040,7 +1054,10 @@
       "end_byte": 292,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

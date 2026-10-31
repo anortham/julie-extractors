@@ -402,7 +402,10 @@
       "end_byte": 266,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:routes:8:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/structural_facts/source.ts:Home:variable_ref:10:30",
@@ -418,7 +421,10 @@
       "end_byte": 321,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:routes:8:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/structural_facts/source.ts:Promise:type_usage:4:30",
@@ -466,7 +472,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:vueRoutes:15:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/structural_facts/source.ts:createBrowserRouter:call:13:22",
@@ -558,7 +567,10 @@
       "end_byte": 376,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:router:13:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/structural_facts/source.ts:vueRoutes:variable_ref:21:12",
@@ -574,7 +586,10 @@
       "end_byte": 554,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:vueRouter:19:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

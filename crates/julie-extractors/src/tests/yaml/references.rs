@@ -78,6 +78,12 @@ fn cloudformation_intrinsics_reference_template_entries() {
         names,
         BTreeSet::from(["DataBucket", "HandlerRole", "Stage"])
     );
+    assert!(results.identifiers.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    }));
 }
 
 #[test]

@@ -11,6 +11,7 @@ const DOMAINS = [
   "symbols",
   "relationships",
   "identifiers",
+  "identifier_metadata",
   "body_spans",
   "structural_facts",
   "complexity_metrics",
@@ -105,6 +106,22 @@ const DOMAIN_APPLICABILITY = {
   },
   identifiers: {
     not_applicable: ["json", "markdown", "toml"],
+    convention_only: [],
+    native_debt: [],
+    quality_debt: [],
+  },
+  identifier_metadata: {
+    not_applicable: [
+      "gomod",
+      "gosum",
+      "qmldir",
+      "css",
+      "regex",
+      "markdown",
+      "json",
+      "toml",
+      "yaml",
+    ],
     convention_only: [],
     native_debt: [],
     quality_debt: [],
@@ -239,6 +256,9 @@ function observedCounts(language) {
       rows(expected, "pending_relationships").length +
       rows(expected, "structured_pending_relationships").length;
     counts.identifiers += rows(expected, "identifiers").length;
+    counts.identifier_metadata += rows(expected, "identifiers").filter((identifier) =>
+      identifier.metadata && Object.hasOwn(identifier.metadata, "access"),
+    ).length;
     counts.types += rows(expected, "types").length + rows(expected, "type_facts").length;
     counts.structural_facts += rows(expected, "structural_facts").length;
     counts.complexity_metrics += rows(expected, "complexity_metrics").length;

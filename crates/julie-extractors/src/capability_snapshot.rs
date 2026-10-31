@@ -52,6 +52,8 @@ pub struct CapabilityKindCoverage {
     #[serde(default)]
     pub identifiers: KindCoverage,
     #[serde(default)]
+    pub identifier_metadata: KindCoverage,
+    #[serde(default)]
     pub body_spans: KindCoverage,
     #[serde(default)]
     pub structural_facts: KindCoverage,

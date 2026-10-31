@@ -1494,7 +1494,10 @@
       "end_byte": 576,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:Closer:type_usage:16:1",
@@ -1595,6 +1598,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "event"
       }
     },
@@ -1614,6 +1618,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "typed"
       }
     },
@@ -1672,6 +1677,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "item"
       }
     },
@@ -1691,6 +1697,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "circle"
       }
     },
@@ -1710,6 +1717,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "typed"
       }
     },
@@ -1727,7 +1735,10 @@
       "end_byte": 1041,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:NewCircle:54:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:Reader:type_usage:15:4",
@@ -1807,7 +1818,10 @@
       "end_byte": 1327,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:circle:variable_ref:81:6",
@@ -1823,7 +1837,10 @@
       "end_byte": 1524,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:err:variable_ref:66:4",
@@ -1839,7 +1856,10 @@
       "end_byte": 1262,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:errors:variable_ref:56:14",
@@ -1855,7 +1875,10 @@
       "end_byte": 999,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:NewCircle:54:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:event:variable_ref:84:6",
@@ -1871,7 +1894,10 @@
       "end_byte": 1575,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:events:variable_ref:83:20",
@@ -1887,7 +1913,10 @@
       "end_byte": 1561,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:float64:call:93:5",
@@ -1922,7 +1951,10 @@
       "end_byte": 1316,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:index:variable_ref:79:26",
@@ -1938,7 +1970,10 @@
       "end_byte": 1499,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:item:variable_ref:77:6",
@@ -1954,7 +1989,10 @@
       "end_byte": 1457,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:items:variable_ref:72:14",
@@ -1970,7 +2008,10 @@
       "end_byte": 1347,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:items:variable_ref:75:29",
@@ -1986,7 +2027,10 @@
       "end_byte": 1429,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:key:variable_ref:80:6",
@@ -2002,7 +2046,10 @@
       "end_byte": 1511,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:label:call:94:5",
@@ -2075,7 +2122,10 @@
       "end_byte": 1394,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:new:call:69:10",
@@ -2110,7 +2160,10 @@
       "end_byte": 1446,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:r:variable_ref:55:4",
@@ -2126,7 +2179,10 @@
       "end_byte": 972,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:NewCircle:54:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:r:variable_ref:58:24",
@@ -2142,7 +2198,10 @@
       "end_byte": 1044,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:NewCircle:54:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:total:variable_ref:73:28",
@@ -2158,7 +2217,10 @@
       "end_byte": 1382,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:total:variable_ref:93:13",
@@ -2174,7 +2236,10 @@
       "end_byte": 1722,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:total:variable_ref:95:8",
@@ -2190,7 +2255,10 @@
       "end_byte": 1753,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:typed:variable_ref:88:6",
@@ -2206,7 +2274,10 @@
       "end_byte": 1642,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:typed:variable_ref:90:6",
@@ -2222,7 +2293,10 @@
       "end_byte": 1673,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:value:variable_ref:62:41",
@@ -2238,7 +2312,10 @@
       "end_byte": 1134,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Identity:62:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:value:variable_ref:86:17",
@@ -2254,7 +2331,10 @@
       "end_byte": 1606,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

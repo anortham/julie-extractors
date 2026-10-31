@@ -1554,6 +1554,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Task"
       }
     },
@@ -1573,6 +1574,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "ValueTask"
       }
     },
@@ -1608,6 +1610,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "orders"
       }
     },
@@ -1643,6 +1646,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "item"
       }
     },
@@ -1679,7 +1683,10 @@
       "end_byte": 488,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Func:type_usage:47:4",
@@ -1765,7 +1772,10 @@
       "end_byte": 1314,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OnInitializedAsync:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Http:variable_ref:52:14",
@@ -1781,7 +1791,10 @@
       "end_byte": 1378,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OnInitializedAsync:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:HttpClient:type_usage:11:8",
@@ -1847,6 +1860,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "_order"
       }
     },
@@ -1866,6 +1880,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "order"
       }
     },
@@ -1883,7 +1898,10 @@
       "end_byte": 724,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Id:variable_ref:57:68",
@@ -1899,7 +1917,10 @@
       "end_byte": 1582,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Refresh:57:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:InteractiveServer:variable_ref:5:12",
@@ -1915,7 +1936,10 @@
       "end_byte": 154,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Json:type_usage:3:26",
@@ -1995,7 +2019,10 @@
       "end_byte": 1669,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Back:59:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Nav:variable_ref:60:35",
@@ -2011,7 +2038,10 @@
       "end_byte": 1735,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Remove:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:NavLink:type_usage:14:1",
@@ -2145,7 +2175,10 @@
       "end_byte": 651,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Order:variable_ref:21:37",
@@ -2161,7 +2194,10 @@
       "end_byte": 710,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderRow:type_usage:18:1",
@@ -2379,7 +2415,10 @@
       "end_byte": 293,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Service:variable_ref:57:51",
@@ -2395,7 +2434,10 @@
       "end_byte": 1570,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Refresh:57:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Shop:type_usage:2:11",
@@ -2491,7 +2533,10 @@
       "end_byte": 1623,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:DeleteAsync:58:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Text:type_usage:3:21",
@@ -2558,7 +2603,10 @@
       "end_byte": 1820,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:DisposeAsync:61:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:_order:variable_ref:15:18",
@@ -2574,7 +2622,10 @@
       "end_byte": 454,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:_order:variable_ref:18:18",
@@ -2590,7 +2641,10 @@
       "end_byte": 580,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:id:variable_ref:60:61",
@@ -2606,7 +2660,10 @@
       "end_byte": 1760,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Remove:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:item:variable_ref:38:13",
@@ -2622,7 +2679,10 @@
       "end_byte": 1007,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:order:variable_ref:22:31",
@@ -2638,7 +2698,10 @@
       "end_byte": 763,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:order:variable_ref:22:39",
@@ -2654,7 +2717,10 @@
       "end_byte": 771,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:orders:variable_ref:19:23",
@@ -2670,7 +2736,10 @@
       "end_byte": 637,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:orders:variable_ref:26:5",
@@ -2686,7 +2755,10 @@
       "end_byte": 862,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:orders:variable_ref:30:9",
@@ -2702,7 +2774,10 @@
       "end_byte": 910,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:orders:variable_ref:36:26",
@@ -2718,7 +2793,10 @@
       "end_byte": 982,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:orders:variable_ref:52:55",
@@ -2734,7 +2812,10 @@
       "end_byte": 1421,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OnInitializedAsync:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:total:variable_ref:16:33",
@@ -2750,7 +2831,10 @@
       "end_byte": 506,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:value:variable_ref:47:40",
@@ -2766,7 +2850,10 @@
       "end_byte": 1209,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:x:variable_ref:54:36",
@@ -2782,7 +2869,10 @@
       "end_byte": 1499,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OnInitializedAsync:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

@@ -38,7 +38,7 @@ impl TestRole {
 pub enum IdentifierKind {
     /// Function/method call
     Call,
-    /// Variable reference (reading a variable)
+    /// Variable occurrence; optional access metadata distinguishes reads and writes.
     VariableRef,
     /// Type usage (in type annotations, casts, etc.)
     TypeUsage,

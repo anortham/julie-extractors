@@ -1206,7 +1206,10 @@
       "end_byte": 279,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:bp:variable_ref:23:1",
@@ -1222,7 +1225,10 @@
       "end_byte": 455,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:flask_user:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:bp:variable_ref:27:29",
@@ -1238,7 +1244,10 @@
       "end_byte": 551,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:detail:member_access:31:34",
@@ -1256,6 +1265,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "views"
       }
     },
@@ -1273,7 +1283,10 @@
       "end_byte": 410,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:health:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:flask_app:variable_ref:27:0",
@@ -1289,7 +1302,10 @@
       "end_byte": 529,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:get:call:10:8",
@@ -1365,7 +1381,10 @@
       "end_byte": 884,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:call_clients:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:include:call:33:17",
@@ -1422,6 +1441,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "views"
       }
     },
@@ -1555,7 +1575,10 @@
       "end_byte": 837,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:call_clients:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:route:call:19:11",
@@ -1591,7 +1614,10 @@
       "end_byte": 209,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:fastapi_user:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:router:variable_ref:14:19",
@@ -1607,7 +1633,10 @@
       "end_byte": 301,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:views:variable_ref:31:28",
@@ -1623,7 +1652,10 @@
       "end_byte": 642,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:views:variable_ref:32:44",
@@ -1639,7 +1671,10 @@
       "end_byte": 721,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

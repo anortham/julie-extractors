@@ -186,6 +186,12 @@ fn schema_qname_attributes_become_type_usage_identifiers() {
             .count(),
         4
     );
+    assert!(results.identifiers.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    }));
 }
 
 #[test]
@@ -520,6 +526,12 @@ fn mybatis_statements_are_methods_of_the_mapper_with_query_facts() {
         identifiers(&results, IdentifierKind::TypeUsage),
         vec!["UserMapper", "User"]
     );
+    assert!(results.identifiers.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    }));
     let references = edges(&results, RelationshipKind::References);
     assert!(references.contains(&("findById".to_string(), "userResult".to_string())));
     assert!(references.contains(&("findById".to_string(), "columns".to_string())));

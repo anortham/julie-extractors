@@ -109,3 +109,9 @@ inside the symbol's bytes. A backreference right after its group
 (`(\w)\1`) is contained by the pattern, not by the group. Structural facts bind
 to the innermost symbol by the same rule, so the root pattern owns the facts
 for constructs that no smaller symbol holds.
+
+## Variable access facts
+
+Regex capture declarations are symbols, and named backreferences are call
+identifiers. Regex syntax has no variable assignment or read/write sites, so
+`identifiers.access` is not applicable.

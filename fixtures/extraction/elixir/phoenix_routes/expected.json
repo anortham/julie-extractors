@@ -542,7 +542,10 @@
       "end_byte": 1010,
       "containing_key": "fixtures/extraction/elixir/phoenix_routes/source.ex:MyAppWeb.Router:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/phoenix_routes/source.ex:pipe_through:call:9:4",
@@ -734,7 +737,10 @@
       "end_byte": 958,
       "containing_key": "fixtures/extraction/elixir/phoenix_routes/source.ex:MyAppWeb.Router:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

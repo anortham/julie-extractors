@@ -246,12 +246,23 @@ fn extract_identifier_from_node(
             }
         }
 
-        // `variable_ref` complement arm (locked contract — see the reference
-        // implementation doc comment in csharp/identifiers.rs): a bare `identifier`
-        // used as a value or as the object/receiver of a navigation — the reads the
-        // Call/MemberAccess/TypeUsage arms above do not own. Kotlin type positions
-        // live inside `user_type`, which the predicate excludes.
-        "identifier" if is_kotlin_value_read_identifier(base, node) => {
+        "identifier"
+            if is_kotlin_value_read_identifier(base, node)
+                || crate::base::variable_access::rules_for_language("kotlin").is_some_and(
+                    |rules| {
+                        !base.has_identifier_at_node(&node)
+                            && (crate::base::variable_access::is_assignment_or_increment_target(
+                                node,
+                                &base.content,
+                                rules,
+                            ) || crate::base::variable_access::is_pattern_binding(
+                                node,
+                                &base.content,
+                                rules,
+                            ))
+                    },
+                ) =>
+        {
             let name = identifier_name(base, &node);
             // Rule 5: reuse the existing noise filter, plus the `it`/`field`
             // soft keywords (implicit lambda parameter / property backing
@@ -332,8 +343,6 @@ fn is_kotlin_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
         // The referenced function of `::name` is owned by the Call arm.
         "callable_reference" => false,
 
-        // Rule 4: the LHS of a PLAIN assignment is write-only; a COMPOUND
-        // operator (`+=`, …) reads. The RHS is always a read.
         "assignment" => {
             !is_field("left")
                 || parent

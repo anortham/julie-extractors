@@ -324,4 +324,43 @@ END
             "[Id]"
         );
     }
+
+    #[test]
+    fn assignment_variables_and_columns_get_write_access() {
+        let sql_code = "DECLARE @balance int;\nSET @balance = 5;\nUPDATE ledger SET balance = @balance;\nSELECT @balance;";
+        let mut parser = init_test_parser();
+        let tree = parser.parse(sql_code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = SqlExtractor::new(
+            "sql".to_string(),
+            "test.sql".to_string(),
+            sql_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let access_at = |start: usize, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|identifier| identifier.start_byte == start as u32 && identifier.kind == kind)
+                .and_then(|identifier| identifier.metadata.as_ref())
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(serde_json::Value::as_str)
+        };
+
+        assert_eq!(
+            access_at(
+                sql_code.find("@balance = 5").unwrap(),
+                IdentifierKind::VariableRef
+            ),
+            Some("write")
+        );
+        assert_eq!(
+            access_at(
+                sql_code.find("balance = @balance").unwrap(),
+                IdentifierKind::MemberAccess
+            ),
+            Some("write")
+        );
+    }
 }

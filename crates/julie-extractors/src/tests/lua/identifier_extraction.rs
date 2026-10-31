@@ -7,7 +7,7 @@
 //
 // Following the Rust/C# extractor reference implementation pattern
 
-use crate::base::IdentifierKind;
+use crate::base::{IdentifierKind, SymbolKind};
 use crate::lua::LuaExtractor;
 use crate::tests::lua::init_test_parser;
 
@@ -15,6 +15,22 @@ use crate::tests::lua::init_test_parser;
 mod identifier_extraction_tests {
     use super::*;
     use std::path::PathBuf;
+
+    fn extract_all(lua_code: &str) -> (Vec<crate::base::Symbol>, Vec<crate::base::Identifier>) {
+        let mut parser = init_test_parser();
+        let tree = parser.parse(lua_code, None).unwrap();
+        assert!(!tree.root_node().has_error());
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = LuaExtractor::new(
+            "lua".to_string(),
+            "test.lua".to_string(),
+            lua_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        (symbols, identifiers)
+    }
 
     #[test]
     fn test_lua_function_calls() {
@@ -311,7 +327,8 @@ end
         // Positive cases (rules 1/4). Lua has no compound assignment; the
         // canonical increment `count = count + 1` reads count on the RHS.
         for expected in [
-            "count",              // RHS read of the increment
+            "count", // RHS read of the increment
+            "x",
             "seed",               // initializer read
             "GraphTraversal",     // dot-index receiver
             "is_user_type",       // bare function-ref argument
@@ -334,7 +351,6 @@ end
 
         // Negative cases (rules 2/3/4/5)
         for forbidden in [
-            "x",            // plain-write LHS only
             "unused_param", // parameter name only
             "ghost_token",  // comment-only mention
             "evaluate",     // function declaration name
@@ -382,5 +398,221 @@ end
             Some(evaluate.id.as_str()),
             "receiver variable_ref should be contained in evaluate"
         );
+    }
+
+    fn variable_access_at(identifiers: &[crate::base::Identifier], start: usize) -> Option<&str> {
+        identifiers
+            .iter()
+            .find(|identifier| identifier.start_byte as usize == start)?
+            .metadata
+            .as_ref()?
+            .get("access")?
+            .as_str()
+    }
+
+    #[test]
+    fn variable_access_facts_follow_lua_assignment_and_loop_syntax() {
+        let code = r#"
+box = {}
+output = input
+output = output + 1
+box.value = input
+consume(output)
+for item in values do
+    consume(item)
+end
+for index = 1, 2 do
+    consume(index)
+end
+"#;
+        let mut parser = init_test_parser();
+        let tree = parser.parse(code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = LuaExtractor::new(
+            "lua".to_string(),
+            "test.lua".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let first_output_binding = code.find("output = input").unwrap();
+        assert!(symbols.iter().any(|symbol| symbol.name == "output"));
+        assert!(
+            identifiers
+                .iter()
+                .all(|identifier| identifier.start_byte as usize != first_output_binding)
+        );
+        assert_eq!(
+            variable_access_at(&identifiers, code.find("output = output + 1").unwrap()),
+            Some("write")
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("output = output + 1").unwrap() + "output = ".len()
+            ),
+            Some("read")
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("box.value = input").unwrap() + "box.".len()
+            ),
+            Some("write")
+        );
+        assert_eq!(
+            variable_access_at(&identifiers, code.find("box.value = input").unwrap()),
+            Some("read")
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("consume(output)").unwrap() + "consume(".len()
+            ),
+            Some("read")
+        );
+        assert_eq!(
+            variable_access_at(&identifiers, code.find("for item").unwrap() + "for ".len()),
+            Some("write")
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("consume(item)").unwrap() + "consume(".len()
+            ),
+            Some("read")
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("for index =").unwrap() + "for ".len()
+            ),
+            Some("write")
+        );
+        assert_eq!(
+            variable_access_at(
+                &identifiers,
+                code.find("consume(index)").unwrap() + "consume(".len()
+            ),
+            Some("read")
+        );
+    }
+
+    #[test]
+    fn member_write_keeps_its_existing_identifier_kind() {
+        let source = include_str!("../../../../../fixtures/extraction/lua/basic/source.lua");
+        let (_, identifiers) = extract_all(source);
+        let target = source.find("self.size = self.size + step").unwrap() + "self.".len();
+        let rows = identifiers
+            .iter()
+            .filter(|identifier| {
+                identifier.start_byte as usize == target
+                    && identifier.end_byte as usize == target + "size".len()
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].kind, IdentifierKind::MemberAccess);
+        assert_eq!(variable_access_at(&identifiers, target), Some("write"));
+    }
+
+    #[test]
+    fn symbol_backed_lua_headers_do_not_emit_write_references() {
+        let basic_source = include_str!(
+            "../../../../../fixtures/extraction/lua/basic/source.lua"
+        )
+        .replace(
+            "return Worker",
+            "Account = Account or {}\nfunction Account:rebind()\n  Account = Account or {}\nend\nreturn Worker",
+        );
+        let (basic_symbols, basic_identifiers) = extract_all(&basic_source);
+
+        for (name, binding) in [
+            ("Account", "Account = { balance = 0 }"),
+            ("SpecialAccount", "SpecialAccount = Account:new()"),
+        ] {
+            let start = basic_source.find(binding).unwrap();
+            assert!(
+                basic_symbols
+                    .iter()
+                    .any(|symbol| symbol.name == name && symbol.kind == SymbolKind::Class)
+            );
+            assert!(basic_identifiers.iter().all(|identifier| {
+                identifier.kind != IdentifierKind::VariableRef
+                    || identifier.start_byte as usize != start
+            }));
+        }
+
+        let scopes_source =
+            include_str!("../../../../../fixtures/extraction/lua/scopes/source.lua").replace(
+                "local r = util.scale(a, b)",
+                "local mul = 0\n    mul = mul + 1\n    local r = util.scale(a, b)",
+            );
+
+        for (source, binding, name, file_path) in [
+            (
+                scopes_source.as_str(),
+                "M.mul = function",
+                "mul",
+                "scopes.lua",
+            ),
+            (
+                include_str!("../../../../../fixtures/extraction/lua/test_roles/test_source.lua"),
+                "ordinary.it = function",
+                "it",
+                "roles.lua",
+            ),
+        ] {
+            let start = source.find(binding).unwrap() + binding.find(name).unwrap();
+            let (symbols, identifiers) = extract_all(source);
+            assert!(
+                symbols
+                    .iter()
+                    .any(|symbol| symbol.name == name && symbol.kind == SymbolKind::Method)
+            );
+            assert!(
+                identifiers.iter().any(|identifier| {
+                    identifier.kind == IdentifierKind::MemberAccess
+                        && identifier.start_byte as usize == start
+                        && variable_access_at(&identifiers, start) == Some("write")
+                }),
+                "{file_path}: missing write on member declaration"
+            );
+            assert!(
+                identifiers.iter().all(|identifier| {
+                    identifier.kind != IdentifierKind::VariableRef
+                        || identifier.start_byte as usize != start
+                }),
+                "{file_path}: duplicate variable reference on method declaration"
+            );
+            if name == "mul" {
+                let rebind = source.find("mul = mul + 1").unwrap();
+                assert_eq!(variable_access_at(&identifiers, rebind), Some("write"));
+                assert_eq!(
+                    variable_access_at(&identifiers, rebind + "mul = ".len()),
+                    Some("read")
+                );
+            }
+        }
+
+        let rebinds = basic_source
+            .match_indices("Account = Account or {}")
+            .map(|(start, _)| start)
+            .collect::<Vec<_>>();
+        assert_eq!(rebinds.len(), 2);
+        for rebind in rebinds {
+            assert_eq!(
+                variable_access_at(&basic_identifiers, rebind),
+                Some("write"),
+                "rebind at byte {rebind}"
+            );
+            assert_eq!(
+                variable_access_at(&basic_identifiers, rebind + "Account = ".len()),
+                Some("read"),
+                "rebind RHS at byte {rebind}"
+            );
+        }
     }
 }

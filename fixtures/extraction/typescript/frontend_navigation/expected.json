@@ -705,6 +705,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "m"
       }
     },
@@ -743,6 +744,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "m"
       }
     },
@@ -760,7 +762,10 @@
       "end_byte": 795,
       "containing_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:AppRoutingModule:28:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:Routes:type_usage:8:14",
@@ -792,7 +797,10 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:routes:8:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:UsersComponent:variable_ref:9:30",
@@ -808,7 +816,10 @@
       "end_byte": 365,
       "containing_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:routes:8:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:done:variable_ref:34:8",
@@ -824,7 +835,10 @@
       "end_byte": 992,
       "containing_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:useSaveRedirect:30:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:forRoot:call:27:35",
@@ -860,7 +874,10 @@
       "end_byte": 460,
       "containing_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:loadChildren:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:m:variable_ref:21:71",
@@ -876,7 +893,10 @@
       "end_byte": 716,
       "containing_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:loadComponent:21:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:navigate:call:35:6",
@@ -931,7 +951,10 @@
       "end_byte": 1050,
       "containing_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:useSaveRedirect:30:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:routes:variable_ref:27:43",
@@ -947,7 +970,10 @@
       "end_byte": 810,
       "containing_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:AppRoutingModule:28:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:then:call:12:55",

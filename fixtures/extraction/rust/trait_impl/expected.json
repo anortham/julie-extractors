@@ -1008,7 +1008,10 @@
       "end_byte": 866,
       "containing_key": "fixtures/extraction/rust/trait_impl/source.rs:parse_job:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/trait_impl/source.rs:Formatter:type_usage:40:36",
@@ -1253,7 +1256,10 @@
       "end_byte": 747,
       "containing_key": "fixtures/extraction/rust/trait_impl/source.rs:fmt:40:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/trait_impl/source.rs:fmt:type_usage:39:10",
@@ -1319,6 +1325,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1378,6 +1385,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "self"
       }
     },
@@ -1395,7 +1403,10 @@
       "end_byte": 333,
       "containing_key": "fixtures/extraction/rust/trait_impl/source.rs:new:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/trait_impl/source.rs:run:call:41:29",
@@ -1430,7 +1441,10 @@
       "end_byte": 876,
       "containing_key": "fixtures/extraction/rust/trait_impl/source.rs:parse_job:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/trait_impl/source.rs:unwrap_or:call:47:38",

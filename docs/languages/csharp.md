@@ -382,3 +382,18 @@ limitation and no extractor defect was found in valid, preprocessor-free C#.
 
 The temporary checkouts and SQLite artifacts were removed after recording this
 evidence.
+
+## Variable access facts
+
+`variable_ref` and assignment-target `member_access` identifiers carry an
+optional `metadata.access`: `read`, `write`, or `read_write`. Plain assignments,
+initializers represented by a variable-reference row, pattern bindings,
+increments, and decrements are writes; compound assignments are read/write.
+An argument marked `ref` or `out` is a write. For `box.Value = next`,
+`customer?.Order = next`, or `Call(ref box.Value)`, the member is a write and
+the receiver (`box` or `customer`) is a read. Other classified occurrences,
+including call arguments, are reads. Declaration names already
+represented by symbols do not gain duplicate identifier rows. Calls and type
+usages have no access key. The pinned C# grammar does not represent a ref-return
+invocation as an lvalue: `RefAt(seed) = next` parses as a local declaration, so
+that source form has no assignment-target access fact.

@@ -1784,7 +1784,10 @@
       "end_byte": 748,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:config:variable_ref:33:14",
@@ -1800,7 +1803,10 @@
       "end_byte": 770,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:config:variable_ref:34:22",
@@ -1816,7 +1822,10 @@
       "end_byte": 800,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:expr:variable_ref:44:11",
@@ -1832,7 +1841,10 @@
       "end_byte": 973,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:trace:43:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:expr:variable_ref:47:25",
@@ -1848,7 +1860,10 @@
       "end_byte": 1011,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:log_it:47:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:fact:call:21:34",
@@ -1898,6 +1913,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Inv"
       }
     },
@@ -1917,6 +1933,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Application"
       }
     },
@@ -1936,6 +1953,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Repo"
       }
     },
@@ -2017,7 +2035,10 @@
       "end_byte": 599,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:total:25:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:log_it:call:44:4",
@@ -2051,6 +2072,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Entry"
       }
     },
@@ -2068,7 +2090,10 @@
       "end_byte": 519,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:fact:21:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:n:variable_ref:21:39",
@@ -2084,7 +2109,10 @@
       "end_byte": 528,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:fact:21:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:push:member_access:34:17",
@@ -2102,6 +2130,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Queue",
         "receiver_qualifier": "Mailer"
       }
@@ -2120,7 +2149,10 @@
       "end_byte": 1277,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:totals:64:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:seed:variable_ref:65:35",
@@ -2136,7 +2168,10 @@
       "end_byte": 1321,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:totals:64:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:setup:call:60:2",
@@ -2170,6 +2205,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Enum"
       }
     },
@@ -2205,6 +2241,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "__MODULE__"
       }
     },
@@ -2224,6 +2261,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "Accounts",
         "receiver_qualifier": "Fixture"
       }

@@ -1,7 +1,7 @@
 # Extracted Data Contract v4
 
-Extraction contract 4 pairs with [SQLite schema 7](sqlite-schema-v7.md).
-Schema 5/6 remain historical pairings.
+Extraction contract 4 pairs with [SQLite schema 8](sqlite-schema-v8.md).
+Schemas 5, 6, and 7 remain historical pairings.
 
 > **2026-08-18 retirement:** this product no longer writes workspace-global
 > reference resolution. Identifier `target_symbol_id` is not stored on the
@@ -44,6 +44,34 @@ an explicit null receiver suppresses both keys in the artifact.
 Attaching receiver metadata does not change identifier spans, reference-site
 identity, or relationship type facts. Embedded code is enriched against its own
 syntax tree before coordinates are mapped to the host file.
+
+## Variable access facts
+
+`identifiers.metadata_json.access` describes the written use of a variable,
+not data flow or a resolved binding. Its optional values are:
+
+| Value | Written syntax |
+| --- | --- |
+| `write` | Assignment target, initialized declaration identifier, destructuring or pattern binding, increment/decrement, or an explicit `out`, `ref`, or `&mut` argument. |
+| `read_write` | Compound assignment (including logical assignment), or a Swift `inout` argument. |
+| `read` | A classified occurrence that is neither of the above. |
+| absent | The extractor cannot classify this site. Absence never means `read`. |
+
+For `a.b = value`, the member identifier `b` is a write and the receiver `a`
+is a read. An indexed target reads its index and receiver; it does not assign
+to the variables used to compute them. `member_access` identifiers may carry
+the same key. `call` and `type_usage` identifiers never carry it.
+
+A declaration with a symbol row does not gain a duplicate identifier solely
+to record a write. Access facts enrich identifier occurrences, so symbol-only
+bindings remain represented by their symbols. Dynamic syntax without a clear
+access classification leaves the key absent. Embedded expressions are
+classified against their guest-language syntax before host coordinates are
+mapped. Existing metadata keys remain unchanged.
+
+This additive optional key keeps extraction contract v4 and SQLite schema v8.
+Per-language support and fixture evidence are recorded in
+`fixtures/extraction/capabilities.json` and `docs/languages/`.
 
 ## Unsupported files are recorded, not parsed
 

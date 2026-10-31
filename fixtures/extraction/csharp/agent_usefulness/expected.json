@@ -278,7 +278,10 @@
       "end_byte": 177,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:HandleHead:variable_ref:4:21",
@@ -294,7 +297,10 @@
       "end_byte": 211,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:HandleItems:variable_ref:2:52",
@@ -310,7 +316,10 @@
       "end_byte": 97,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:HandleOptions:variable_ref:5:27",
@@ -326,7 +335,10 @@
       "end_byte": 254,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:HandleUnknown:variable_ref:6:36",
@@ -342,7 +354,10 @@
       "end_byte": 306,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:Head:member_access:3:43",
@@ -360,6 +375,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "HttpMethods"
       }
     },
@@ -377,7 +393,10 @@
       "end_byte": 142,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:MapGroup:call:1:16",
@@ -539,7 +558,10 @@
       "end_byte": 15,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:app:variable_ref:3:0",
@@ -555,7 +577,10 @@
       "end_byte": 103,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:app:variable_ref:4:0",
@@ -571,7 +596,10 @@
       "end_byte": 183,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:app:variable_ref:5:0",
@@ -587,7 +615,10 @@
       "end_byte": 217,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:app:variable_ref:6:0",
@@ -603,7 +634,10 @@
       "end_byte": 260,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:group:variable_ref:2:0",
@@ -619,7 +653,10 @@
       "end_byte": 39,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:methods:variable_ref:6:27",
@@ -635,7 +672,10 @@
       "end_byte": 291,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

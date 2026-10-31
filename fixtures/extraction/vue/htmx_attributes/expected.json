@@ -77,7 +77,10 @@
       "end_byte": 254,
       "containing_key": "fixtures/extraction/vue/htmx_attributes/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

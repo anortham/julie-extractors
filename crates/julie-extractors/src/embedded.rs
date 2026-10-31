@@ -109,6 +109,10 @@ pub(crate) fn extract_expression(
         identifier.target_symbol_id = None;
         if reference_end == Some(identifier.end_byte) {
             identifier.kind = IdentifierKind::Call;
+            if let Some(mut metadata) = identifier.metadata.take() {
+                metadata.remove("access");
+                identifier.metadata = (!metadata.is_empty()).then_some(metadata);
+            }
         }
     }
     let mut literals = results.literals;

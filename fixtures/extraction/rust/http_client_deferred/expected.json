@@ -1248,7 +1248,10 @@
       "end_byte": 298,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherBuilder:type_usage:29:20",
@@ -1296,7 +1299,10 @@
       "end_byte": 1023,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherRequest:type_usage:28:5",
@@ -1328,7 +1334,10 @@
       "end_byte": 851,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:POST:type_usage:9:24",
@@ -1360,7 +1369,10 @@
       "end_byte": 707,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Request:variable_ref:8:12",
@@ -1376,7 +1388,10 @@
       "end_byte": 264,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Self:type_usage:36:29",
@@ -1734,7 +1749,10 @@
       "end_byte": 388,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:map:variable_ref:21:12",
@@ -1750,7 +1768,10 @@
       "end_byte": 788,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:method:call:9:9",
@@ -1785,7 +1806,10 @@
       "end_byte": 450,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:variable_ref:14:12",
@@ -1801,7 +1825,10 @@
       "end_byte": 513,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:variable_ref:20:12",
@@ -1817,7 +1844,10 @@
       "end_byte": 754,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:call:10:9",
@@ -1909,7 +1939,10 @@
       "end_byte": 726,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:url:variable_ref:20:22",
@@ -1925,7 +1958,10 @@
       "end_byte": 763,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

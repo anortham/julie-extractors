@@ -68,3 +68,8 @@ pseudo-versions, 9 `+incompatible` versions, and 308 distinct modules.
 
 A scan of `~/source/cobra` selected its `go.sum` as `gosum` with 12 facts and
 0 parse diagnostics.
+
+## Variable access facts
+
+Go checksum files list module versions and checksums, not variable
+assignments. The extractor does not claim identifiers.access for gosum.

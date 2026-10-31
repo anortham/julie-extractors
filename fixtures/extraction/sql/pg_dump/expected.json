@@ -1047,7 +1047,10 @@
       "end_byte": 1128,
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:touch:42:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:count:call:40:13",
@@ -1080,7 +1083,10 @@
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:recent_orders:30:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:id:member_access:48:40",
@@ -1097,7 +1103,10 @@
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:big_orders:48:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:id:member_access:48:68",
@@ -1114,7 +1123,10 @@
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:big_orders:48:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:invoices:type_usage:50:62",
@@ -1261,7 +1273,10 @@
       "end_byte": 905,
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:recent_orders:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:touch:call:46:96",

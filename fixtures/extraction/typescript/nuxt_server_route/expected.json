@@ -140,7 +140,10 @@
       "end_byte": 82,
       "containing_key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:getRouterParam:call:2:15",
@@ -175,7 +178,10 @@
       "end_byte": 106,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],

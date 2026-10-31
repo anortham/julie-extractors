@@ -567,7 +567,10 @@
       "end_byte": 532,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:before:call:11:8",
@@ -698,7 +701,10 @@
       "end_byte": 427,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:mocha:variable_ref:5:10",
@@ -714,7 +720,10 @@
       "end_byte": 104,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:setup:call:5:16",

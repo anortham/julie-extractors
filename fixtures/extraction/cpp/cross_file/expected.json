@@ -227,7 +227,10 @@
       "end_byte": 392,
       "containing_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

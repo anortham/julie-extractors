@@ -16,7 +16,7 @@ pub(super) fn extract_identifiers(
     let containing_symbols = base.containing_symbol_index(symbols);
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, symbols, 0);
 
     // Return the collected identifiers
     base.identifiers.clone()
@@ -27,6 +27,7 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -34,7 +35,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, containing_symbols);
+    extract_identifier_from_node(base, node, containing_symbols, symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -42,7 +43,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, symbols, child_depth);
     }
 }
 
@@ -51,6 +52,7 @@ fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    symbols: &[Symbol],
 ) {
     match node.kind() {
         // Function calls: calculate(), obj.method()
@@ -201,14 +203,21 @@ fn extract_identifier_from_node(
                             containing_symbol_id,
                         );
                     }
-                }
-                // `variable_ref` complement arm: a bare `identifier` used as a
-                // value or as a member-access receiver — the reads the Call/
-                // MemberAccess/TypeUsage arms do not own. Evaluated only when
-                // the TypeUsage guard above did not claim the node. See the
-                // LOCKED SEMANTIC CONTRACT doc comment in
-                // `csharp/identifiers.rs`.
-                else if is_zig_value_read_identifier(node, parent) {
+                } else if !is_zig_member_access_identifier(node, parent)
+                    && (is_zig_value_read_identifier(node, parent)
+                        || crate::base::variable_access::rules_for_language("zig").is_some_and(
+                            |rules| {
+                                !base.has_identifier_at_node(&node)
+                                    && crate::base::variable_access::should_emit_write_reference(
+                                        node,
+                                        &base.get_node_text(&node),
+                                        &base.content,
+                                        rules,
+                                        symbols,
+                                    )
+                            },
+                        ))
+                {
                     let name = base.get_node_text(&node);
                     // Rule 5: reuse the TypeUsage arm's builtin filter (also
                     // covers `undefined`/`null`); `_` is never a read.
@@ -228,6 +237,13 @@ fn extract_identifier_from_node(
 
         _ => {}
     }
+}
+
+fn is_zig_member_access_identifier(node: Node, parent: Node) -> bool {
+    parent.kind() == "field_expression"
+        && parent
+            .child_by_field_name("member")
+            .is_some_and(|member| member.id() == node.id())
 }
 
 /// Rule 1/4 predicate for Zig `variable_ref` emission: is this bare

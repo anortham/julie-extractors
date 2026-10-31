@@ -4320,7 +4320,10 @@
       "end_byte": 3273,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:PropertyDecorator:type_usage:152:18",
@@ -4491,7 +4494,10 @@
       "end_byte": 1468,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:app:variable_ref:91:0",
@@ -4507,7 +4513,10 @@
       "end_byte": 1656,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:area:call:14:33",
@@ -4544,7 +4553,10 @@
       "end_byte": 1011,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:delete:call:100:3",
@@ -4617,7 +4629,10 @@
       "end_byte": 1744,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:routes:93:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:express:variable_ref:96:14",
@@ -4633,7 +4648,10 @@
       "end_byte": 1828,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:items:96:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:fastify:call:102:22",
@@ -4828,7 +4846,10 @@
       "end_byte": 3266,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:id:variable_ref:45:15",
@@ -4844,7 +4865,10 @@
       "end_byte": 907,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:id:variable_ref:46:18",
@@ -4860,7 +4884,10 @@
       "end_byte": 930,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:id:variable_ref:49:15",
@@ -4876,7 +4903,10 @@
       "end_byte": 1019,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:info:call:49:10",
@@ -4912,7 +4942,10 @@
       "end_byte": 1844,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:json:call:91:39",
@@ -4990,6 +5023,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -5026,7 +5060,10 @@
       "end_byte": 2983,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:#secret:162:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:load:call:80:7",
@@ -5062,7 +5099,10 @@
       "end_byte": 1512,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:logger:member_access:47:9",
@@ -5080,6 +5120,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -5099,6 +5140,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "access": "read",
         "receiver": "this"
       }
     },
@@ -5116,7 +5158,10 @@
       "end_byte": 1495,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:res:variable_ref:100:25",
@@ -5132,7 +5177,10 @@
       "end_byte": 1925,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:res:variable_ref:91:35",
@@ -5148,7 +5196,10 @@
       "end_byte": 1691,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:res:variable_ref:94:36",
@@ -5164,7 +5215,10 @@
       "end_byte": 1794,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:res:variable_ref:99:22",
@@ -5180,7 +5234,10 @@
       "end_byte": 1887,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:retries:variable_ref:79:16",
@@ -5196,7 +5253,10 @@
       "end_byte": 1486,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:retries:variable_ref:82:16",
@@ -5212,7 +5272,10 @@
       "end_byte": 1549,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:route:call:98:3",
@@ -5248,7 +5311,10 @@
       "end_byte": 1761,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:sendStatus:call:100:29",
@@ -5284,7 +5350,10 @@
       "end_byte": 2000,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:shapes:variable_ref:182:12",
@@ -5300,7 +5369,10 @@
       "end_byte": 3336,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:submit:call:163:22",
@@ -5337,7 +5409,10 @@
       "end_byte": 1451,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:token:call:162:19",
@@ -5394,7 +5469,10 @@
       "end_byte": 2366,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:parse:115:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:value:variable_ref:73:34",
@@ -5410,7 +5488,10 @@
       "end_byte": 1316,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:double:73:15",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:warn:call:47:16",

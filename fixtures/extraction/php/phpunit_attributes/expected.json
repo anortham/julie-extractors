@@ -608,7 +608,10 @@
       "end_byte": 473,
       "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:a:variable_ref:31:25",
@@ -624,7 +627,10 @@
       "end_byte": 619,
       "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:assertSame:call:23:14",
@@ -700,7 +706,10 @@
       "end_byte": 477,
       "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:b:variable_ref:31:29",
@@ -716,7 +725,10 @@
       "end_byte": 623,
       "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

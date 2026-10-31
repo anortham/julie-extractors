@@ -446,7 +446,10 @@
       "end_byte": 327,
       "containing_key": "fixtures/extraction/xml/ant/build.xml:compile:8:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/xml/ant/build.xml:test:call:5:40",

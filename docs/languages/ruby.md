@@ -343,3 +343,7 @@ character becomes that character, and so does a Unicode or hex escape of a
 printable character. `\n`, `\t`, and other control escapes stay as written, so a
 name stays on one line. In a single-quoted label only `\'` and `\\` are escapes.
 An interpolation is `{}`.
+
+## Variable access facts
+
+Variable-reference and member-access identifiers carry metadata_json.access as read, write, or read_write when the syntax is classified. Plain and compound assignment targets, for/in bindings, and block parameters are covered. Setter member accesses can be writes; their receiver and element/index expressions remain reads. Bindings already represented by symbols do not get duplicate identifiers.

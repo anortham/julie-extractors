@@ -729,7 +729,10 @@
       "end_byte": 307,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:variable_ref:7:22",
@@ -745,7 +748,10 @@
       "end_byte": 181,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:variable_ref:8:29",
@@ -761,7 +767,10 @@
       "end_byte": 223,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:IResult:type_usage:17:7",
@@ -1034,7 +1043,10 @@
       "end_byte": 466,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:Results:variable_ref:18:37",
@@ -1050,7 +1062,10 @@
       "end_byte": 517,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:WebApplication:variable_ref:3:14",
@@ -1066,7 +1081,10 @@
       "end_byte": 65,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:admin:variable_ref:11:0",
@@ -1082,7 +1100,10 @@
       "end_byte": 279,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:app:variable_ref:10:12",
@@ -1098,7 +1119,10 @@
       "end_byte": 242,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:app:variable_ref:14:0",
@@ -1114,7 +1138,10 @@
       "end_byte": 345,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:app:variable_ref:15:0",
@@ -1130,7 +1157,10 @@
       "end_byte": 385,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:app:variable_ref:6:0",
@@ -1146,7 +1176,10 @@
       "end_byte": 118,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:app:variable_ref:7:0",
@@ -1162,7 +1195,10 @@
       "end_byte": 152,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:app:variable_ref:8:0",
@@ -1178,7 +1214,10 @@
       "end_byte": 187,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:args:variable_ref:3:43",
@@ -1194,7 +1233,10 @@
       "end_byte": 84,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:builder:variable_ref:4:10",
@@ -1210,7 +1252,10 @@
       "end_byte": 104,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:dynamicRoute:variable_ref:14:11",
@@ -1226,7 +1271,10 @@
       "end_byte": 365,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:id:variable_ref:15:24",
@@ -1242,7 +1290,10 @@
       "end_byte": 408,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [

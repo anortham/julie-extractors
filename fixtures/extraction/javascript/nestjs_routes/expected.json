@@ -449,7 +449,10 @@
       "end_byte": 334,
       "containing_key": "fixtures/extraction/javascript/nestjs_routes/source.js:dynamic:21:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     }
   ],
   "types": [],
