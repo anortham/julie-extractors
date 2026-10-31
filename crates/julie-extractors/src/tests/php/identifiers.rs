@@ -512,7 +512,7 @@ fn test_php_variable_access_facts() {
     let code = r#"<?php
 $global_plain = 0;
 $global_plain = 1;
-class Holder { public $value; }
+class Holder { public $value; public $count; }
 function consume($value) {}
 function writes($initial, $box, $argument, $records) {
     $initialized = $initial;
@@ -521,6 +521,15 @@ function writes($initial, $box, $argument, $records) {
     $compound = 0;
     $compound += $initial;
     $box->value = $initial;
+    $box->count++;
+    $box->count--;
+    $items = [0];
+    $index = 0;
+    $items[$index]++;
+    $items[$index]--;
+    $counter = 0;
+    $counter++;
+    $counter--;
     consume($argument);
     foreach ($records as &$captured) {
         consume($captured);
@@ -529,6 +538,7 @@ function writes($initial, $box, $argument, $records) {
 "#;
     let mut parser = init_test_parser();
     let tree = parser.parse(code, None).unwrap();
+    assert!(!tree.root_node().has_error());
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = PhpExtractor::new(
         "php".to_string(),
@@ -565,9 +575,21 @@ function writes($initial, $box, $argument, $records) {
     let member = code.find("$box->value").unwrap() + "$box->".len();
     let argument = code.find("consume($argument)").unwrap() + "consume(".len();
     let binding = code.find("$captured)").unwrap();
+    let member_increment = code.find("$box->count++").unwrap();
+    let member_decrement = code.find("$box->count--").unwrap();
+    let indexed_increment = code.find("$items[$index]++").unwrap();
+    let indexed_decrement = code.find("$items[$index]--").unwrap();
+    let scalar_increment = code.find("$counter++").unwrap();
+    let scalar_decrement = code.find("$counter--").unwrap();
+    let items_declaration = code.find("$items = [0]").unwrap();
+    let index_declaration = code.find("$index = 0").unwrap();
+    let counter_declaration = code.find("$counter = 0").unwrap();
     assert!(!has_variable_ref_at(initialized_target));
     assert!(!has_variable_ref_at(plain_declaration));
     assert!(!has_variable_ref_at(global_declaration));
+    assert!(!has_variable_ref_at(items_declaration));
+    assert!(!has_variable_ref_at(index_declaration));
+    assert!(!has_variable_ref_at(counter_declaration));
     assert_eq!(
         access("global_plain", IdentifierKind::VariableRef, global_write),
         Some("write")
@@ -603,6 +625,47 @@ function writes($initial, $box, $argument, $records) {
         access("argument", IdentifierKind::VariableRef, argument),
         Some("read")
     );
+    for start in [member_increment, member_decrement] {
+        assert_eq!(
+            access(
+                "count",
+                IdentifierKind::MemberAccess,
+                start + "$box->".len()
+            ),
+            Some("write")
+        );
+        assert_eq!(
+            access("box", IdentifierKind::VariableRef, start),
+            Some("read")
+        );
+        assert_eq!(
+            identifiers
+                .iter()
+                .filter(|identifier| { identifier.start_byte == (start + "$box->".len()) as u32 })
+                .count(),
+            1
+        );
+    }
+    for start in [indexed_increment, indexed_decrement] {
+        assert_eq!(
+            access("items", IdentifierKind::VariableRef, start),
+            Some("read")
+        );
+        assert_eq!(
+            access(
+                "index",
+                IdentifierKind::VariableRef,
+                start + "$items[".len()
+            ),
+            Some("read")
+        );
+    }
+    for start in [scalar_increment, scalar_decrement] {
+        assert_eq!(
+            access("counter", IdentifierKind::VariableRef, start),
+            Some("write")
+        );
+    }
     let call_start = code.find("consume($argument)").unwrap();
     let call = identifiers
         .iter()

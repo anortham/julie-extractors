@@ -1,4 +1,7 @@
-use super::{Access, AssignmentRule, ChildSelector, ContextRule, FieldRule, VariableAccessRules};
+use super::{
+    Access, AssignmentRule, ChildSelector, ContextRule, FieldRule, UnclassifiedRule,
+    VariableAccessRules,
+};
 
 const fn field(name: &'static str) -> ChildSelector {
     ChildSelector {
@@ -31,6 +34,26 @@ const fn assignment(
     AssignmentRule {
         parent_kind,
         required_parent_kind: None,
+        required_child: None,
+        target,
+        operator,
+        write_operators,
+        read_write_operators,
+    }
+}
+
+const fn assignment_requiring_child(
+    parent_kind: &'static str,
+    target: ChildSelector,
+    operator: Option<ChildSelector>,
+    write_operators: &'static [&'static str],
+    read_write_operators: &'static [&'static str],
+    required_child: ChildSelector,
+) -> AssignmentRule {
+    AssignmentRule {
+        parent_kind,
+        required_parent_kind: None,
+        required_child: Some(required_child),
         target,
         operator,
         write_operators,
@@ -65,7 +88,7 @@ const fn required_context(
 
 const PYTHON_RULES: VariableAccessRules = VariableAccessRules {
     assignments: &[
-        assignment("assignment", field("left"), None, &[], &[]),
+        assignment_requiring_child("assignment", field("left"), None, &[], &[], field("right")),
         assignment(
             "augmented_assignment",
             field("left"),
@@ -103,7 +126,12 @@ const PYTHON_RULES: VariableAccessRules = VariableAccessRules {
         },
     ],
     read_overrides: &[context("subscript", whole(), Access::Read)],
-    unclassified: &[],
+    unclassified: &[UnclassifiedRule {
+        parent_kind: "assignment",
+        child: field("left"),
+        predicate: Some(python_annotation_only_target),
+        required_child: None,
+    }],
 };
 
 const RUST_RULES: VariableAccessRules = VariableAccessRules {
@@ -145,7 +173,17 @@ const RUST_RULES: VariableAccessRules = VariableAccessRules {
         parent_kind: "field_expression",
         child: field("value"),
     }],
-    read_overrides: &[context("index_expression", whole(), Access::Read)],
+    read_overrides: &[
+        context("index_expression", whole(), Access::Read),
+        ContextRule {
+            parent_kind: "unary_expression",
+            child: whole(),
+            access: Access::Read,
+            predicate: None,
+            required_child: Some(kind("*")),
+        },
+        context("match_pattern", field("condition"), Access::Read),
+    ],
     unclassified: &[],
 };
 
@@ -171,8 +209,8 @@ const GO_RULES: VariableAccessRules = VariableAccessRules {
     declarations: &[],
     patterns: &[context("range_clause", field("left"), Access::Write)],
     increments: &[
-        context("inc_statement", kind("identifier"), Access::Write),
-        context("dec_statement", kind("identifier"), Access::Write),
+        context("inc_statement", whole(), Access::Write),
+        context("dec_statement", whole(), Access::Write),
     ],
     by_reference: &[],
     receivers: &[
@@ -192,6 +230,13 @@ const GO_RULES: VariableAccessRules = VariableAccessRules {
     read_overrides: &[
         context("index_expression", whole(), Access::Read),
         context("slice_expression", whole(), Access::Read),
+        ContextRule {
+            parent_kind: "unary_expression",
+            child: field("operand"),
+            access: Access::Read,
+            predicate: None,
+            required_child: Some(kind("*")),
+        },
     ],
     unclassified: &[],
 };
@@ -293,7 +338,7 @@ const PHP_RULES: VariableAccessRules = VariableAccessRules {
     ],
     increments: &[context(
         "update_expression",
-        kind("variable_name"),
+        field("argument"),
         Access::Write,
     )],
     by_reference: &[required_context(
@@ -412,6 +457,37 @@ fn rust_pattern_binding(
         return false;
     }
     true
+}
+
+fn python_annotation_only_target(
+    node: tree_sitter::Node<'_>,
+    parent: tree_sitter::Node<'_>,
+    _source: &str,
+) -> bool {
+    if parent.child_by_field_name("right").is_some() || node.kind() != "identifier" {
+        return false;
+    }
+    let Some(left) = parent.child_by_field_name("left") else {
+        return false;
+    };
+    if left.id() == node.id() {
+        return true;
+    }
+
+    let mut target = left;
+    while matches!(target.kind(), "tuple_pattern" | "list_pattern" | "pattern")
+        && target.named_child_count() == 1
+    {
+        let Some(child) = target.named_child(0) else {
+            break;
+        };
+        target = child;
+    }
+    target.id() == node.id()
+        || (target.kind() == "attribute"
+            && target
+                .child_by_field_name("attribute")
+                .is_some_and(|attribute| attribute.id() == node.id()))
 }
 
 pub(super) fn rules(language: &str) -> Option<&'static VariableAccessRules> {

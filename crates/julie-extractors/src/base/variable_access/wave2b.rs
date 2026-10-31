@@ -21,6 +21,7 @@ const BASH_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_assignment",
         required_parent_kind: None,
+        required_child: None,
         target: field("name"),
         operator: Some(kind("=")),
         write_operators: &["="],
@@ -29,6 +30,7 @@ const BASH_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_assignment",
         required_parent_kind: None,
+        required_child: None,
         target: field("name"),
         operator: Some(kind("+=")),
         write_operators: &["+="],
@@ -37,6 +39,7 @@ const BASH_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "binary_expression",
         required_parent_kind: Some("arithmetic_expansion"),
+        required_child: None,
         target: field("left"),
         operator: Some(field("operator")),
         write_operators: &[
@@ -49,6 +52,7 @@ const BASH_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "binary_expression",
         required_parent_kind: Some("compound_statement"),
+        required_child: None,
         target: field("left"),
         operator: Some(field("operator")),
         write_operators: &[
@@ -61,6 +65,7 @@ const BASH_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "binary_expression",
         required_parent_kind: Some("c_style_for_statement"),
+        required_child: None,
         target: field("left"),
         operator: Some(field("operator")),
         write_operators: &[
@@ -181,6 +186,7 @@ const BASH_RULES: VariableAccessRules = VariableAccessRules {
 const POWERSHELL_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
     parent_kind: "assignment_expression",
     required_parent_kind: None,
+    required_child: None,
     target: ChildSelector {
         field: None,
         kind: Some("left_assignment_expression"),
@@ -306,6 +312,7 @@ const GDSCRIPT_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "assignment",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("left"),
             kind: None,
@@ -317,6 +324,7 @@ const GDSCRIPT_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "augmented_assignment",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("left"),
             kind: None,
@@ -398,6 +406,7 @@ const R_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "binary_operator",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("lhs"),
             kind: None,
@@ -412,6 +421,7 @@ const R_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "binary_operator",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("rhs"),
             kind: None,
@@ -426,6 +436,7 @@ const R_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "binary_operator",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("lhs"),
             kind: None,
@@ -519,6 +530,7 @@ const SQL_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "assignment",
         required_parent_kind: None,
+        required_child: None,
         target: field("left"),
         operator: None,
         write_operators: &[],
@@ -527,6 +539,7 @@ const SQL_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "set_statement",
         required_parent_kind: None,
+        required_child: None,
         target: kind("object_reference"),
         operator: Some(kind("=")),
         write_operators: &["="],

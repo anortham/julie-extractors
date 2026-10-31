@@ -62,6 +62,11 @@ is a read. An indexed target reads its index and receiver; it does not assign
 to the variables used to compute them. `member_access` identifiers may carry
 the same key. `call` and `type_usage` identifiers never carry it.
 
+A dereference target reads the pointer or reference used to locate it.
+Array bounds and match guards are reads except where they contain their own
+write expressions. An annotation-only declaration without an initializer
+does not write a value.
+
 A declaration with a symbol row does not gain a duplicate identifier solely
 to record a write. Access facts enrich identifier occurrences, so symbol-only
 bindings remain represented by their symbols. Dynamic syntax without a clear

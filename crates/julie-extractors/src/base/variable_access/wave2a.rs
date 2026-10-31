@@ -26,6 +26,7 @@ const SCALA_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "assignment_expression",
         required_parent_kind: None,
+        required_child: None,
         target: field("left"),
         operator: None,
         write_operators: &[],
@@ -34,6 +35,7 @@ const SCALA_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "infix_expression",
         required_parent_kind: None,
+        required_child: None,
         target: field("left"),
         operator: Some(field("operator")),
         write_operators: SCALA_COMPOUND_OPERATORS,
@@ -102,6 +104,7 @@ const VBNET_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "assignment_statement",
         required_parent_kind: None,
+        required_child: None,
         target: field("left"),
         operator: None,
         write_operators: &[],
@@ -110,6 +113,7 @@ const VBNET_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "compound_assignment_statement",
         required_parent_kind: None,
+        required_child: None,
         target: field("left"),
         operator: Some(field("operator")),
         write_operators: VB_COMPOUND_OPERATORS,
@@ -118,6 +122,7 @@ const VBNET_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "binary_expression",
         required_parent_kind: Some("call_statement"),
+        required_child: None,
         target: field("left"),
         operator: Some(field("operator")),
         write_operators: &["="],
@@ -179,6 +184,7 @@ const DART_COMPOUND_OPERATORS: &[&str] = &[
 const DART_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
     parent_kind: "assignment_expression",
     required_parent_kind: None,
+    required_child: None,
     target: field("left"),
     operator: Some(field("operator")),
     write_operators: &[
@@ -297,6 +303,7 @@ const FSHARP_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "mutate_expression",
         required_parent_kind: None,
+        required_child: None,
         target: kind("long_identifier_or_op"),
         operator: None,
         write_operators: &[],
@@ -305,6 +312,7 @@ const FSHARP_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "mutate_expression",
         required_parent_kind: None,
+        required_child: None,
         target: kind("dot_expression"),
         operator: None,
         write_operators: &[],
@@ -357,6 +365,7 @@ const ERLANG_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "match_expr",
         required_parent_kind: None,
+        required_child: None,
         target: field("lhs"),
         operator: None,
         write_operators: &[],
@@ -365,6 +374,7 @@ const ERLANG_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "cond_match_expr",
         required_parent_kind: None,
+        required_child: None,
         target: field("lhs"),
         operator: None,
         write_operators: &[],
@@ -373,6 +383,7 @@ const ERLANG_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "generator",
         required_parent_kind: None,
+        required_child: None,
         target: field("lhs"),
         operator: None,
         write_operators: &[],
@@ -381,6 +392,7 @@ const ERLANG_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "b_generator",
         required_parent_kind: None,
+        required_child: None,
         target: field("lhs"),
         operator: None,
         write_operators: &[],
@@ -389,6 +401,7 @@ const ERLANG_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "map_generator",
         required_parent_kind: None,
+        required_child: None,
         target: field("lhs"),
         operator: None,
         write_operators: &[],
@@ -420,6 +433,7 @@ const ELIXIR_ASSIGNMENT_OPERATORS: &[&str] = &["=", "<-"];
 const ELIXIR_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
     parent_kind: "binary_operator",
     required_parent_kind: None,
+    required_child: None,
     target: field("left"),
     operator: Some(field("operator")),
     write_operators: ELIXIR_ASSIGNMENT_OPERATORS,
@@ -470,6 +484,7 @@ const ELIXIR_RULES: VariableAccessRules = VariableAccessRules {
 const LUA_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
     parent_kind: "assignment_statement",
     required_parent_kind: None,
+    required_child: None,
     target: kind("variable_list"),
     operator: Some(field("operator")),
     write_operators: &["="],
@@ -536,6 +551,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("=")),
         write_operators: &["="],
@@ -544,6 +560,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("%=")),
         write_operators: &["%="],
@@ -552,6 +569,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("&=")),
         write_operators: &["&="],
@@ -560,6 +578,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("*=")),
         write_operators: &["*="],
@@ -568,6 +587,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("*%=")),
         write_operators: &["*%="],
@@ -576,6 +596,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("*|=")),
         write_operators: &["*|="],
@@ -584,6 +605,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("+=")),
         write_operators: &["+="],
@@ -592,6 +614,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("+%=")),
         write_operators: &["+%="],
@@ -600,6 +623,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("+|=")),
         write_operators: &["+|="],
@@ -608,6 +632,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("-=")),
         write_operators: &["-="],
@@ -616,6 +641,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("-%=")),
         write_operators: &["-%="],
@@ -624,6 +650,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("-|=")),
         write_operators: &["-|="],
@@ -632,6 +659,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("/=")),
         write_operators: &["/="],
@@ -640,6 +668,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("<<=")),
         write_operators: &["<<="],
@@ -648,6 +677,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("<<|=")),
         write_operators: &["<<|="],
@@ -656,6 +686,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind(">>=")),
         write_operators: &[">>="],
@@ -664,6 +695,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("^=")),
         write_operators: &["^="],
@@ -672,6 +704,7 @@ const ZIG_VARIABLE_DECLARATION_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "variable_declaration",
         required_parent_kind: None,
+        required_child: None,
         target: kind("identifier"),
         operator: Some(kind("|=")),
         write_operators: &["|="],
@@ -684,6 +717,7 @@ macro_rules! zig_member_assignment {
         AssignmentRule {
             parent_kind: "variable_declaration",
             required_parent_kind: None,
+            required_child: None,
             target: kind("field_expression"),
             operator: Some(kind($operator)),
             write_operators: &[$operator],
@@ -716,6 +750,7 @@ const ZIG_MEMBER_ASSIGNMENTS: &[AssignmentRule] = &[
 const ZIG_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
     parent_kind: "assignment_expression",
     required_parent_kind: None,
+    required_child: None,
     target: field("left"),
     operator: Some(field("operator")),
     write_operators: &[

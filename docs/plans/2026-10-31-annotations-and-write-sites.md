@@ -128,12 +128,12 @@ workers share this worktree with separate file ownership; the lead owns commits.
 - [x] Release binary and code-kb dogfood copy.
 - [ ] User approval for push and release.
 
-All required gates passed. The default suite took 76 seconds. Compatibility
+All required gates passed. The default suite took 46 seconds. Compatibility
 against 3.10.0 produced the declared `compatible` notice. The strict quality
 report has zero silent cells and zero quality-bar debts.
 
 The final row audit preserves existing identifier kinds and non-access facts.
-It covers 274 changed existing fixtures, 14 new fixtures, and 3,692 access rows.
+It covers 274 changed existing fixtures, 14 new fixtures, and 3,750 access rows.
 Review regressions cover duplicate member/call ownership, C# conditional
 receivers, Swift discards, Erlang record labels, QML Behavior references, and
 Vue call promotion. The GDScript receiver integration test now selects the
@@ -141,3 +141,9 @@ intended member kind while separately asserting its new unqualified write.
 
 Storage measurements and binary provenance are recorded in
 [release evidence](../release-evidence/v3.11.0-access-facts.md).
+
+The requested Claude review of `44cd0e92..24203206` found four issues, all
+reproduced and fixed. A separate lead probe found pointer-operand
+misclassification, also fixed. Focused regressions and the final CLI/SQLite
+probe confirm all five corrections; the 16 CLI checks failed before and pass
+after the fixes. See [the review record](../release-evidence/v3.11.0-claude-review.md).

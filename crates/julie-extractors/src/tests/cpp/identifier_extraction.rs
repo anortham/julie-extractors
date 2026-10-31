@@ -640,4 +640,74 @@ int run(Box *box, int seed, int *values) {
         let type_start = code.find("Box *box").unwrap() as u32;
         assert_eq!(access(type_start, "Box", IdentifierKind::TypeUsage), None);
     }
+
+    #[test]
+    fn test_cpp_array_bounds_are_reads_inside_initialized_declarations() {
+        let code = r#"
+constexpr int kSize = 3;
+constexpr int size_for(int value) { return value; }
+int run(int seed) {
+    int arr[kSize] = {seed};
+    int matrix[size_for(kSize)][kSize] = {};
+    int direct = seed;
+    direct = seed;
+    return arr[0] + matrix[0][0] + direct;
+}
+"#;
+        let mut parser = init_test_parser();
+        let tree = parser.parse(code, None).unwrap();
+        assert!(!tree.root_node().has_error());
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor =
+            CppExtractor::new("test.cpp".to_string(), code.to_string(), &workspace_root);
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let access = |start: u32, name: &str, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|id| id.start_byte == start && id.name == name && id.kind == kind)
+                .and_then(|id| id.metadata.as_ref()?.get("access")?.as_str())
+        };
+        let arr_start = code.find("arr[kSize]").unwrap() as u32;
+        let first_size_start = arr_start + "arr[".len() as u32;
+        let initializer_start = code.find("{seed}").unwrap() as u32 + 1;
+        let size_call_start = code.find("size_for(kSize)").unwrap() as u32;
+        let size_argument_start = size_call_start + "size_for(".len() as u32;
+        let second_size_start = code.find("][kSize]").unwrap() as u32 + 2;
+        let direct_write_start = code.rfind("direct = seed").unwrap() as u32;
+        assert_eq!(
+            access(first_size_start, "kSize", IdentifierKind::VariableRef),
+            Some("read")
+        );
+        assert_eq!(
+            access(initializer_start, "seed", IdentifierKind::VariableRef),
+            Some("read")
+        );
+        assert_eq!(
+            access(size_argument_start, "kSize", IdentifierKind::VariableRef),
+            Some("read")
+        );
+        assert_eq!(
+            access(second_size_start, "kSize", IdentifierKind::VariableRef),
+            Some("read")
+        );
+        assert_eq!(
+            access(direct_write_start, "direct", IdentifierKind::VariableRef),
+            Some("write")
+        );
+        assert!(identifiers.iter().any(|id| {
+            id.start_byte == size_call_start
+                && id.name == "size_for"
+                && id.kind == IdentifierKind::Call
+        }));
+        assert!(!identifiers.iter().any(|id| {
+            id.start_byte == arr_start && id.name == "arr" && id.kind == IdentifierKind::VariableRef
+        }));
+        let matrix_start = code.find("matrix[").unwrap() as u32;
+        assert!(!identifiers.iter().any(|id| {
+            id.start_byte == matrix_start
+                && id.name == "matrix"
+                && id.kind == IdentifierKind::VariableRef
+        }));
+    }
 }

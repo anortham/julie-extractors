@@ -1,5 +1,5 @@
 package main
-type Holder struct { value int }
+type Holder struct { value int; count int }
 func consume(int) {}
 func writes(initial int, holder Holder, argument int, records []int) {
  initialized := initial
@@ -10,4 +10,16 @@ func writes(initial int, holder Holder, argument int, records []int) {
  counter := 0; counter++
  consume(argument)
     for captured := range records { consume(captured) }
+}
+func update(ptr *int, other *int, box *Holder) {
+ ptr = other
+ *ptr = 1
+ *ptr += 1
+ (*box).count = 2
+ box.count++
+ box.count--
+ items := []int{0}
+ index := 0
+ items[index]++
+ items[index]--
 }

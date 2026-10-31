@@ -54,6 +54,7 @@ pub(crate) type ContextPredicate =
 pub(crate) struct AssignmentRule {
     pub(crate) parent_kind: &'static str,
     pub(crate) required_parent_kind: Option<&'static str>,
+    pub(crate) required_child: Option<ChildSelector>,
     pub(crate) target: ChildSelector,
     pub(crate) operator: Option<ChildSelector>,
     pub(crate) write_operators: &'static [&'static str],
@@ -362,6 +363,9 @@ fn matching_assignment(
         if parent.kind() != rule.parent_kind
             || !selected_first_descendant(parent, rule.target, node)
             || rule
+                .required_child
+                .is_some_and(|selector| selected_child(parent, selector).is_none())
+            || rule
                 .required_parent_kind
                 .is_some_and(|kind| parent.parent().is_none_or(|value| value.kind() != kind))
         {
@@ -489,6 +493,7 @@ mod tests {
         assignments: &[AssignmentRule {
             parent_kind: "assignment_expression",
             required_parent_kind: None,
+            required_child: None,
             target: ChildSelector {
                 field: Some("left"),
                 kind: None,
@@ -586,6 +591,80 @@ mod tests {
     }
 
     #[test]
+    fn python_assignment_rules_require_an_initializer() {
+        let source = "value: int\nvalue = 1\n";
+        let tree = parse_python(source);
+        let mut assignments = Vec::new();
+        nodes_of_kind(tree.root_node(), "assignment", &mut assignments);
+        let annotated = assignments
+            .iter()
+            .copied()
+            .find(|assignment| assignment.child_by_field_name("type").is_some())
+            .expect("annotation-only assignment");
+        let initialized = assignments
+            .iter()
+            .copied()
+            .find(|assignment| assignment.child_by_field_name("right").is_some())
+            .expect("initialized assignment");
+        let annotated_target = annotated.child_by_field_name("left").expect("target");
+        let initialized_target = initialized.child_by_field_name("left").expect("target");
+        let rules = VariableAccessRules {
+            assignments: &[AssignmentRule {
+                parent_kind: "assignment",
+                required_parent_kind: None,
+                required_child: Some(ChildSelector {
+                    field: Some("right"),
+                    kind: None,
+                }),
+                target: ChildSelector {
+                    field: Some("left"),
+                    kind: None,
+                },
+                operator: None,
+                write_operators: &[],
+                read_write_operators: &[],
+            }],
+            ..C_RULES
+        };
+
+        assert_eq!(
+            classify(annotated_target, source, &rules),
+            Some(Access::Read)
+        );
+        assert!(!is_assignment_or_increment_target(
+            annotated_target,
+            source,
+            &rules
+        ));
+        assert!(matching_write_context(annotated_target, source, &rules).is_none());
+        assert!(!should_emit_write_reference(
+            annotated_target,
+            "value",
+            source,
+            &rules,
+            &[],
+        ));
+
+        assert_eq!(
+            classify(initialized_target, source, &rules),
+            Some(Access::Write)
+        );
+        assert!(is_assignment_or_increment_target(
+            initialized_target,
+            source,
+            &rules
+        ));
+        assert!(matching_write_context(initialized_target, source, &rules).is_some());
+        assert!(should_emit_write_reference(
+            initialized_target,
+            "value",
+            source,
+            &rules,
+            &[],
+        ));
+    }
+
+    #[test]
     fn fieldless_assignment_target_uses_the_first_matching_child() {
         let source = "int f(int x, int y) { x = y; }";
         let tree = parse_c(source);
@@ -601,6 +680,7 @@ mod tests {
             assignments: &[AssignmentRule {
                 parent_kind: "assignment_expression",
                 required_parent_kind: None,
+                required_child: None,
                 target: ChildSelector {
                     field: None,
                     kind: Some("identifier"),
@@ -978,6 +1058,7 @@ mod tests {
             assignments: &[AssignmentRule {
                 parent_kind: "match_arm",
                 required_parent_kind: None,
+                required_child: None,
                 target: ChildSelector {
                     field: Some("pattern"),
                     kind: None,
@@ -1017,6 +1098,7 @@ mod tests {
             assignments: &[AssignmentRule {
                 parent_kind: "init_declarator",
                 required_parent_kind: None,
+                required_child: None,
                 target: ChildSelector {
                     field: Some("declarator"),
                     kind: None,

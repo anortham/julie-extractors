@@ -20,6 +20,7 @@ const CPP_COMPOUND_OPERATORS: &[&str] = &[
 const JAVA_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
     parent_kind: "assignment_expression",
     required_parent_kind: None,
+    required_child: None,
     target: ChildSelector {
         field: Some("left"),
         kind: None,
@@ -35,6 +36,7 @@ const JAVA_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
 const KOTLIN_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
     parent_kind: "assignment",
     required_parent_kind: None,
+    required_child: None,
     target: ChildSelector {
         field: Some("left"),
         kind: None,
@@ -50,6 +52,7 @@ const KOTLIN_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
 const CSHARP_ASSIGNMENTS: &[AssignmentRule] = &[AssignmentRule {
     parent_kind: "assignment_expression",
     required_parent_kind: None,
+    required_child: None,
     target: ChildSelector {
         field: Some("left"),
         kind: None,
@@ -66,6 +69,7 @@ const C_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "assignment_expression",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("left"),
             kind: None,
@@ -80,6 +84,7 @@ const C_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "initializer_pair",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("designator"),
             kind: None,
@@ -94,6 +99,7 @@ const CPP_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "assignment_expression",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("left"),
             kind: None,
@@ -108,6 +114,7 @@ const CPP_ASSIGNMENTS: &[AssignmentRule] = &[
     AssignmentRule {
         parent_kind: "initializer_pair",
         required_parent_kind: None,
+        required_child: None,
         target: ChildSelector {
             field: Some("designator"),
             kind: None,
@@ -639,16 +646,31 @@ const KOTLIN_READ_OVERRIDES: &[ContextRule] = &[
     },
 ];
 
-const CSHARP_READ_OVERRIDES: &[ContextRule] = &[ContextRule {
-    parent_kind: "invocation_expression",
-    child: ChildSelector {
-        field: Some("arguments"),
-        kind: None,
+const CSHARP_READ_OVERRIDES: &[ContextRule] = &[
+    ContextRule {
+        parent_kind: "invocation_expression",
+        child: ChildSelector {
+            field: Some("arguments"),
+            kind: None,
+        },
+        access: Access::Read,
+        predicate: None,
+        required_child: None,
     },
-    access: Access::Read,
-    predicate: None,
-    required_child: None,
-}];
+    ContextRule {
+        parent_kind: "prefix_unary_expression",
+        child: ChildSelector {
+            field: None,
+            kind: None,
+        },
+        access: Access::Read,
+        predicate: None,
+        required_child: Some(ChildSelector {
+            field: None,
+            kind: Some("*"),
+        }),
+    },
+];
 
 fn is_kotlin_navigation_receiver(
     node: tree_sitter::Node,
@@ -722,6 +744,19 @@ const C_RECEIVERS: &[FieldRule] = &[
     },
 ];
 
+const ARRAY_SIZE_READ_OVERRIDE: ContextRule = ContextRule {
+    parent_kind: "array_declarator",
+    child: ChildSelector {
+        field: Some("size"),
+        kind: None,
+    },
+    access: Access::Read,
+    predicate: None,
+    required_child: None,
+};
+
+const C_READ_OVERRIDES: &[ContextRule] = &[ARRAY_SIZE_READ_OVERRIDE];
+
 const CPP_RECEIVERS: &[FieldRule] = &[
     FieldRule {
         parent_kind: "field_expression",
@@ -760,16 +795,19 @@ const CPP_RECEIVERS: &[FieldRule] = &[
     },
 ];
 
-const CPP_READ_OVERRIDES: &[ContextRule] = &[ContextRule {
-    parent_kind: "call_expression",
-    child: ChildSelector {
-        field: Some("arguments"),
-        kind: None,
+const CPP_READ_OVERRIDES: &[ContextRule] = &[
+    ContextRule {
+        parent_kind: "call_expression",
+        child: ChildSelector {
+            field: Some("arguments"),
+            kind: None,
+        },
+        access: Access::Read,
+        predicate: None,
+        required_child: None,
     },
-    access: Access::Read,
-    predicate: None,
-    required_child: None,
-}];
+    ARRAY_SIZE_READ_OVERRIDE,
+];
 
 const NO_CONTEXT: &[ContextRule] = &[];
 const NO_UNCLASSIFIED: &[super::UnclassifiedRule] = &[];
@@ -814,7 +852,7 @@ const C: VariableAccessRules = VariableAccessRules {
     increments: C_INCREMENTS,
     by_reference: NO_CONTEXT,
     receivers: C_RECEIVERS,
-    read_overrides: NO_CONTEXT,
+    read_overrides: C_READ_OVERRIDES,
     unclassified: NO_UNCLASSIFIED,
 };
 

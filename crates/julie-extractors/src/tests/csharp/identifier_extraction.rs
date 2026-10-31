@@ -990,4 +990,68 @@ class Sample {
         let type_start = code.find("Box box").unwrap() as u32;
         assert_eq!(access(type_start, "Box", IdentifierKind::TypeUsage), None);
     }
+
+    #[test]
+    fn test_csharp_pointer_dereference_assignment_reads_pointer_operand() {
+        let code = r#"
+class C {
+    unsafe class Holder { public int* Pointer; }
+    unsafe void Observe(ref int* value) { }
+    unsafe void Update(Holder holder, int* ptr) {
+        int offset = 0;
+        *ptr = 1;
+        *ptr += 1;
+        *(ptr) = 2;
+        *(holder.Pointer) = 3;
+        ++offset;
+        ptr = ptr;
+        ptr += 1;
+        Observe(ref ptr);
+    }
+}
+"#;
+        let mut parser = init_test_parser();
+        let tree = parser.parse(code, None).unwrap();
+        assert!(!tree.root_node().has_error());
+        let (_, identifiers) = extract_all(code);
+        let dereference_write_start = code.find("*ptr =").unwrap() as u32 + 1;
+        let dereference_compound_start = code.find("*ptr +=").unwrap() as u32 + 1;
+        let parenthesized_pointer_start = code.find("*(ptr)").unwrap() as u32 + 2;
+        let member_pointer_start = code.find("*(holder.Pointer)").unwrap() as u32 + 2;
+        let member_pointer_field_start = member_pointer_start + "holder.".len() as u32;
+        let prefix_increment_start = code.find("++offset").unwrap() as u32 + 2;
+        let rebind_write_start = code.find("ptr = ptr").unwrap() as u32;
+        let rebind_compound_start = code.rfind("ptr +=").unwrap() as u32;
+        let reference_argument_start =
+            code.find("Observe(ref ptr)").unwrap() as u32 + "Observe(ref ".len() as u32;
+        let access = |start: u32, name: &str| {
+            identifiers
+                .iter()
+                .find(|id| {
+                    id.start_byte == start
+                        && id.name == name
+                        && id.kind == IdentifierKind::VariableRef
+                })
+                .and_then(|id| id.metadata.as_ref()?.get("access")?.as_str())
+        };
+        assert_eq!(access(dereference_write_start, "ptr"), Some("read"));
+        assert_eq!(access(dereference_compound_start, "ptr"), Some("read"));
+        assert_eq!(access(parenthesized_pointer_start, "ptr"), Some("read"));
+        assert_eq!(access(member_pointer_start, "holder"), Some("read"));
+        assert_eq!(
+            identifiers
+                .iter()
+                .find(|id| {
+                    id.start_byte == member_pointer_field_start
+                        && id.name == "Pointer"
+                        && id.kind == IdentifierKind::MemberAccess
+                })
+                .and_then(|id| id.metadata.as_ref()?.get("access")?.as_str()),
+            Some("read")
+        );
+        assert_eq!(access(prefix_increment_start, "offset"), Some("write"));
+        assert_eq!(access(rebind_write_start, "ptr"), Some("write"));
+        assert_eq!(access(rebind_compound_start, "ptr"), Some("read_write"));
+        assert_eq!(access(reference_argument_start, "ptr"), Some("write"));
+    }
 }

@@ -5,6 +5,10 @@ class Sample {
     void Out(out int value) { value = 0; }
     int GetIndex(int value) => value;
     int GetIndexRef(ref int value) => value;
+    unsafe void Store(int* ptr) {
+        *ptr = 1;
+        *ptr += 1;
+    }
     void Run(Box box, int seed, int[] values) {
         int initialized = seed;
         int plain = 0; plain = Call(seed);

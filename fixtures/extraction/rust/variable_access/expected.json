@@ -146,6 +146,63 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "name": "guard",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 21,
+      "start_column": 0,
+      "end_line": 26,
+      "end_column": 1,
+      "start_byte": 714,
+      "end_byte": 842,
+      "body_span": {
+        "start_line": 21,
+        "start_column": 52,
+        "end_line": 26,
+        "end_column": 1,
+        "start_byte": 766,
+        "end_byte": 842
+      },
+      "body_hash": "1b3b4f11b7c0a7b047f918d1b0ef2f74",
+      "signature": "fn guard(value: Option<i32>, mut limit: i32) -> i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:holder:15:46",
+      "name": "holder",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 15,
+      "start_column": 46,
+      "end_line": 15,
+      "end_column": 65,
+      "start_byte": 630,
+      "end_byte": 649,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "holder: &mut Holder",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:holder:5:24",
       "name": "holder",
       "kind": "variable",
@@ -276,6 +333,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:limit:21:29",
+      "name": "limit",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 21,
+      "start_column": 29,
+      "end_line": 21,
+      "end_column": 43,
+      "start_byte": 743,
+      "end_byte": 757,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "mut limit: i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:mutate:3:0",
       "name": "mutate",
       "kind": "function",
@@ -333,6 +416,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:other:15:29",
+      "name": "other",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 15,
+      "start_column": 29,
+      "end_line": 15,
+      "end_column": 44,
+      "start_byte": 613,
+      "end_byte": 628,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "other: &mut i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:plain:7:1",
       "name": "plain",
       "kind": "variable",
@@ -352,6 +461,32 @@
       "parent_key": "fixtures/extraction/rust/variable_access/source.rs:writes:5:0",
       "metadata": {
         "role": "local"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:ptr:15:10",
+      "name": "ptr",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 15,
+      "start_column": 10,
+      "end_line": 15,
+      "end_column": 27,
+      "start_byte": 594,
+      "end_byte": 611,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "mut ptr: &mut i32",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -385,6 +520,37 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "name": "update",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 1,
+      "start_byte": 584,
+      "end_byte": 713,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 67,
+        "end_line": 20,
+        "end_column": 1,
+        "start_byte": 651,
+        "end_byte": 713
+      },
+      "body_hash": "bdd387a2fa355d76b321e348e4f978bd",
+      "signature": "fn update(mut ptr: &mut i32, other: &mut i32, holder: &mut Holder)",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:value:1:16",
       "name": "value",
       "kind": "field",
@@ -403,6 +569,32 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/rust/variable_access/source.rs:Holder:1:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:value:21:9",
+      "name": "value",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 21,
+      "start_column": 9,
+      "end_line": 21,
+      "end_column": 27,
+      "start_byte": 723,
+      "end_byte": 741,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: Option<i32>",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -544,6 +736,22 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:Holder:type_usage:15:59",
+      "name": "Holder",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 15,
+      "start_column": 59,
+      "end_line": 15,
+      "end_column": 65,
+      "start_byte": 643,
+      "end_byte": 649,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:Holder:type_usage:5:36",
       "name": "Holder",
       "kind": "type_usage",
@@ -556,6 +764,22 @@
       "start_byte": 153,
       "end_byte": 159,
       "containing_key": "fixtures/extraction/rust/variable_access/source.rs:writes:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:Option:type_usage:21:16",
+      "name": "Option",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 21,
+      "start_column": 16,
+      "end_line": 21,
+      "end_column": 22,
+      "start_byte": 730,
+      "end_byte": 736,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -744,6 +968,25 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:holder:variable_ref:19:3",
+      "name": "holder",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 19,
+      "start_column": 3,
+      "end_line": 19,
+      "end_column": 9,
+      "start_byte": 693,
+      "end_byte": 699,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
       }
     },
     {
@@ -956,6 +1199,44 @@
       }
     },
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:limit:variable_ref:23:15",
+      "name": "limit",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 23,
+      "start_column": 15,
+      "end_line": 23,
+      "end_column": 20,
+      "start_byte": 798,
+      "end_byte": 803,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read_write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:limit:variable_ref:23:31",
+      "name": "limit",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 23,
+      "start_column": 31,
+      "end_line": 23,
+      "end_column": 36,
+      "start_byte": 814,
+      "end_byte": 819,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:mutate:call:12:39",
       "name": "mutate",
       "kind": "call",
@@ -975,6 +1256,63 @@
       }
     },
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:n:variable_ref:23:27",
+      "name": "n",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 23,
+      "start_column": 27,
+      "end_line": 23,
+      "end_column": 28,
+      "start_byte": 810,
+      "end_byte": 811,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:n:variable_ref:23:42",
+      "name": "n",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 23,
+      "start_column": 42,
+      "end_line": 23,
+      "end_column": 43,
+      "start_byte": 825,
+      "end_byte": 826,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:n:variable_ref:23:7",
+      "name": "n",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 23,
+      "start_column": 7,
+      "end_line": 23,
+      "end_column": 8,
+      "start_byte": 790,
+      "end_byte": 791,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:offset:variable_ref:11:23",
       "name": "offset",
       "kind": "variable_ref",
@@ -987,6 +1325,25 @@
       "start_byte": 426,
       "end_byte": 432,
       "containing_key": "fixtures/extraction/rust/variable_access/source.rs:writes:5:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:other:variable_ref:16:7",
+      "name": "other",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 16,
+      "start_column": 7,
+      "end_line": 16,
+      "end_column": 12,
+      "start_byte": 660,
+      "end_byte": 665,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
@@ -1013,6 +1370,63 @@
       }
     },
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:ptr:variable_ref:16:1",
+      "name": "ptr",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 16,
+      "start_column": 1,
+      "end_line": 16,
+      "end_column": 4,
+      "start_byte": 654,
+      "end_byte": 657,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:ptr:variable_ref:17:2",
+      "name": "ptr",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 17,
+      "start_column": 2,
+      "end_line": 17,
+      "end_column": 5,
+      "start_byte": 669,
+      "end_byte": 672,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:ptr:variable_ref:18:2",
+      "name": "ptr",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 18,
+      "start_column": 2,
+      "end_line": 18,
+      "end_column": 5,
+      "start_byte": 680,
+      "end_byte": 683,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:records:variable_ref:13:7",
       "name": "records",
       "kind": "variable_ref",
@@ -1029,6 +1443,25 @@
       "confidence": "1.000",
       "metadata": {
         "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:value:member_access:19:11",
+      "name": "value",
+      "kind": "member_access",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 19,
+      "start_column": 11,
+      "end_line": 19,
+      "end_column": 16,
+      "start_byte": 701,
+      "end_byte": 706,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
       }
     },
     {
@@ -1052,6 +1485,25 @@
       }
     },
     {
+      "key": "fixtures/extraction/rust/variable_access/source.rs:value:variable_ref:22:7",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "start_line": 22,
+      "start_column": 7,
+      "end_line": 22,
+      "end_column": 12,
+      "start_byte": 775,
+      "end_byte": 780,
+      "containing_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/rust/variable_access/source.rs:value:variable_ref:3:30",
       "name": "value",
       "kind": "variable_ref",
@@ -1067,7 +1519,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "access": "read_write"
+        "access": "read"
       }
     },
     {
@@ -1098,6 +1550,26 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:holder:15:46",
+      "resolved_type": "Holder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&mut Holder"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:holder:5:24",
       "resolved_type": "Holder",
       "generic_params": null,
@@ -1114,6 +1586,37 @@
       "is_inferred": false,
       "language": "rust",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:limit:21:29",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:other:15:29",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&mut i32"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:ptr:15:10",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&mut i32"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:records:5:63",
@@ -1136,6 +1639,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:value:21:9",
+      "resolved_type": "Option",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "Option<i32>"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:value:3:10",
       "resolved_type": "i32",
       "generic_params": null,
@@ -1156,18 +1670,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/variable_access/source.rs",
-      "covered_lines": 15,
-      "covered_bytes": 584,
-      "decision_count": 2,
+      "covered_lines": 27,
+      "covered_bytes": 843,
+      "decision_count": 5,
       "loop_count": 0,
       "max_nesting_depth": 1,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 27,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 584,
+      "end_byte": 843,
       "metadata": {
         "metric_version": 1
       }
@@ -1218,6 +1732,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:guard:21:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "covered_lines": 6,
+      "covered_bytes": 76,
+      "decision_count": 3,
+      "loop_count": 0,
+      "max_nesting_depth": 1,
+      "parameter_count": 2,
+      "start_line": 21,
+      "start_column": 52,
+      "end_line": 26,
+      "end_column": 1,
+      "start_byte": 766,
+      "end_byte": 842,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:mutate:3:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
@@ -1234,6 +1770,28 @@
       "end_column": 43,
       "start_byte": 78,
       "end_byte": 94,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/variable_access/source.rs:update:15:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "covered_lines": 6,
+      "covered_bytes": 62,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 3,
+      "start_line": 15,
+      "start_column": 67,
+      "end_line": 20,
+      "end_column": 1,
+      "start_byte": 651,
+      "end_byte": 713,
       "metadata": {
         "metric_version": 1
       }
@@ -1264,6 +1822,18 @@
   "literals": [],
   "source_regions": [],
   "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/rust/variable_access/source.rs:Option:type_usage:21:16",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/variable_access/source.rs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "i32",
+          "children": []
+        }
+      ]
+    },
     {
       "identifier_key": "fixtures/extraction/rust/variable_access/source.rs:Option:type_usage:5:72",
       "language": "rust",

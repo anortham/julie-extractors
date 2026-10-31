@@ -17,6 +17,7 @@ const RULES: VariableAccessRules = VariableAccessRules {
             target: field("left"),
             operator: None,
             required_parent_kind: None,
+            required_child: None,
             read_write_operators: &[],
             write_operators: &[],
         },
@@ -25,6 +26,7 @@ const RULES: VariableAccessRules = VariableAccessRules {
             target: field("left"),
             operator: Some(field("operator")),
             required_parent_kind: None,
+            required_child: None,
             read_write_operators: &[
                 "%=", "&&=", "&=", "**=", "*=", "+=", "-=", "/=", "<<=", ">>=", ">>>=", "??=",
                 "^=", "|=", "||=",

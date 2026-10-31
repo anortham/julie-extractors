@@ -573,3 +573,109 @@ fn writes(initial: i32, mut holder: Holder, mut argument: i32, records: Option<i
         );
     }
 }
+
+#[test]
+fn rust_dereference_operands_and_match_guards_are_reads() {
+    let code = r#"
+struct Holder { value: i32 }
+fn update(mut ptr: &mut i32, other: &mut i32, holder: &mut Holder) {
+    ptr = other;
+    *ptr = 1;
+    *ptr += 1;
+    (*holder).value = 2;
+}
+fn guard(value: Option<i32>, mut limit: i32) -> i32 {
+    match value {
+        Some(n) if { limit += 1; n > limit } => n,
+        _ => 0,
+    }
+}
+"#;
+    let mut parser = init_test_parser();
+    let tree = parser.parse(code, None).unwrap();
+    assert!(!tree.root_node().has_error());
+    let (_symbols, identifiers) = extract_all(code);
+    let access = |name: &str, kind: IdentifierKind, start: usize| {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == name
+                    && identifier.kind == kind
+                    && identifier.start_byte == start as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+    let has_variable_ref_at = |start: usize| {
+        identifiers.iter().any(|identifier| {
+            identifier.kind == IdentifierKind::VariableRef && identifier.start_byte == start as u32
+        })
+    };
+
+    let pointer_parameter = code.find("ptr: &mut i32").unwrap();
+    let guard_parameter = code.find("limit: i32").unwrap();
+    let pointer_rebind = code.find("ptr = other").unwrap();
+    let pointer_write = code.find("*ptr = 1").unwrap() + "*".len();
+    let pointer_compound = code.find("*ptr += 1").unwrap() + "*".len();
+    let member = code.find("(*holder).value = 2").unwrap() + "(*holder).".len();
+    let member_receiver = code.find("holder).value").unwrap();
+    let pattern = code.find("Some(n)").unwrap() + "Some(".len();
+    let guard_read = code.find("n > limit").unwrap();
+    let guard_compound = code.find("limit += 1").unwrap();
+    let body_read = code.find("=> n").unwrap() + "=> ".len();
+
+    assert!(!has_variable_ref_at(pointer_parameter));
+    assert!(!has_variable_ref_at(guard_parameter));
+    assert_eq!(
+        access("ptr", IdentifierKind::VariableRef, pointer_rebind),
+        Some("write")
+    );
+    assert_eq!(
+        access("ptr", IdentifierKind::VariableRef, pointer_write),
+        Some("read")
+    );
+    assert_eq!(
+        access("ptr", IdentifierKind::VariableRef, pointer_compound),
+        Some("read")
+    );
+    assert_eq!(
+        access("value", IdentifierKind::MemberAccess, member),
+        Some("write")
+    );
+    assert_eq!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.start_byte == member as u32)
+            .count(),
+        1
+    );
+    assert_eq!(
+        access("holder", IdentifierKind::VariableRef, member_receiver),
+        Some("read")
+    );
+    assert_eq!(
+        access("n", IdentifierKind::VariableRef, pattern),
+        Some("write")
+    );
+    assert_eq!(
+        access("n", IdentifierKind::VariableRef, guard_read),
+        Some("read")
+    );
+    assert_eq!(
+        access("limit", IdentifierKind::VariableRef, guard_compound),
+        Some("read_write")
+    );
+    assert_eq!(
+        access(
+            "limit",
+            IdentifierKind::VariableRef,
+            guard_read + "n > ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        access("n", IdentifierKind::VariableRef, body_read),
+        Some("read")
+    );
+}

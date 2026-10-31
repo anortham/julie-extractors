@@ -19,3 +19,11 @@ def writes(initial, holder, argument, records):
     match records:
         case captured:
             consume(captured)
+
+def annotate(obj):
+    x = 0
+    x: int
+    (x): int
+    obj.attr: int
+    (obj.attr): int
+    only: int

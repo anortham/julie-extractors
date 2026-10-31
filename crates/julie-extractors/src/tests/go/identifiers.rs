@@ -194,7 +194,7 @@ func evaluate(seed int, unusedParam int) int {
 fn test_go_variable_access_facts() {
     let code = r#"
 package main
-type Holder struct { value int }
+type Holder struct { value int; count int }
 func consume(int) {}
 func writes(initial int, holder Holder, argument int, records []int) {
     initialized := initial
@@ -214,7 +214,21 @@ func writes(initial int, holder Holder, argument int, records []int) {
         consume(captured)
     }
 }
+func update(ptr *int, other *int, box *Holder) {
+    ptr = other
+    *ptr = 1
+    *ptr += 1
+    (*box).count = 2
+    box.count++
+    box.count--
+    items := []int{0}
+    index := 0
+    items[index]++
+    items[index]--
+}
 "#;
+    let tree = init_parser(code, "go");
+    assert!(!tree.root_node().has_error());
     let (symbols, identifiers) = extract_all(code);
     let access = |name: &str, kind: IdentifierKind, start: usize| {
         identifiers
@@ -243,6 +257,18 @@ func writes(initial int, holder Holder, argument int, records []int) {
     let offset = complex_target + "items[".len();
     let complex_index = complex_target + "items[offset + ".len();
     let increment = code.find("counter++").unwrap();
+    let pointer_parameter = code.find("func update(ptr").unwrap() + "func update(".len();
+    let indexed_items_declaration = code.rfind("items := []int{0}").unwrap();
+    let indexed_index_declaration = code.rfind("index := 0").unwrap();
+    let pointer_rebind = code.find("ptr = other").unwrap();
+    let pointer_write = code.find("*ptr = 1").unwrap() + "*".len();
+    let pointer_compound = code.find("*ptr += 1").unwrap() + "*".len();
+    let nested_member = code.find("(*box).count = 2").unwrap() + "(*box).".len();
+    let nested_receiver = code.find("box).count = 2").unwrap();
+    let member_increment = code.find("box.count++").unwrap() + "box.".len();
+    let member_decrement = code.find("box.count--").unwrap() + "box.".len();
+    let indexed_increment = code.find("items[index]++").unwrap();
+    let indexed_decrement = code.find("items[index]--").unwrap();
     assert!(!has_variable_ref_at(initialized_target));
     assert!(!has_variable_ref_at(plain_declaration));
     let argument = code.find("consume(argument)").unwrap() + "consume(".len();
@@ -285,6 +311,76 @@ func writes(initial int, holder Holder, argument int, records []int) {
     assert_eq!(
         access("counter", IdentifierKind::VariableRef, increment),
         Some("write")
+    );
+    assert!(!has_variable_ref_at(pointer_parameter));
+    assert!(!has_variable_ref_at(indexed_items_declaration));
+    assert!(!has_variable_ref_at(indexed_index_declaration));
+    assert_eq!(
+        access("ptr", IdentifierKind::VariableRef, pointer_rebind),
+        Some("write")
+    );
+    assert_eq!(
+        access("ptr", IdentifierKind::VariableRef, pointer_write),
+        Some("read")
+    );
+    assert_eq!(
+        access("ptr", IdentifierKind::VariableRef, pointer_compound),
+        Some("read")
+    );
+    assert_eq!(
+        access("count", IdentifierKind::MemberAccess, nested_member),
+        Some("write")
+    );
+    assert_eq!(
+        access("box", IdentifierKind::VariableRef, nested_receiver),
+        Some("read")
+    );
+    assert_eq!(
+        access("count", IdentifierKind::MemberAccess, member_increment),
+        Some("write")
+    );
+    assert_eq!(
+        access("count", IdentifierKind::MemberAccess, member_decrement),
+        Some("write")
+    );
+    for start in [nested_member, member_increment, member_decrement] {
+        assert_eq!(
+            identifiers
+                .iter()
+                .filter(|identifier| identifier.start_byte == start as u32)
+                .count(),
+            1
+        );
+    }
+    for start in [member_increment, member_decrement] {
+        assert_eq!(
+            access("box", IdentifierKind::VariableRef, start - "box.".len()),
+            Some("read")
+        );
+    }
+    assert_eq!(
+        access("items", IdentifierKind::VariableRef, indexed_increment),
+        Some("read")
+    );
+    assert_eq!(
+        access(
+            "index",
+            IdentifierKind::VariableRef,
+            indexed_increment + "items[".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        access("items", IdentifierKind::VariableRef, indexed_decrement),
+        Some("read")
+    );
+    assert_eq!(
+        access(
+            "index",
+            IdentifierKind::VariableRef,
+            indexed_decrement + "items[".len()
+        ),
+        Some("read")
     );
     assert_eq!(
         access("argument", IdentifierKind::VariableRef, argument),

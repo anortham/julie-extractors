@@ -429,3 +429,95 @@ def writes(initial, box, argument, records):
         );
     }
 }
+
+#[test]
+fn python_annotation_without_value_has_no_target_access() {
+    let code = r#"
+def annotate(obj):
+    x = 0
+    x: int
+    (x): int
+    obj.attr: int
+    (obj.attr): int
+    only: int
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_python::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+    assert!(!tree.root_node().has_error());
+    let (symbols, identifiers, _) = extract_all(code);
+    let access = |name: &str, kind: IdentifierKind, start: usize| {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == name
+                    && identifier.kind == kind
+                    && identifier.start_byte == start as u32
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+    let has_variable_ref_at = |start: usize| {
+        identifiers.iter().any(|identifier| {
+            identifier.kind == IdentifierKind::VariableRef && identifier.start_byte == start as u32
+        })
+    };
+
+    let first_binding = code.find("x = 0").unwrap();
+    let reannotation = code.find("x: int").unwrap();
+    let attribute = code.find("obj.attr: int").unwrap() + "obj.".len();
+    let receiver = code.find("obj.attr: int").unwrap();
+    let parenthesized_reannotation = code.find("(x): int").unwrap() + "(".len();
+    let parenthesized_attribute = code.find("(obj.attr): int").unwrap() + "(obj.".len();
+    let parenthesized_receiver = code.find("(obj.attr): int").unwrap() + "(".len();
+    let annotation_only = code.find("only: int").unwrap();
+
+    assert!(!has_variable_ref_at(first_binding));
+    assert!(!has_variable_ref_at(reannotation));
+    assert!(!has_variable_ref_at(parenthesized_reannotation));
+    assert_eq!(
+        identifiers
+            .iter()
+            .filter(|identifier| {
+                identifier.kind == IdentifierKind::MemberAccess
+                    && identifier.start_byte == attribute as u32
+            })
+            .count(),
+        1
+    );
+    assert_eq!(
+        access("attr", IdentifierKind::MemberAccess, attribute),
+        None
+    );
+    assert_eq!(
+        identifiers
+            .iter()
+            .filter(|identifier| {
+                identifier.kind == IdentifierKind::MemberAccess
+                    && identifier.start_byte == parenthesized_attribute as u32
+            })
+            .count(),
+        1
+    );
+    assert_eq!(
+        access(
+            "attr",
+            IdentifierKind::MemberAccess,
+            parenthesized_attribute
+        ),
+        None
+    );
+    assert_eq!(
+        access("obj", IdentifierKind::VariableRef, parenthesized_receiver),
+        Some("read")
+    );
+    assert_eq!(
+        access("obj", IdentifierKind::VariableRef, receiver),
+        Some("read")
+    );
+    assert!(!has_variable_ref_at(annotation_only));
+    assert!(symbols.iter().any(|symbol| symbol.name == "only"));
+}

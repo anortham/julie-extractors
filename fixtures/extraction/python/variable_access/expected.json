@@ -71,6 +71,41 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "name": "annotate",
+      "kind": "function",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 29,
+      "end_column": 13,
+      "start_byte": 406,
+      "end_byte": 510,
+      "body_span": {
+        "start_line": 24,
+        "start_column": 4,
+        "end_line": 29,
+        "end_column": 13,
+        "start_byte": 429,
+        "end_byte": 510
+      },
+      "body_hash": "769db9df17af1e8f76c1581c12e165c5",
+      "signature": "def annotate(obj)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "decorators": [],
+        "isAsync": false,
+        "returnType": ""
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/python/variable_access/source.py:argument:11:28",
       "name": "argument",
       "kind": "variable",
@@ -288,6 +323,58 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/python/variable_access/source.py:obj:23:13",
+      "name": "obj",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 23,
+      "start_column": 13,
+      "end_line": 23,
+      "end_column": 16,
+      "start_byte": 419,
+      "end_byte": 422,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "obj",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/variable_access/source.py:only:29:4",
+      "name": "only",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 29,
+      "start_column": 4,
+      "end_line": 29,
+      "end_column": 13,
+      "start_byte": 501,
+      "end_byte": 510,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "only: int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "metadata": {
+        "hasTypeAnnotation": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/python/variable_access/source.py:plain:13:4",
       "name": "plain",
       "kind": "variable",
@@ -477,6 +564,82 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/variable_access/source.py:x:24:4",
+      "name": "x",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 24,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 9,
+      "start_byte": 429,
+      "end_byte": 434,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "x = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "metadata": {
+        "hasTypeAnnotation": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/variable_access/source.py:x:25:4",
+      "name": "x",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 25,
+      "start_column": 4,
+      "end_line": 25,
+      "end_column": 10,
+      "start_byte": 439,
+      "end_byte": 445,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "x: int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "metadata": {
+        "hasTypeAnnotation": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/variable_access/source.py:x:26:5",
+      "name": "x",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 26,
+      "start_column": 5,
+      "end_line": 26,
+      "end_column": 6,
+      "start_byte": 451,
+      "end_byte": 452,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "x = ",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -537,6 +700,44 @@
       "confidence": "1.000",
       "metadata": {
         "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/python/variable_access/source.py:attr:member_access:27:8",
+      "name": "attr",
+      "kind": "member_access",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 27,
+      "start_column": 8,
+      "end_line": 27,
+      "end_column": 12,
+      "start_byte": 467,
+      "end_byte": 471,
+      "containing_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "obj"
+      }
+    },
+    {
+      "key": "fixtures/extraction/python/variable_access/source.py:attr:member_access:28:9",
+      "name": "attr",
+      "kind": "member_access",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 28,
+      "start_column": 9,
+      "end_line": 28,
+      "end_column": 13,
+      "start_byte": 486,
+      "end_byte": 490,
+      "containing_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "obj"
       }
     },
     {
@@ -749,6 +950,44 @@
       }
     },
     {
+      "key": "fixtures/extraction/python/variable_access/source.py:obj:variable_ref:27:4",
+      "name": "obj",
+      "kind": "variable_ref",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 27,
+      "start_column": 4,
+      "end_line": 27,
+      "end_column": 7,
+      "start_byte": 463,
+      "end_byte": 466,
+      "containing_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/python/variable_access/source.py:obj:variable_ref:28:5",
+      "name": "obj",
+      "kind": "variable_ref",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "start_line": 28,
+      "start_column": 5,
+      "end_line": 28,
+      "end_column": 8,
+      "start_byte": 482,
+      "end_byte": 485,
+      "containing_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/python/variable_access/source.py:plain:variable_ref:14:4",
       "name": "plain",
       "kind": "variable_ref",
@@ -846,7 +1085,26 @@
       }
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/python/variable_access/source.py:only:29:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "python",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/python/variable_access/source.py:x:25:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "python",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [
@@ -856,18 +1114,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/variable_access/source.py",
-      "covered_lines": 22,
-      "covered_bytes": 405,
+      "covered_lines": 30,
+      "covered_bytes": 511,
       "decision_count": 2,
       "loop_count": 0,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 22,
+      "end_line": 30,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 405,
+      "end_byte": 511,
       "metadata": {
         "metric_version": 1
       }
@@ -890,6 +1148,28 @@
       "end_column": 22,
       "start_byte": 81,
       "end_byte": 95,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/python/variable_access/source.py:annotate:23:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/variable_access/source.py",
+      "covered_lines": 6,
+      "covered_bytes": 81,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 24,
+      "start_column": 4,
+      "end_line": 29,
+      "end_column": 13,
+      "start_byte": 429,
+      "end_byte": 510,
       "metadata": {
         "metric_version": 1
       }
