@@ -126,7 +126,7 @@ workers share this worktree with separate file ownership; the lead owns commits.
 - [x] Golden fixture refresh, row review, and strict capability report.
 - [x] Version/contract integration and all verification gates.
 - [x] Release binary and code-kb dogfood copy.
-- [ ] User approval for push and release.
+- [x] User approval for push and release.
 
 All required gates passed. The default suite took 46 seconds. Compatibility
 against 3.10.0 produced the declared `compatible` notice. The strict quality
@@ -147,3 +147,8 @@ reproduced and fixed. A separate lead probe found pointer-operand
 misclassification, also fixed. Focused regressions and the final CLI/SQLite
 probe confirm all five corrections; the 16 CLI checks failed before and pass
 after the fixes. See [the review record](../release-evidence/v3.11.0-claude-review.md).
+
+Published [v3.11.0](https://github.com/anortham/julie-extractors/releases/tag/v3.11.0)
+from `ee274586` after source CI passed. All six public packages and embedded
+checksums were verified; the public Linux binary passed the regression and
+annotation smoke checks. See [publication evidence](../release-evidence/2026-10-31-v3-11-0-release.md).
