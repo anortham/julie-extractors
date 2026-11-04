@@ -87,6 +87,41 @@ fn inline_links_use_grammar_destinations_titles_and_labels() {
 }
 
 #[test]
+fn markdown_doc_comments_require_section_text_or_link_titles() {
+    let source = "# Empty\n\n# Links\n\n[API](https://example.com/api \"API reference\") and [home](https://example.com/home).\n";
+    let results = extract(source);
+    let empty = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "Empty")
+        .expect("empty heading");
+    assert!(empty.doc_comment.is_none());
+    let links_heading = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "Links")
+        .expect("links heading");
+    assert_eq!(
+        links_heading.doc_comment.as_deref(),
+        Some(
+            "[API](https://example.com/api \"API reference\") and [home](https://example.com/home)."
+        )
+    );
+
+    let links = by_kind(&results, "inline_link");
+    let api = links
+        .iter()
+        .find(|symbol| symbol.name == "API")
+        .expect("titled API link");
+    assert_eq!(api.doc_comment.as_deref(), Some("API reference"));
+    let home = links
+        .iter()
+        .find(|symbol| symbol.name == "home")
+        .expect("untitled home link");
+    assert!(home.doc_comment.is_none());
+}
+
+#[test]
 fn images_and_autolinks_become_import_symbols() {
     let source = "![Architecture diagram](docs/images/arch.png)\n\nClick [![Build](https://ci.example.com/badge.svg)](https://ci.example.com/job).\n\nVisit <https://example.com/autolink> or email <team@example.com>.\n";
     let results = extract(source);

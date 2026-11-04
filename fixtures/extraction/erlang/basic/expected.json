@@ -194,13 +194,13 @@
       "end_byte": 371,
       "body_span": {
         "start_line": 13,
-        "start_column": 7,
+        "start_column": 18,
         "end_line": 13,
-        "end_column": 43,
-        "start_byte": 334,
-        "end_byte": 370
+        "end_column": 42,
+        "start_byte": 345,
+        "end_byte": 369
       },
-      "body_hash": "ebc4f27023fb085ff6de3e68d1df2b0d",
+      "body_hash": "06a13bc1eaf9677a1817e1506f24baf9",
       "signature": "-define(LOG(Msg), io:format(\"~p~n\", [Msg]))",
       "doc_comment": null,
       "visibility": "Private",
@@ -275,13 +275,13 @@
       "end_byte": 326,
       "body_span": {
         "start_line": 12,
-        "start_column": 7,
+        "start_column": 21,
         "end_line": 12,
-        "end_column": 29,
-        "start_byte": 303,
-        "end_byte": 325
+        "end_column": 28,
+        "start_byte": 317,
+        "end_byte": 324
       },
-      "body_hash": "7154c77cc8a36e97a63234783187e729",
+      "body_hash": "8155bc545f84d9652f1012ef2bdfb6eb",
       "signature": "-define(MAX_BALANCE, 1000000)",
       "doc_comment": null,
       "visibility": "Private",
@@ -513,13 +513,13 @@
       "end_byte": 512,
       "body_span": {
         "start_line": 19,
-        "start_column": 27,
+        "start_column": 19,
         "end_line": 19,
         "end_column": 29,
-        "start_byte": 509,
+        "start_byte": 501,
         "end_byte": 511
       },
-      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "body_hash": "1f29692656915b49a2a1611fc554e2f9",
       "signature": "-type account() :: #account{}",
       "doc_comment": null,
       "visibility": "Public",
@@ -578,15 +578,8 @@
       "end_column": 59,
       "start_byte": 408,
       "end_byte": 432,
-      "body_span": {
-        "start_line": 15,
-        "start_column": 57,
-        "end_line": 15,
-        "end_column": 59,
-        "start_byte": 430,
-        "end_byte": 432
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "balance = 0 :: integer()",
       "doc_comment": null,
       "visibility": "Private",
@@ -685,15 +678,8 @@
       "end_column": 14,
       "start_byte": 79,
       "end_byte": 93,
-      "body_span": {
-        "start_line": 3,
-        "start_column": 7,
-        "end_line": 3,
-        "end_column": 13,
-        "start_byte": 86,
-        "end_byte": 92
-      },
-      "body_hash": "11245205d55e6ab5aa7b3318052bf7a3",
+      "body_span": null,
+      "body_hash": null,
       "signature": "-module(bank)",
       "doc_comment": "%% @doc Account bookkeeping primitives.\n%% Balances are stored in whole cents.",
       "visibility": "Public",
@@ -824,15 +810,8 @@
       "end_column": 33,
       "start_byte": 391,
       "end_byte": 406,
-      "body_span": {
-        "start_line": 15,
-        "start_column": 31,
-        "end_line": 15,
-        "end_column": 33,
-        "start_byte": 404,
-        "end_byte": 406
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "id :: integer()",
       "doc_comment": null,
       "visibility": "Private",
@@ -1109,13 +1088,13 @@
       "end_byte": 541,
       "body_span": {
         "start_line": 20,
-        "start_column": 13,
+        "start_column": 19,
         "end_line": 20,
         "end_column": 27,
-        "start_byte": 526,
+        "start_byte": 532,
         "end_byte": 540
       },
-      "body_hash": "90d0ba461dbabac76751ff677dc53f2f",
+      "body_hash": "43e096f9bc03b9d7c725dadec707b62a",
       "signature": "-opaque token() :: binary()",
       "doc_comment": null,
       "visibility": "Private",
@@ -1408,6 +1387,215 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Acct:variable_ref:34:27",
+      "name": "Acct",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 34,
+      "start_column": 27,
+      "end_line": 34,
+      "end_column": 31,
+      "start_byte": 870,
+      "end_byte": 874,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:deposit:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Acct:variable_ref:34:4",
+      "name": "Acct",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 34,
+      "start_column": 4,
+      "end_line": 34,
+      "end_column": 8,
+      "start_byte": 847,
+      "end_byte": 851,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:deposit:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Acct:variable_ref:36:4",
+      "name": "Acct",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 36,
+      "start_column": 4,
+      "end_line": 36,
+      "end_column": 8,
+      "start_byte": 932,
+      "end_byte": 936,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:deposit:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Acct:variable_ref:40:9",
+      "name": "Acct",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 40,
+      "start_column": 9,
+      "end_line": 40,
+      "end_column": 13,
+      "start_byte": 997,
+      "end_byte": 1001,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:audit:39:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Acct:variable_ref:45:19",
+      "name": "Acct",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 45,
+      "start_column": 19,
+      "end_line": 45,
+      "end_column": 23,
+      "start_byte": 1097,
+      "end_byte": 1101,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Amount:variable_ref:33:27",
+      "name": "Amount",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 33,
+      "start_column": 27,
+      "end_line": 33,
+      "end_column": 33,
+      "start_byte": 829,
+      "end_byte": 835,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:deposit:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Amount:variable_ref:34:50",
+      "name": "Amount",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 34,
+      "start_column": 50,
+      "end_line": 34,
+      "end_column": 56,
+      "start_byte": 893,
+      "end_byte": 899,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:deposit:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:B:variable_ref:31:4",
+      "name": "B",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 31,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 5,
+      "start_byte": 798,
+      "end_byte": 799,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:balance:30:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Id:variable_ref:27:18",
+      "name": "Id",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 27,
+      "start_column": 18,
+      "end_line": 27,
+      "end_column": 20,
+      "start_byte": 707,
+      "end_byte": 709,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:open:26:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Ids:variable_ref:45:4",
+      "name": "Ids",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 45,
+      "start_column": 4,
+      "end_line": 45,
+      "end_column": 7,
+      "start_byte": 1082,
+      "end_byte": 1085,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Ids:variable_ref:49:5",
+      "name": "Ids",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 49,
+      "start_column": 5,
+      "end_line": 49,
+      "end_column": 8,
+      "start_byte": 1208,
+      "end_byte": 1211,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/erlang/basic/source.erl:LOG:call:40:5",
       "name": "LOG",
       "kind": "call",
@@ -1424,6 +1612,82 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Limit:variable_ref:46:4",
+      "name": "Limit",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 46,
+      "start_column": 4,
+      "end_line": 46,
+      "end_column": 9,
+      "start_byte": 1120,
+      "end_byte": 1125,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Limit:variable_ref:49:10",
+      "name": "Limit",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 49,
+      "start_column": 10,
+      "end_line": 49,
+      "end_column": 15,
+      "start_byte": 1213,
+      "end_byte": 1218,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:M:variable_ref:64:4",
+      "name": "M",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 64,
+      "start_column": 4,
+      "end_line": 64,
+      "end_column": 5,
+      "start_byte": 1412,
+      "end_byte": 1413,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:scratch:63:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:M:variable_ref:65:4",
+      "name": "M",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 65,
+      "start_column": 4,
+      "end_line": 65,
+      "end_column": 5,
+      "start_byte": 1432,
+      "end_byte": 1433,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:scratch:63:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/erlang/basic/source.erl:MAX_BALANCE:variable_ref:46:13",
       "name": "MAX_BALANCE",
       "kind": "variable_ref",
@@ -1436,6 +1700,196 @@
       "start_byte": 1129,
       "end_byte": 1140,
       "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:N:variable_ref:55:8",
+      "name": "N",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 55,
+      "start_column": 8,
+      "end_line": 55,
+      "end_column": 9,
+      "start_byte": 1331,
+      "end_byte": 1332,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:run:54:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:R:variable_ref:60:4",
+      "name": "R",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 60,
+      "start_column": 4,
+      "end_line": 60,
+      "end_column": 5,
+      "start_byte": 1369,
+      "end_byte": 1370,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:go:59:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:R:variable_ref:61:4",
+      "name": "R",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 61,
+      "start_column": 4,
+      "end_line": 61,
+      "end_column": 5,
+      "start_byte": 1391,
+      "end_byte": 1392,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:go:59:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Reader:variable_ref:47:4",
+      "name": "Reader",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 47,
+      "start_column": 4,
+      "end_line": 47,
+      "end_column": 10,
+      "start_byte": 1146,
+      "end_byte": 1152,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Reader:variable_ref:49:17",
+      "name": "Reader",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 49,
+      "start_column": 17,
+      "end_line": 49,
+      "end_column": 23,
+      "start_byte": 1220,
+      "end_byte": 1226,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:S:variable_ref:55:5",
+      "name": "S",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 55,
+      "start_column": 5,
+      "end_line": 55,
+      "end_column": 6,
+      "start_byte": 1328,
+      "end_byte": 1329,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:run:54:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:S:variable_ref:57:4",
+      "name": "S",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 57,
+      "start_column": 4,
+      "end_line": 57,
+      "end_column": 5,
+      "start_byte": 1352,
+      "end_byte": 1353,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:run:54:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Sizer:variable_ref:48:4",
+      "name": "Sizer",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 48,
+      "start_column": 4,
+      "end_line": 48,
+      "end_column": 9,
+      "start_byte": 1174,
+      "end_byte": 1179,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:Sizer:variable_ref:49:25",
+      "name": "Sizer",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 49,
+      "start_column": 25,
+      "end_line": 49,
+      "end_column": 30,
+      "start_byte": 1228,
+      "end_byte": 1233,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:history:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/basic/source.erl:X:variable_ref:60:18",
+      "name": "X",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 60,
+      "start_column": 18,
+      "end_line": 60,
+      "end_column": 19,
+      "start_byte": 1383,
+      "end_byte": 1384,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:go:59:0",
       "target_key": null,
       "confidence": "1.000",
       "metadata": {

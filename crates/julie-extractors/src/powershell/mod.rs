@@ -71,6 +71,7 @@ impl PowerShellExtractor {
 
     /// Extract all symbols from the PowerShell AST
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         let mut symbols = Vec::new();
         self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);

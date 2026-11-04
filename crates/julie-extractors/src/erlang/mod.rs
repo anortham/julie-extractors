@@ -37,6 +37,7 @@ pub(crate) mod term_config;
 mod test_fixtures;
 mod type_facts;
 mod types;
+mod variable_access;
 
 const EXPORT_ALL_OPTION: &str = "export_all";
 const MODULE_DOC_ATTRIBUTE: &str = "moduledoc";

@@ -1,0 +1,260 @@
+==================
+Simple event declaration
+==================
+
+Class C
+    Public Event Changed()
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (event_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)))))
+
+==================
+Event with parameters
+==================
+
+Class C
+    Public Event ValueChanged(sender As Object, newValue As Integer)
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (event_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))))))
+
+==================
+Event with As clause
+==================
+
+Class C
+    Public Event Click As EventHandler
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (event_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (namespace_name
+            (identifier)))))))
+
+==================
+AddHandler statement
+==================
+
+Class C
+    Sub Wire()
+        AddHandler button.Click, AddressOf OnClick
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (add_handler_statement
+          (member_access
+            (identifier)
+            (identifier))
+          (unary_expression
+            (identifier)))))))
+
+==================
+RaiseEvent statement
+==================
+
+Class C
+    Sub DoRaise()
+        RaiseEvent Changed(Me, EventArgs.Empty)
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (raise_event_statement
+          (identifier)
+          (argument_list
+            (argument
+              (me_expression))
+            (argument
+              (member_access
+                (identifier)
+                (identifier)))))))))
+
+==================
+RaiseEvent without arguments
+==================
+
+Class C
+    Sub DoRaise()
+        RaiseEvent Tick
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (raise_event_statement
+          (identifier))))))
+
+==================
+Custom event with handler blocks
+==================
+
+Class C
+    Custom Event ValueChanged As EventHandler
+        AddHandler(value As EventHandler)
+        End AddHandler
+        RemoveHandler(value As EventHandler)
+        End RemoveHandler
+        RaiseEvent(sender As Object, e As EventArgs)
+        End RaiseEvent
+    End Event
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (event_declaration
+        (identifier)
+        (as_clause
+          (namespace_name
+            (identifier)))
+        (add_handler_block
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (namespace_name
+                  (identifier))))))
+        (remove_handler_block
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (namespace_name
+                  (identifier))))))
+        (raise_event_block
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (primitive_type)))
+            (parameter
+              (identifier)
+              (as_clause
+                (namespace_name
+                  (identifier))))))))))
+
+==================
+Custom event with modifier
+==================
+
+Class C
+    Public Custom Event DataReceived As EventHandler
+        AddHandler(value As EventHandler)
+        End AddHandler
+        RemoveHandler(value As EventHandler)
+        End RemoveHandler
+        RaiseEvent(sender As Object, e As EventArgs)
+        End RaiseEvent
+    End Event
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (event_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (namespace_name
+            (identifier)))
+        (add_handler_block
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (namespace_name
+                  (identifier))))))
+        (remove_handler_block
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (namespace_name
+                  (identifier))))))
+        (raise_event_block
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (primitive_type)))
+            (parameter
+              (identifier)
+              (as_clause
+                (namespace_name
+                  (identifier))))))))))

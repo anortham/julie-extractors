@@ -274,7 +274,7 @@ pub(super) fn extract_body_locals(
 
 /// The fields of a node of this kind that hold patterns. A pattern binds
 /// every variable in it that is not bound yet.
-fn pattern_fields(kind: &str) -> &'static [&'static str] {
+pub(super) fn pattern_fields(kind: &str) -> &'static [&'static str] {
     match kind {
         "match_expr" | "cond_match_expr" | "generator" | "b_generator" | "map_generator" => {
             &["lhs"]

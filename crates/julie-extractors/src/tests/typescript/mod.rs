@@ -6,6 +6,7 @@
 pub mod anonymous_classes;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
+pub mod ecmascript_audit;
 pub mod extractor;
 pub mod functions;
 pub mod helpers;
@@ -16,10 +17,13 @@ pub mod initializer_types;
 pub mod literals;
 pub mod relationships;
 pub mod relative_paths; // NEW: Phase 2 - Relative Unix-style path storage tests
+pub mod signature_body_spans;
 pub mod symbols;
 pub mod test_call_extraction;
+pub mod tsx_access;
 pub mod tsx_complexity;
 pub mod tsx_cross_file_pending;
+pub mod tsx_literals;
 pub mod tsx_type_arguments;
 pub mod type_arguments;
 pub mod type_facts;

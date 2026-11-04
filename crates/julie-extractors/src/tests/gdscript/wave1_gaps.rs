@@ -141,6 +141,20 @@ fn class_name_script_is_one_class_that_owns_every_top_level_member() {
     let spawner = classes[0];
     assert_eq!(spawner.name, "Spawner");
     assert_eq!(base_types(spawner), vec!["Node"]);
+    let before_inner = symbol(&result, "before_inner", SymbolKind::Method);
+    let body = before_inner.body_span.expect("method body span");
+    let expected_body = "\n\tpass";
+    let body_start = code.find(expected_body).expect("source body") as u32;
+    assert_eq!(body.start_byte, body_start);
+    assert_eq!(body.end_byte, body_start + expected_body.len() as u32);
+    assert_eq!(
+        &code[body.start_byte as usize..body.end_byte as usize],
+        expected_body
+    );
+    assert_eq!(
+        before_inner.body_hash.as_deref(),
+        Some("1a1dc91c907325c69271ddf0c944bc72")
+    );
     for (name, kind) in [
         ("spawned", SymbolKind::Event),
         ("MAX", SymbolKind::Constant),
@@ -324,7 +338,7 @@ fn constructor_initializer_and_accessor_bodies_are_callers() {
 
 #[test]
 fn member_doc_comments_attach_only_to_their_own_block() {
-    let code = "extends Node\n## Manages the score for a round.\n##\n## Tracks points.\n\n## Emitted when the score changes.\nsignal score_changed(value: int)\n\n## Max combo multiplier.\nconst MAX_COMBO := 8\n\n## The current score.\nvar score: int = 0\n\n## Tunable points per hit.\n@export var points_per_hit := 10\n\nenum Flags {\n\t## The first flag.\n\tFLAG_A,\n}\n\nclass Entry:\n\t## Player name.\n\tvar name: String\n";
+    let code = "extends Node\n## Manages the score for a round.\n##\n## Tracks points.\n\n## Emitted when the score changes.\nsignal score_changed(value: int)\n\n## Max combo multiplier.\nconst MAX_COMBO := 8\n\n## The current score.\nvar score: int = 0\n\n## Tunable points per hit.\n@export var points_per_hit := 10\n\nenum Flags {\n\t## The first flag.\n\tFLAG_A,\n}\n\nclass Entry:\n\t## Player name.\n\tvar name: String\n\n# Plain comments do not document members.\nfunc plain_comment() -> void:\n\tpass\n";
     let result = extract("score.gd", code);
     let doc = |name: &str, kind: SymbolKind| symbol(&result, name, kind).doc_comment.clone();
     assert_eq!(
@@ -355,4 +369,5 @@ fn member_doc_comments_attach_only_to_their_own_block() {
         doc("name", SymbolKind::Field).as_deref(),
         Some("## Player name.")
     );
+    assert_eq!(doc("plain_comment", SymbolKind::Method), None);
 }

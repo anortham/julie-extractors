@@ -5,7 +5,13 @@ members = [
     "crates/julie-extractors",
     "xtask",
 ]
-exclude = ["vendor/tree-sitter-regex"]
+exclude = [
+    "vendor/tree-sitter-regex",
+    "vendor/tree-sitter-powershell",
+    "vendor/tree-sitter-erlang",
+    "vendor/tree-sitter-vb-dotnet",
+    "vendor/tree-sitter-sequel-tsql",
+]
 resolver = "2"
 
 [workspace.package]

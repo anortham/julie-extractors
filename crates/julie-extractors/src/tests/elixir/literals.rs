@@ -108,6 +108,26 @@ end
 }
 
 #[test]
+fn non_call_string_values_emit_no_argument_literals() {
+    let code = r#"
+defmodule M do
+  @title "module metadata"
+  def title do
+    message = "assigned text"
+    "standalone text"
+  end
+end
+"#;
+    let mut parser = Parser::new();
+    parser
+        .set_language(&tree_sitter_elixir::LANGUAGE.into())
+        .expect("load Elixir grammar");
+    let tree = parser.parse(code, None).expect("parse Elixir");
+    assert!(!tree.root_node().has_error());
+    assert!(capture(code).is_empty());
+}
+
+#[test]
 fn bare_identifier_callee_yields_name_carrier() {
     // `execute("CREATE TABLE t")` — a bare `identifier` target gives the bare name.
     let code = r#"

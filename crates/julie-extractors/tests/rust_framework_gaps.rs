@@ -367,3 +367,75 @@ mod generic_shadow {
         Some("https://example.com/reqwest")
     );
 }
+
+#[test]
+fn axum_nest_sites_preserve_each_mount_without_joining_child_routes() {
+    let app_source = r#"use axum::Router;
+
+fn app() {
+    let api = Router::new().nest("/api", api_routes());
+    let admin = Router::new().nest("/admin", api_routes());
+    let misleading: &str = "Router::new().nest(\"/fake\", fake_routes())";
+    // Router::new().nest("/comment", fake_routes())
+}
+"#;
+    let app = extract("src/app.rs", app_source);
+    let nests = facts(&app, "axum.nest.v1");
+    assert_eq!(nests.len(), 2, "{nests:#?}");
+
+    let mounts = nests
+        .iter()
+        .map(|fact| {
+            (
+                app_source[fact.start_byte as usize..fact.end_byte as usize].to_string(),
+                metadata_str(fact, "mount_path")
+                    .unwrap_or_default()
+                    .to_string(),
+                metadata_str(fact, "normalized_mount_path")
+                    .unwrap_or_default()
+                    .to_string(),
+                metadata_str(fact, "mount_target")
+                    .unwrap_or_default()
+                    .to_string(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        mounts,
+        vec![
+            (
+                "Router::new().nest(\"/api\", api_routes())".to_string(),
+                "/api".to_string(),
+                "/api".to_string(),
+                "api_routes()".to_string(),
+            ),
+            (
+                "Router::new().nest(\"/admin\", api_routes())".to_string(),
+                "/admin".to_string(),
+                "/admin".to_string(),
+                "api_routes()".to_string(),
+            ),
+        ]
+    );
+
+    let child_source = r#"use axum::{routing::get, Router};
+
+fn api_routes() -> Router {
+    Router::new().route("/health", get(health))
+}
+"#;
+    let child = extract("src/api.rs", child_source);
+    let routes = facts(&child, "axum.route.v1");
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "route_template"), Some("/health"));
+    assert_eq!(
+        metadata_str(routes[0], "normalized_route_template"),
+        Some("/health")
+    );
+    assert_eq!(metadata_str(routes[0], "route_group_prefix"), None);
+    assert_eq!(metadata_str(routes[0], "effective_route_template"), None);
+    assert_eq!(
+        &child_source[routes[0].start_byte as usize..routes[0].end_byte as usize],
+        "Router::new().route(\"/health\", get(health))"
+    );
+}

@@ -1,0 +1,701 @@
+==================
+Single-line From Select
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x In items Select x
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (select_clause
+              (identifier))))))))
+
+==================
+Single-line From Where Select
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x In items Where x > 0 Select x
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (where_clause
+              (binary_expression
+                (identifier)
+                (integer_literal)))
+            (select_clause
+              (identifier))))))))
+
+==================
+Multi-line query with From Where Select
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x In items
+                Where x > 0
+                Select x
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (where_clause
+              (binary_expression
+                (identifier)
+                (integer_literal)))
+            (select_clause
+              (identifier))))))))
+
+==================
+Typed range variable
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x As Integer In numbers Select x
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (as_clause
+                  (primitive_type))
+                (identifier)))
+            (select_clause
+              (identifier))))))))
+
+==================
+Qualified source expression
+==================
+
+Class C
+    Sub Main()
+        Dim sections = From section In Subject.Split(",")
+                       Where section.Contains("CN")
+                       Select section
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (invocation
+                  (member_access
+                    (identifier)
+                    (identifier))
+                  (argument_list
+                    (argument
+                      (string_literal))))))
+            (where_clause
+              (invocation
+                (member_access
+                  (identifier)
+                  (identifier))
+                (argument_list
+                  (argument
+                    (string_literal)))))
+            (select_clause
+              (identifier))))))))
+
+==================
+Order By ascending and descending
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x In items
+                Order By x.Name Ascending, x.Age Descending
+                Select x
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (order_by_clause
+              (member_access
+                (identifier)
+                (identifier))
+              (member_access
+                (identifier)
+                (identifier)))
+            (select_clause
+              (identifier))))))))
+
+==================
+Let clause
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x In items
+                Let doubled = x * 2
+                Select doubled
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (let_clause
+              (identifier)
+              (binary_expression
+                (identifier)
+                (integer_literal)))
+            (select_clause
+              (identifier))))))))
+
+==================
+Distinct clause
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x In items
+                Select x
+                Distinct
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (select_clause
+              (identifier))
+            (distinct_clause)))))))
+
+==================
+Take and Skip clauses
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x In items
+                Skip 10
+                Take 5
+                Select x
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (skip_clause
+              (integer_literal))
+            (take_clause
+              (integer_literal))
+            (select_clause
+              (identifier))))))))
+
+==================
+Take While and Skip While clauses
+==================
+
+Class C
+    Sub Main()
+        Dim r = From x In items
+                Skip While x < 10
+                Take While x < 100
+                Select x
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (skip_while_clause
+              (binary_expression
+                (identifier)
+                (integer_literal)))
+            (take_while_clause
+              (binary_expression
+                (identifier)
+                (integer_literal)))
+            (select_clause
+              (identifier))))))))
+
+==================
+Join clause
+==================
+
+Class C
+    Sub Main()
+        Dim pairs = From a In listA
+                    Join b In listB On a.Id Equals b.Id
+                    Select a, b
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (join_clause
+              (collection_range_variable
+                (identifier)
+                (identifier))
+              (member_access
+                (identifier)
+                (identifier))
+              (member_access
+                (identifier)
+                (identifier)))
+            (select_clause
+              (identifier)
+              (identifier))))))))
+
+==================
+Group Join clause
+==================
+
+Class C
+    Sub Main()
+        Dim result = From c In customers
+                     Group Join o In orders On c.Id Equals o.CustomerId Into orderGroup = Group
+                     Select c, orderGroup
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (group_join_clause
+              (collection_range_variable
+                (identifier)
+                (identifier))
+              (member_access
+                (identifier)
+                (identifier))
+              (member_access
+                (identifier)
+                (identifier))
+              (binary_expression
+                (identifier)
+                (identifier)))
+            (select_clause
+              (identifier)
+              (identifier))))))))
+
+==================
+Group By clause
+==================
+
+Class C
+    Sub Main()
+        Dim totals = From o In orders
+                     Group o By o.CustomerId Into orderGroup = Group, total = Sum(o.Amount)
+                     Select CustomerId, total
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (group_by_clause
+              (identifier)
+              (member_access
+                (identifier)
+                (identifier))
+              (binary_expression
+                (identifier)
+                (identifier))
+              (identifier)
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (member_access
+                      (identifier)
+                      (identifier))))))
+            (select_clause
+              (identifier)
+              (identifier))))))))
+
+==================
+Aggregate query
+==================
+
+Class C
+    Sub Main()
+        Dim total = Aggregate o In orders Into Sum(o.Amount)
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (aggregate_clause
+              (collection_range_variable
+                (identifier)
+                (identifier))
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (member_access
+                      (identifier)
+                      (identifier))))))))))))
+
+==================
+Aggregate with nested Where and multiple Into items
+==================
+
+Class C
+    Sub Main()
+        Dim stats = Aggregate o In orders
+                    Where o.IsValid
+                    Into count = Count(), avg = Average(o.Amount)
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (aggregate_clause
+              (collection_range_variable
+                (identifier)
+                (identifier))
+              (where_clause
+                (member_access
+                  (identifier)
+                  (identifier)))
+              (binary_expression
+                (identifier)
+                (invocation
+                  (identifier)
+                  (argument_list)))
+              (identifier)
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (member_access
+                      (identifier)
+                      (identifier))))))))))))
+
+==================
+Named Select projection
+==================
+
+Class C
+    Sub Main()
+        Dim r = From c In customers
+                Select Name = c.FirstName & " " & c.LastName, Email = c.EmailAddress
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (select_clause
+              (binary_expression
+                (identifier)
+                (binary_expression
+                  (binary_expression
+                    (member_access
+                      (identifier)
+                      (identifier))
+                    (string_literal))
+                  (member_access
+                    (identifier)
+                    (identifier))))
+              (identifier)
+              (member_access
+                (identifier)
+                (identifier)))))))))
+
+==================
+Query as method argument
+==================
+
+Class C
+    Sub Main()
+        Print(From x In items Where x > 0 Select x)
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (query_expression
+                  (from_clause
+                    (collection_range_variable
+                      (identifier)
+                      (identifier)))
+                  (where_clause
+                    (binary_expression
+                      (identifier)
+                      (integer_literal)))
+                  (select_clause
+                    (identifier)))))))))))
+
+==================
+Parenthesized query expression
+==================
+
+Class C
+    Sub Main()
+        Dim r = (From x In items Select x).ToList()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (invocation
+            (member_access
+              (parenthesized_expression
+                (query_expression
+                  (from_clause
+                    (collection_range_variable
+                      (identifier)
+                      (identifier)))
+                  (select_clause
+                    (identifier))))
+              (identifier))
+            (argument_list)))))))

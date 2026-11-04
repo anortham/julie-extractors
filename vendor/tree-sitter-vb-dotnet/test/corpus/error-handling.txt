@@ -1,0 +1,229 @@
+==================
+On Error Resume Next
+==================
+
+Module M
+    Sub Main()
+        On Error Resume Next
+        DoWork()
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (on_error_statement)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))))))
+
+==================
+On Error GoTo label
+==================
+
+Module M
+    Sub Main()
+        On Error GoTo ErrorHandler
+        DoWork()
+        Return
+ErrorHandler:
+        Log("error")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (on_error_statement
+          (identifier))
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))
+        (return_statement)
+        (label_statement
+          (identifier))
+        (empty_statement)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))))))
+
+==================
+On Error GoTo 0
+==================
+
+Module M
+    Sub Main()
+        On Error GoTo 0
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (on_error_statement)))))
+
+==================
+On Error GoTo minus one
+==================
+
+Module M
+    Sub Main()
+        On Error GoTo -1
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (on_error_statement)))))
+
+==================
+Resume statement
+==================
+
+Module M
+    Sub Main()
+        On Error GoTo H
+        DoWork()
+        Return
+H:
+        Resume
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (on_error_statement
+          (identifier))
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))
+        (return_statement)
+        (label_statement
+          (identifier))
+        (empty_statement)
+        (resume_statement)))))
+
+==================
+Resume Next statement
+==================
+
+Module M
+    Sub Main()
+        On Error GoTo H
+        DoWork()
+        Return
+H:
+        Resume Next
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (on_error_statement
+          (identifier))
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))
+        (return_statement)
+        (label_statement
+          (identifier))
+        (empty_statement)
+        (resume_statement)))))
+
+==================
+Resume label
+==================
+
+Module M
+    Sub Main()
+        On Error GoTo H
+        DoWork()
+        Return
+H:
+        Resume Cleanup
+Cleanup:
+        Dispose()
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (on_error_statement
+          (identifier))
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))
+        (return_statement)
+        (label_statement
+          (identifier))
+        (empty_statement)
+        (resume_statement
+          (identifier))
+        (label_statement
+          (identifier))
+        (empty_statement)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))))))

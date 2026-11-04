@@ -1,6 +1,6 @@
 // Lua Extractor Tests - modularized structure
 
-// Submodule declarations
+mod body_spans;
 pub mod classes;
 mod complexity;
 pub mod core;

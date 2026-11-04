@@ -588,8 +588,16 @@ let mutate (box: Box) = box.Value <- 1
 let typed () = new System.IO.MemoryStream()
 let chained (s: string) = s.Trim().ToLowerInvariant()
 let print () = System.Console.WriteLine("value")
+let shadow value =
+    match value with
+    | value -> value
 "#;
     let results = extract(source);
+    let shadow = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "shadow")
+        .expect("shadow function extracted");
     let receiver_start = source.find("box.Value <-").unwrap();
     assert_eq!(
         variable_access_at(&results.identifiers, receiver_start),
@@ -614,6 +622,43 @@ let print () = System.Console.WriteLine("value")
                     || identifier.start_byte as usize != start
             }),
             "unexpected variable_ref at byte {start}"
+        );
+    }
+    for kind in [IdentifierKind::Call, IdentifierKind::TypeUsage] {
+        let rows: Vec<_> = results
+            .identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == kind)
+            .collect();
+        assert!(!rows.is_empty(), "expected {kind:?} rows");
+        assert!(
+            rows.iter().all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access"))),
+            "{kind:?} rows do not carry variable access"
+        );
+    }
+    for (start, access) in [
+        (source.find("match value").unwrap() + "match ".len(), "read"),
+        (source.find("| value").unwrap() + "| ".len(), "write"),
+        (source.find("-> value").unwrap() + "-> ".len(), "read"),
+    ] {
+        assert_eq!(
+            variable_access_at(&results.identifiers, start),
+            Some(access)
+        );
+        let identifier = results
+            .identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte as usize == start
+            })
+            .expect("shadowed variable occurrence");
+        assert_eq!(
+            identifier.containing_symbol_id.as_deref(),
+            Some(shadow.id.as_str())
         );
     }
 }

@@ -612,6 +612,93 @@ pub(crate) fn attach_vbnet_attribute_owners(
     facts: &mut [StructuralFact],
     symbols: &[Symbol],
 ) {
+    let mut work = VbnetAttributeOwnerWork::new();
+    attach_vbnet_attribute_owners_with_work(tree, facts, symbols, &mut work);
+}
+
+#[cfg(test)]
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct VbnetAttributeOwnerWork {
+    pub(crate) index_insertions: usize,
+    pub(crate) owner_lookups: usize,
+    pub(crate) candidate_inspections: usize,
+}
+
+#[cfg(not(test))]
+#[derive(Default)]
+pub(crate) struct VbnetAttributeOwnerWork;
+
+impl VbnetAttributeOwnerWork {
+    fn new() -> Self {
+        #[cfg(test)]
+        {
+            Self::default()
+        }
+        #[cfg(not(test))]
+        {
+            Self
+        }
+    }
+
+    #[inline(always)]
+    fn index_insertion(&mut self) {
+        #[cfg(test)]
+        {
+            self.index_insertions += 1;
+        }
+    }
+
+    #[inline(always)]
+    fn owner_lookup(&mut self) {
+        #[cfg(test)]
+        {
+            self.owner_lookups += 1;
+        }
+    }
+
+    #[inline(always)]
+    fn candidate_inspection(&mut self) {
+        #[cfg(test)]
+        {
+            self.candidate_inspections += 1;
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn attach_vbnet_attribute_owners_counted(
+    tree: &Tree,
+    facts: &mut [StructuralFact],
+    symbols: &[Symbol],
+) -> VbnetAttributeOwnerWork {
+    let mut work = VbnetAttributeOwnerWork::default();
+    attach_vbnet_attribute_owners_with_work(tree, facts, symbols, &mut work);
+    work
+}
+
+fn attach_vbnet_attribute_owners_with_work(
+    tree: &Tree,
+    facts: &mut [StructuralFact],
+    symbols: &[Symbol],
+    work: &mut VbnetAttributeOwnerWork,
+) {
+    let mut symbols_by_start_byte: HashMap<u32, [Option<&Symbol>; 2]> = HashMap::new();
+    for symbol in symbols {
+        work.index_insertion();
+        work.candidate_inspection();
+        let candidates = symbols_by_start_byte
+            .entry(symbol.start_byte)
+            .or_insert([None, None]);
+        let candidate = if symbol.kind == crate::base::SymbolKind::Variable {
+            &mut candidates[0]
+        } else {
+            &mut candidates[1]
+        };
+        if candidate.is_none() {
+            *candidate = Some(symbol);
+        }
+    }
+
     for fact in facts {
         if fact.node_kind != "attribute" {
             continue;
@@ -629,10 +716,19 @@ pub(crate) fn attach_vbnet_attribute_owners(
             fact.containing_symbol_id = None;
             continue;
         };
-        if let Some(symbol) = symbols.iter().find(|symbol| {
-            symbol.start_byte == declaration.start_byte() as u32
-                && symbol.kind != crate::base::SymbolKind::Variable
-        }) {
+        work.owner_lookup();
+        let parameter_attribute = declaration.kind() == "parameter";
+        let symbol = symbols_by_start_byte
+            .get(&(declaration.start_byte() as u32))
+            .and_then(|candidates| {
+                work.candidate_inspection();
+                if parameter_attribute {
+                    candidates[0]
+                } else {
+                    candidates[1]
+                }
+            });
+        if let Some(symbol) = symbol {
             fact.containing_symbol_id = Some(symbol.id.clone());
         }
     }

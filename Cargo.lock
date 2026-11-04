@@ -1087,9 +1087,7 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-erlang"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3107efc581d335488dc38d2f51ca8b7a6a98e36f07f95a8e963f031edda6f568"
+version = "0.21.0-julie.1"
 dependencies = [
  "cc",
  "tree-sitter-language",
@@ -1231,8 +1229,7 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-powershell"
-version = "0.26.4"
-source = "git+https://github.com/airbus-cert/tree-sitter-powershell?rev=d398441825243b00e317e87e1829b9d6a3e54ce0#d398441825243b00e317e87e1829b9d6a3e54ce0"
+version = "0.26.6-julie.1"
 dependencies = [
  "cc",
  "tree-sitter-language",
@@ -1325,8 +1322,7 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-sequel-tsql"
-version = "0.4.2"
-source = "git+https://github.com/anortham/tree-sitter-sql?rev=63ea933e464813d01cab5d7febcb0f77409c247b#63ea933e464813d01cab5d7febcb0f77409c247b"
+version = "0.4.2-julie.1"
 dependencies = [
  "cc",
  "tree-sitter-language",
@@ -1364,8 +1360,7 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-vb-dotnet"
-version = "0.1.0"
-source = "git+https://github.com/LuisCarreras/tree-sitter-vb-dotnet?rev=25dca4ac1456c691e2381a2d76151ef432aefc9e#25dca4ac1456c691e2381a2d76151ef432aefc9e"
+version = "0.1.0-julie.1"
 dependencies = [
  "cc",
  "tree-sitter-language",

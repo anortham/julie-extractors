@@ -3,9 +3,10 @@ use crate::base::{
     Visibility,
 };
 use std::collections::HashMap;
-use tree_sitter::Node;
+use tree_sitter::{Node, Tree};
 
 use super::attributes::AttributeHandler;
+use super::body_hash::EmbeddedBlocks;
 use super::helpers::{HTMLHelpers, element_body_span};
 
 /// Script and style tag extraction
@@ -19,6 +20,7 @@ impl ScriptStyleExtractor {
         parent_id: Option<&str>,
         mocha_bdd_contract: bool,
         embedded: &mut Vec<ExtractionResults>,
+        embedded_blocks: &mut EmbeddedBlocks,
     ) -> Vec<Symbol> {
         let attributes = HTMLHelpers::extract_attributes(base, node);
         let content = HTMLHelpers::extract_text_content(base, node);
@@ -34,8 +36,12 @@ impl ScriptStyleExtractor {
 
         if !has_src
             && is_javascript
-            && let Some(mut results) =
-                extract_embedded_block(base, node, script_block_language(&attributes))
+            && let Some(mut results) = extract_embedded_block(
+                base,
+                node,
+                script_block_language(&attributes),
+                embedded_blocks,
+            )
         {
             crate::embedded::retain_symbols(&mut results, |symbol| {
                 !has_test_role_metadata(symbol)
@@ -116,6 +122,7 @@ impl ScriptStyleExtractor {
         node: Node,
         parent_id: Option<&str>,
         embedded: &mut Vec<ExtractionResults>,
+        embedded_blocks: &mut EmbeddedBlocks,
     ) -> Vec<Symbol> {
         let attributes = HTMLHelpers::extract_attributes(base, node);
         let content = HTMLHelpers::extract_text_content(base, node);
@@ -124,7 +131,7 @@ impl ScriptStyleExtractor {
         // (<!-- … -->) can be attached to it as doc_comment.  Embedded CSS
         // symbols (class selectors, custom properties, etc.) are appended
         // afterwards so callers that look for either find what they expect.
-        let embedded_css_symbols = extract_embedded_block(base, node, "css")
+        let embedded_css_symbols = extract_embedded_block(base, node, "css", embedded_blocks)
             .map(|mut results| {
                 let symbols = std::mem::take(&mut results.symbols);
                 embedded.push(results);
@@ -201,7 +208,7 @@ fn is_jsx_script_type(script_type: &str) -> bool {
     matches!(script_type, "text/babel" | "text/jsx")
 }
 
-fn script_block_language(attributes: &HashMap<String, String>) -> &'static str {
+pub(super) fn script_block_language(attributes: &HashMap<String, String>) -> &'static str {
     if attributes
         .get("type")
         .is_some_and(|script_type| is_jsx_script_type(script_type))
@@ -217,18 +224,7 @@ pub(super) fn is_mocha_script_source(source: &str) -> bool {
     source.rsplit('/').next() == Some("mocha.js")
 }
 
-pub(super) fn contains_mocha_bdd_setup(content: &str) -> bool {
-    let mut parser = tree_sitter::Parser::new();
-    if parser
-        .set_language(&tree_sitter_javascript::LANGUAGE.into())
-        .is_err()
-    {
-        return false;
-    }
-    let Some(tree) = parser.parse(content, None) else {
-        return false;
-    };
-
+pub(super) fn contains_mocha_bdd_setup(content: &str, tree: &Tree) -> bool {
     let mut nodes = vec![tree.root_node()];
     while let Some(node) = nodes.pop() {
         if node.kind() == "call_expression"
@@ -302,21 +298,16 @@ fn js_string_value(text: &str) -> Option<&str> {
 fn extract_embedded_block(
     base: &BaseExtractor,
     node: Node,
-    language: &str,
+    language: &'static str,
+    embedded_blocks: &mut EmbeddedBlocks,
 ) -> Option<ExtractionResults> {
-    let mut cursor = node.walk();
-    let raw_text = node
-        .children(&mut cursor)
-        .find(|child| matches!(child.kind(), "text" | "raw_text"))?;
-    let source = base.content.get(raw_text.byte_range())?;
-    if source.trim().is_empty() {
-        return None;
-    }
-    let mut results = crate::embedded::extract_embedded(
+    let (source, tree, host_byte_offset) = embedded_blocks.source_and_tree(base, node, language)?;
+    let mut results = crate::embedded::extract_embedded_tree(
         language,
+        tree,
         source,
         &base.content,
-        raw_text.start_byte(),
+        host_byte_offset,
         &base.file_path,
         std::path::Path::new(""),
         ExtractionLevel::Full,

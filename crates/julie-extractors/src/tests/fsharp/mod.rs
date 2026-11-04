@@ -169,6 +169,7 @@ module Domain =
         by_name["Value"].doc_comment.as_deref(),
         Some("Value property")
     );
+    assert_eq!(by_name["add"].doc_comment, None);
     assert_eq!(by_name["Domain"].annotations[0].annotation_key, "autoopen");
     assert_eq!(by_name["Person"].annotations[0].annotation_key, "sealed");
     assert_eq!(by_name["Answer"].annotations[0].annotation_key, "literal");

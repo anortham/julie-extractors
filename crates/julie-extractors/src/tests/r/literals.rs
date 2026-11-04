@@ -21,6 +21,7 @@ fn capture(code: &str) -> Vec<Literal> {
         .set_language(&tree_sitter_r::LANGUAGE.into())
         .expect("load R grammar");
     let tree = parser.parse(code, None).expect("parse R");
+    assert!(!tree.root_node().has_error(), "{code}");
     let mut ext = RExtractor::new(
         "r".to_string(),
         "test.R".to_string(),
@@ -30,6 +31,12 @@ fn capture(code: &str) -> Vec<Literal> {
     let symbols = ext.extract_symbols(&tree);
     ext.extract_identifiers(&tree, &symbols);
     ext.base().literals.clone()
+}
+
+#[test]
+fn non_call_strings_emit_no_argument_literals() {
+    let code = "title <- \"assigned\"\n\"standalone\"\n";
+    assert!(capture(code).is_empty());
 }
 
 #[test]

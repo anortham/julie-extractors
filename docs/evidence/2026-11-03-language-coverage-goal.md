@@ -12,11 +12,34 @@ Tasks 1, 2 and 4 run in parallel under the plan ownership table. Shared manifest
 
 ## Remaining acceptance
 
-All goal completion criteria remain open until verified against the integrated source. This file records execution evidence, not a completion claim.
+Overall goal acceptance remains open. This file records the gates that passed and the work that is still pending; the latest summary is below.
+
+## Current body policy
+
+Definition and value bodies need not be executable. Preserve Bash assignment
+RHS values, F# let-binding RHS values, C# property accessor lists, recognized
+R class-factory argument payloads, QML type-info descriptor interiors, Erlang
+config values and empty CSS braced rules. Programming parameters identified by
+`metadata.role=parameter` have no body; QML descriptors use `typeinfo_kind`
+and remain distinct. Code module headers, import operands, signal signatures
+and accidentally selected nested expressions do not gain bodies from textual
+delimiter inference. This policy supersedes contrary candidate notes below.
+
+The central parameter regression reproduced a TypeScript callback body of
+`()` before the fix. The factory now skips body inference for parameter rows.
+The canonical TypeScript/TSX function/object type and decorator cases, Kotlin
+function type and Zig generic type argument cases retain callable bodies and
+clear parameter spans/hashes. Focused body tests pass 10/10 in
+`target/coverage-parameter-final.log`; the marker red check fails as expected
+in `target/coverage-parameter-marker-red.log`. The marker green check selects
+one passing test (`target/coverage-parameter-marker-green.log`). Kotlin passes
+194 unit tests plus its golden comparison; Zig passes 137 plus its golden
+comparison (`target/coverage-parameter-{kotlin,zig}-final.log`). Their six
+corrected parameter rows change only body spans and hashes.
 
 ## Baseline binary
 
-The preserved binary is `target/coverage-baseline/julie-extract-3.11.0`, copied before candidate builds. It reports `julie-extract 3.11.0`; SHA-256 is `79eb21fa95d39445e78b7237a0300fe071649d5671db0fbc4b3baff0ee2fd78d`, matching `docs/release-evidence/v3.11.0-access-facts.md`. That establishes the published-source baseline without rebuilding from an unproven toolchain. ELF `.comment` inspection confirms the baseline was built with Rust `1.97.1 (8bab26f4f 2026-07-14)` and LLD 22.1.6, matching the current toolchain. Candidate measurements must record their own hash and build environment.
+The preserved binary is `target/coverage-baseline/julie-extract-3.11.0`, copied before candidate builds. It reports `julie-extract 3.11.0`; SHA-256 is `79eb21fa95d39445e78b7237a0300fe071649d5671db0fbc4b3baff0ee2fd78d`, matching `docs/release-evidence/v3.11.0-access-facts.md`. This is the measured local final 3.11.0 candidate, not the public Linux asset (SHA-256 `008372ec7a61f0921ef687d20e24c67547255f603d7dbca08710f8e27bef28bc`). The publication evidence records identical comparable fact tables for those binaries. The historical invocation is unknown. An isolated clean-source rebuild at `f9a1b6cf` with the recorded locked offline release recipe reproduced this exact executable hash; the hash-bound source, toolchain, feature graph and recipe are archived in `2026-11-03-language-coverage/baseline-build.json` and `baseline-reproduction.md`. The runner toolchain is recorded separately from binary provenance. ELF `.comment` inspection confirms the baseline was built with Rust `1.97.1 (8bab26f4f 2026-07-14)` and LLD 22.1.6, matching the current toolchain. Candidate measurements must record their own hash and build environment.
 
 Native Windows execution is available through `win-test`; the guest was shut off during initial inspection. No Windows acceptance result has been claimed.
 
@@ -49,6 +72,8 @@ The direct canonical extraction of `<script src="external.js">inlineText()</scri
 ## Audit preparation
 
 A temporary candidate-proof inventory accounts for all 630 language/domain cells and every advertised supported unit. Relationship-kind evidence includes existing direct and pending relationship families, following the capability validator. No supported unit lacks a candidate positive golden pointer after the five body dispositions. This inventory is only a navigation aid; it does not establish semantic correctness, negative/boundary proof, or audit completion.
+
+This was the audit's initial inventory, not its final disposition. The lead-owned canonical matrix and the current validation result are recorded in "Integrated verification status" below.
 
 ## Task 1 reviewed acceptance
 
@@ -96,11 +121,11 @@ The web audit confirmed that four-level annotation assertions currently cover Ru
 
 ## Task 3 validator component
 
-The independent checker/renderer component is reviewed; the real language audit remains open. Worker tests cover missing/duplicate/unknown cells; malformed/foreign-family proof; named tests hidden in strings/comments; source bytes/coordinates/ownership; observed-only families; exact retained IDs; unresolved defects; and safe deterministic Markdown output. The checker shares the report's 15-domain export.
+The independent checker/renderer component was reviewed before the real language audit finished. Its worker tests cover missing/duplicate/unknown cells; malformed/foreign-family proof; named tests hidden in strings/comments; source bytes/coordinates/ownership; observed-only families; exact retained IDs; unresolved defects; and safe deterministic Markdown output. The checker shares the report's 15-domain export. The lead later integrated the canonical matrix; its final status is below.
 
 Lead review additionally reproduced an invalid access proof: a `call`/`type_usage` row carrying `access=read` was accepted as variable access. The new selected mutation failed before the fix; `hasVariableAccess` now requires `variable_ref` or `member_access`. The same test preserves positive variable/member cases. Focused and final whole checks pass: 1 and 31 tests respectively, zero failures. Final logs are `/tmp/julie-matrix-access-red.log`, `/tmp/julie-matrix-access-green.log`, and `/tmp/julie-matrix-final-tests.log`; worker lexical-declaration logs are in SDD `logs/`. Reviewed checker/test source digest is `cfad95ab0326275e39fb74ccc2c9ecc9d72f6859650bd49b7179de4f87e82ca7` on top of `59c8df54`. `check_edit` reports no changed callable shapes.
 
-The default real-matrix command still fails for a missing `validation-matrix.json`, intentionally. Only fast validator mutation tests are added to CI at this stage. Canonical data, final 630-cell validation and its CI gate remain Task 3 acceptance work.
+The initial validator handoff intentionally failed closed because `validation-matrix.json` did not exist yet. The lead has since integrated the 630-cell matrix, and the current checker passes. The final matrix status and log are recorded below.
 
 ### Task 3 native assignment: C-TYPEDEF-BODY-SPAN
 
@@ -108,7 +133,7 @@ The native audit reproduced an extra body kind in the registered C declarator go
 
 ### Task 3 scripting diagnostic reproductions
 
-The scripting audit replayed the PowerShell variable-path argument diagnostics and Erlang documentation/catch macro diagnostics. Assigned only `crates/julie-extractors/src/tests/powershell/import_source.rs` for a minimal valid argument-mode path reproduction. Production/parser ownership remains pending source and official-syntax analysis. Erlang macro cases require further triage before any new boundary or fix is asserted; preserve positive recovered facts and uncertainty.
+The initial scripting audit replayed PowerShell variable-path argument diagnostics and Erlang documentation/catch macro diagnostics. The PowerShell worker later vendored the 0.26.6 grammar with adjacent-variable path parsing and corrected import/body ownership; its focused import suite passed 16/16 and its language tier passed 165 tests plus a golden comparison. The Erlang worker later added the macro catch-head grammar branch and variable/body corrections; the vendored 231-case grammar corpus passed, and the feature-gated Telemetry extraction test passed with no parse diagnostics. The broader Erlang release profile remains under review because the final symbol total differs from the old expected count, as recorded below.
 
 The web worker also owns `crates/julie-extractors/src/tests/qml/wave2_gaps.rs` for canonical annotation-level characterization. Existing direct QML attachment tests remain; the new test must assert exact keys at all levels, zero diagnostics and declaration source slices. No production QML correction is assumed.
 
@@ -118,7 +143,7 @@ Assigned `crates/julie-extractors/src/tests/extraction_levels.rs` to the scripti
 
 ### Task 3 SQL correction ownership
 
-Current SQL docs/ledger advertise routines, RETURNS types, parameter/column counts, body spans and PK/FK facts without the old July plan's test-scope boundary. Fresh probes demonstrate missing/misnamed routines, bogus/missing columns and lost constraints. Recorded IDs: SQL-PROCEDURE-HEADER, SQL-TEMPORAL-COLUMNS, SQL-INLINE-TVF, SQL-BRACKETED-CONSTRAINTS. Assign a separate SQL implementer the exact production/test/new-fixture paths listed in SDD `task-3-sql-brief.md`; the domain auditor keeps matrix work. Parser edits require a source-backed proposal and explicit vendor/source assignment, while the lead retains manifests/lock/status/markers. Additional DECLARE-AS type loss remains a candidate requiring an exact source/test assignment. These defects are in scope; older certification coverage cannot be used to reclassify them away.
+Current SQL docs/ledger advertise routines, RETURNS types, parameter/column counts, body spans and PK/FK facts without the old July plan's test-scope boundary. Fresh probes demonstrated missing/misnamed routines, bogus/missing columns and lost constraints. The SQL worker fixed SQL-PROCEDURE-HEADER, SQL-TEMPORAL-COLUMNS, SQL-INLINE-TVF, SQL-BRACKETED-CONSTRAINTS and the related SQL-TRANSACTION-FACTS and SQL-TSQL-COMPOUND-ASSIGNMENT defects. The separate SQL-DECLARE-AS-TYPE correction preserves the declared type in `DECLARE @AreaCode AS NVARCHAR(4)`; `tsql_declare_as_keeps_the_declared_type` covers it. Older certification coverage did not excuse these defects.
 
 ### Task 3 native body ownership assignments
 
@@ -180,4 +205,143 @@ C-TYPEDEF-BODY-SPAN, GO-NONBODY-SPANS and SWIFT-PARAMETER-BODY are reviewed. The
 
 The source digest over the fourteen ordered source/test/golden/marker paths is `9c3c59d5d6dc47f287ca36283c7ee70f57403af902e5ff09ce9fce7a8c20b11a` on top of `7257ec1f`. Final focused checks pass: C typedef-related filter16 tests, Go1, Swift1. Logs: `/tmp/julie-native-c-reviewed-green.log`, `/tmp/julie-native-go-reviewed-final.log`, `/tmp/julie-native-swift-reviewed-green.log`. Earlier integration attempts encountered transient Rust syntax/helper errors in concurrently authored Erlang/Elixir tests; their owners corrected those before the successful runs. Native worker language tiers pass C141, Go173, Swift182 plus one selected golden each; captured SDD `task-3-native-*-language-final.log`. Final focused source has the same production changes and stronger preservation assertions. Scoped rustfmt and diff whitespace checks pass. `check_edit` reports no changed callable shapes.
 
-Root declares `declaration-body-ownership-v1` in the extraction contract and output ledger; its API assertion failed before the marker and passed afterward. Captured logs `/tmp/julie-native-body-marker-red.log`, `/tmp/julie-native-body-marker-green.log`; final recheck is `/tmp/julie-native-body-marker-final.log`. This completes only the native body-ownership slice. Matrix, parser corrections and all goal integration gates remain open.
+Root declares `declaration-body-ownership-v1` in the extraction contract and output ledger; its API assertion failed before the marker and passed afterward. Captured logs `/tmp/julie-native-body-marker-red.log`, `/tmp/julie-native-body-marker-green.log`; final recheck is `/tmp/julie-native-body-marker-final.log`. At that slice's handoff, the matrix and parser corrections were still open. The matrix and source corrections are now integrated; remaining acceptance is listed below.
+
+### Additional source-owned body corrections
+
+The scripting auditor verified two false body families from exact source slices. Bash readonly constants (`readonly MAX=3`) claim the initializer `3` as a body. Assign `src/bash/variables.rs`, `tests/bash/wave2_gaps.rs` and the Bash basic/scripts/commands goldens to that auditor. Clear non-owning variable/constant bodies while preserving real function bodies and useful facts.
+
+PowerShell `#Requires -Modules Az.Accounts, @{ ModuleName = 'Pester'; ModuleVersion = '5.0' }` gives both imports the options hashtable as a body. Assign the dedicated PowerShell worker its already-owned imports.rs/import_source.rs plus `fixtures/extraction/powershell/module/expected.json` for the correction. Nonempty bytes and hashes alone do not justify new body support claims.
+
+The HTML annotation fixture exposed JSX field `@Input() name;` inheriting decorator parentheses `()` as its body. Assign the web auditor new `tests/web_body_spans.rs`, `src/typescript/interfaces.rs::extract_property` and `src/javascript/types.rs::extract_property` for source-local property corrections and exact web body/hash controls. Root registered the test module. Preserve genuine field function bodies. The existing TypeScript language_gaps and JavaScript/JSX agent_usefulness goldens are assigned to the web worker; root coordinates the new HTML annotations golden with the domain auditor. New HTML claims are class/field/method annotation support and method symbols/bodies, backed by the registered fixture. Canonical symbols keep inner JSX language attribution and host source coordinates.
+
+Assign `tests/powershell/wave2_gaps.rs` to the scripting auditor for nested function body exact-slice/hash boundaries, separate from the dedicated PowerShell import tests. Root wired the reviewed PowerShell and Erlang vendor paths, exclusions, dependency status and fixture registrations. Cargo resolved only the two intended parser package changes; consumer builds use checked-in C inputs. Build commands use `target/coverage-tmp` as TMPDIR after the shared system tmpfs hit its quota while writing generated-parser assembly.
+
+The XML auditor challenged the current complexity N/A classification with an already-supported XSLT template function containing conditions and loops. A read-only architecture review is checking the product boundary and the smallest honest metric implementation before any shared complexity code is assigned.
+
+### XML XSLT metric implementation boundary
+
+Astra confirmed this is a false blanket N/A under the already-approved XSLT vocabulary. Assign the domain auditor new `src/xml/complexity_metrics.rs`, XML source/test module registration, `tests/xml/complexity_metrics.rs`, a dedicated `xml/complexity/source.xslt` fixture and affected existing XML expected goldens. Root keeps registry dispatch, capability scope advertisement, manifests, applicability, docs and marker changes. Reuse `julie-ast-complexity-v1` counts: XSLT if/when decisions, for-each loops, decision/loop nesting and direct callable param declarations. Exclude with-param, duplicate choose/otherwise decisions and XPath-expression internals. Resolve the XSLT namespace URI in one traversal, including prefix rebinding; plain/foreign XML does not become code. Cover anonymous match templates in file totals and named template/function ownership, full-level-only output and deterministic operation-count scaling.
+
+### Native access characterization assignment
+
+Assign a separate native access worker the following exact test paths beneath `crates/julie-extractors/src/tests/`: `rust/identifiers.rs`, `c/identifier_extraction.rs`, `cpp/identifier_extraction.rs`, `go/identifiers.rs`, `zig/identifiers.rs`, `swift/identifiers.rs`, `kotlin/identifiers.rs`, `scala/mod.rs`, `java/identifier_extraction.rs`, `dart/identifiers.rs`, `csharp/identifier_extraction.rs`, `vbnet/identifiers.rs`. Existing read/write/member/compound tests stay. Add exact outer/inner same-name occurrences and non-vacuous Call/TypeUsage no-access assertions where those kinds are claimed. The original native auditor keeps matrix/VB work and does not edit these test files. Production access fixes require a separate source-backed ownership assignment.
+
+Bash golden ownership additionally includes `bash/bats/expected.json`: TMP command substitution is another literal initializer incorrectly treated as a constant body. Preserve its source and clear only non-owning body fields through the same variable extractor correction.
+
+### ECMAScript import and variable body corrections
+
+The web auditor verified false bodies in all four dialects: ES import specifier lists `{ Foo }`/`{ foo }` and ordinary initializer argument lists `()`/`(routes)`. Extend its source ownership to `typescript/imports_exports.rs::extract_import`, `typescript/functions.rs::extract_variable`, `javascript/imports.rs::create_import_symbol` and `javascript/variables.rs::extract_variable`. Add four-dialect regressions in the already-owned web_body_spans tests, preserving real callable variable/function bodies. This worker owns affected registered expected goldens throughout `fixtures/extraction/{typescript,tsx,javascript,jsx}/`; review changes as body-only deltas and request ownership for any other language. Root keeps capability N/A decisions, marker and output ledger changes; HTML remains coordinated with the domain auditor. Export wrappers owning actual function/class/interface definitions and type definition payloads remain separate from external references and ordinary initializer arguments.
+
+Bash source ownership also includes `bash/helpers.rs::body_span` so its incorrect assignment-value body rule can be removed at the producer. Verify a deliberate no-body language hook cannot fall through to generic delimiter inference; remove redundant constructor clearing when unnecessary.
+
+### Scripting access characterization assignment
+
+Assign an independent worker the following exact test paths beneath `crates/julie-extractors/src/tests/`: `elixir/identifiers.rs`, `fsharp/wave2.rs`, `erlang/identifiers.rs`, `r/superassignment.rs`, `bash/wave1_gaps.rs`, `powershell/identifier_extraction.rs`, and `gdscript/identifier_extraction.rs`. Close missing source-specific shadowing and non-vacuous call/type no-access boundaries while reusing real receiver/member/compound tests. Do not fabricate TypeUsage proof for a language that does not claim that identifier kind. The scripting auditor keeps its matrix, Bash producer correction, Phoenix and annotation contract paths; these seven files belong to the independent access worker.
+
+### VB parameter annotation ownership correction
+
+Parser-side repeated attributes exposed the next local defect: `attach_vbnet_attribute_owners` rejects every Variable symbol, including the existing parameter symbol at the attribute owner's exact start byte. Assign the native auditor only `src/base/code_structural_facts.rs::attach_vbnet_attribute_owners` plus necessary private indexing helpers/imports in that file. Permit Variable owners only for actual parameter declarations; preserve non-variable declaration owners and file-targeted assembly/module attributes without invented owners. Build symbol-owner lookup once per invocation rather than scanning all symbols for each attribute. The already-owned VB test/fixture must prove adjacent attributes, preserved parameter types/owners, ordinary/single-block/malformed controls and non-vacuous attribution. Root keeps capability/snapshot/marker integration. These are structural attribute facts; do not count them as generic Symbol.annotations support without separate emitted-marker evidence.
+
+### Additional source-local body implementation ownership
+
+Assign a dedicated scripting-body worker `src/elixir/parameters.rs`, `src/fsharp/declarations.rs (read-only policy context)`, `src/r/mod.rs`, `src/r/idioms.rs`, and `src/gdscript/signals.rs` for the proven parameter-pattern, ordinary value/import and signal-signature false bodies. It also owns new `tests/scripting_body_spans.rs` and affected registered Elixir/F#/R/GDScript expected goldens. Root registers the test module and reconciles capability claims. Preserve actual callable/lambda/active-binding/type bodies and all useful facts; no shared generic fallback removal.
+
+Astra's R decision preserves recognized R6/S4/reference/S7 class definitions but replaces accidental delimiter inference with the factory's actual argument-node span. These DSL payload bodies include class-name/configuration arguments; no rename-insensitivity is claimed. Prove nested methods, fields-only/empty classes, argument ordering, member/method-change hashes and comment/Unicode boundaries.
+
+Assign the Erlang correction worker `src/erlang/identifiers.rs`, optional local `variable_access.rs` plus module registration, `src/erlang/{mod,attributes,definition_forms,term_config,helpers}.rs` and local body production as needed for ordinary-variable occurrence facts and proven false module/macro/field/config body spans. Tests `tests/erlang/identifiers.rs` transfer after the access worker's stable handoff, plus dedicated synthetic body tests/fixtures; affected registered Erlang goldens are owned by this worker. Root retains shared access-policy changes, markers and capability decisions. Use syntax-local occurrence binding state, not type inference's function-wide BodyBindings aggregation; preserve single assignment, clause/fun/branch/generator scope and unresolved dynamic calls.
+
+### PowerShell computed dot-source assertion correction
+
+The old module-command test expects a static Common import from computed `Join-Path` output. Assign only `tests/powershell/wave2_gaps.rs::module_commands_emit_one_row_per_member_and_narrow_unexported_functions` to the PowerShell correction worker to remove that fabricated-target expectation and assert retained Join-Path call/literal evidence and no invented static import. The scripting auditor's newly added nested-body test remains intact. Do not format this shared file concurrently.
+
+Assign `tests/elixir/literals.rs` to the scripting auditor for a genuine non-call string negative literal assertion, retaining the existing argument-position boundary test.
+
+The real Telemetry test is feature-gated outside default. Root added it to real-world-release routing; the route expectation failed before wiring and all24 test-tier contracts passed afterward (target/coverage-erlang-routing-red.log and -green.log).
+
+### Body-policy correction supersedes the Bash/F# candidates
+
+The September Bash decision explicitly defines assignment values as bodies; the F# adapter explicitly returns a binding's RHS expression; C# explicitly owns a property's accessor list. Non-executability alone does not invalidate a body. Restore Bash production behavior and goldens, assert exact RHS spans and hashes, and advertise the already-emitted Constant body kind. Keep F# record-valued bindings and C# auto-property accessor lists. Earlier Bash/F# false-body candidate statements in this chronological ledger are superseded, not accepted defects. The R class DSL payload boundary is explicitly its factory argument node; imports, signatures, parameter fragments and accidentally selected nested bodies remain distinct.
+
+The scripting-body worker may read F# declarations and add positive body-policy tests, but does not clear or change its producer. It owns Elixir parameter, R import/value/class-body and GDScript signal corrections plus new scripting_body_spans tests and a dedicated R body_semantics fixture when needed. Exact source ownership is Elixir parameters.rs, R mod.rs/idioms.rs, GDScript signals.rs. Retain real callable/type/R6 active-binding bodies.
+
+The confirmed access claimants are33 languages, including XML; CSS access is N/A. Assign the domain auditor new HTML/SQL/XML identifier_access_coverage test files for source-specific exact access/shadowing/no-access proof, and a CSS negative characterization file. Root registers HTML/CSS/SQL modules; the worker already owns XML test-module registration. Do not invent runtime assignment/lexical-scoping semantics for declarative XML or CSS.
+
+### Web body follow-up ownership
+
+Extend the web auditor's production ownership to `javascript/exports.rs::extract_export_rows`, `qml/imports.rs`, the signal and ordinary-local-variable branches of `qml/mod.rs::traverse_node`, `lua/core.rs::extract_bare_require_import`, and the Ruby-only assignment handling in `ruby/assignments.rs::extract_assignment`. Preserve Python behavior in the shared Ruby assignment helper and real lambda/proc/function bodies. Export lists and re-exports reference external definitions; inline function/class/interface/arrow declarations retain their actual definition body, including expression-bodied arrows. QML reactive property binding semantics are outside the local-variable cleanup. The web worker owns affected registered expected goldens throughout its eleven audited languages, except the new HTML annotations fixture retained by the domain worker. Root retains claims and output declarations.
+
+The web auditor has finished `tests/source_regions.rs`. Transfer only `supported_languages_with_source_region_syntax_emit_regions` and its necessary local exact-region helpers to the native auditor. Preserve the eleven completed web cases and strengthen native/remaining existing table cases to exact semantic source slices/byte spans, with explicit absence rather than kind presence. No production changes follow from this test ownership.
+
+### Narrow follow-up production ownership
+
+Assign the PowerShell worker `src/powershell/variables.rs` and reuse/visibility changes only for `type_facts.rs::value_core`: ordinary hash/array/call initializer fragments must not become implementation bodies, while directly owned scriptblock bodies remain exact. The worker's existing import_source tests and registered PowerShell goldens cover the correction; root reconciles the real Variable/Constructor body claims.
+
+Add `src/qml/locals.rs::extract_declaration` to the web worker's ordinary-local-variable body correction; do not conflate reactive property bindings with local initializers.
+
+Allow the Erlang access worker only the visibility change to `type_facts.rs::pattern_fields` so the occurrence pass reuses the existing grammar vocabulary without importing function-wide type-binding state.
+
+The native exact-region test reproduced Swift string text `/* not a comment */` also emitted as Comment. Assign the native auditor `src/base/source_regions.rs::collect_node` plus necessary local context helpers for a source-backed, Swift-specific correction. Preserve comments inside genuine interpolation code and nested literal handling; do not stop traversal of all strings across languages. Inspect actual AST kinds first. Root owns affected capability/marker/golden coordination.
+
+### Swift literal and Razor comment-hash boundaries
+
+The native worker also owns new Swift literal/interpolation/Unicode tests in source_regions.rs and `fixtures/extraction/swift/source_regions/{source.swift,expected.json}`. The pinned Swift grammar exposes comment-looking literal text as comment nodes, while actual interpolation code has distinct ancestors. Keep genuine interpolation comments and nested strings with a Swift-specific traversal context; do not suppress all string descendants.
+
+Assign the web worker `razor/mod.rs::extract_symbols` and a reusable crate-private AST comment-masking helper. Collect actual comment-node ranges once, mask only those bytes in one full-source copy (retain CR/LF and byte length), then rehash body spans against that same masked source. Do not copy/reparse the full file for each symbol or globally treat markup URLs as C# line comments. Prove component and method comment-only stability plus meaningful markup/string/code changes. Root updates body-evidence recomputation to use the same grammar-derived normalization context once per Razor fixture, retaining original source bytes for span validation.
+
+### Remaining named evidence and Erlang body ownership
+
+Assign the domain auditor HTML complexity_metrics.rs, CSS body_spans.rs/literals.rs, qmldir source_regions.rs, and additions in HTML types.rs/literals.rs for source-backed positive/confusable/boundary assertions. Root registers new modules. Empty braced rule/accessor/member-list bodies remain valid; negative assertions must follow actual language policy.
+
+The native auditor owns only the PowerShell branch of source_regions.rs::config_for_language for wrapper/child string-region deduplication and its five granted PowerShell goldens (cross_file, test_roles, script_features, module, reference_targets). Preserve here/verbatim/interpolated/nested literals.
+
+Assign the Erlang worker attributes.rs::extract_module/extract_macro/extract_record_field: no code module-header or record-field type-call bodies; macro bodies use the actual replacement field. Preserve explicit term-config VALUE bodies and record/type definition payloads. The separate body negative test in tests/erlang/symbols.rs belongs to the scripting auditor; macro positive coverage belongs to the Erlang worker.
+
+Canonical local IDs: ECMASCRIPT-NONCALLABLE-FIELD-BODY is recorded once in html.body_spans; web variant cells cross-reference it. VBNET-PARAMETER-ATTRIBUTE-GRAMMAR belongs to vbnet.symbols, VBNET-PARAMETER-ATTRIBUTE-OWNER to vbnet.structural_facts, XML-XSLT-COMPLEXITY to xml.complexity_metrics, SQL-TSQL-COMPOUND-ASSIGNMENT to sql.identifier_metadata, SWIFT-LITERAL-COMMENT-REGION to swift.source_regions and POWERSHELL-DUPLICATE-STRING-REGION to powershell.source_regions.
+
+Task5's one-pass methodology review found unverified intermediate update states/fresh equivalence, prebuilt-binary provenance attributed to the runner, incompatible baseline/candidate fact expectations, disjoint allowlist-scope rejection and missing normalized metrics. Root verified these against current source and returned the complete component for correction before timing. The pinned79eb baseline is the measured local final3.11 binary; the public3.11 binary is008372ec, with18-table equivalence recorded in publication evidence. Do not relabel or silently replace the selected baseline.
+
+### SQL access producer ownership
+
+The compound-assignment parser regression now reaches the source-fact stage. Assign the SQL worker `src/sql/identifiers.rs` and only SQL-specific rules/helpers in `src/base/variable_access/wave2b.rs` for UPDATE-column write and SET-variable read/write facts. Verify expected identifier kind against the existing SQL contract; preserve unrelated language rules and all Call/TypeUsage access exclusions. The domain auditor retains its standalone access test; the SQL worker owns producer tests in its already-assigned files. The generated SQL corpus is500/500 and focused T-SQL tests47/47 before this final access correction.
+
+### Literal negative and body-policy evidence tests
+
+Assign a separate web-literal evidence worker existing `tests/{typescript,javascript,vue,qml,python,php,ruby,lua}/literals.rs` and new `tests/javascript/jsx_literals.rs`/`tests/typescript/tsx_literals.rs`. Source-verify each producer's literal contract before choosing negatives; do not exclude useful native numeric/data literals by assumption. Keep TSX/JSX direct variant extraction evidence, exact carriers/positions/spans, and nonempty positives. Root registers new modules; production gaps require a new exact source assignment.
+
+The scripting auditor also owns R/GDScript literals.rs no-call string negatives, R identifiers.rs member/VariableRef exclusion, F# gap_closure.rs/semantic_facts.rs/mod.rs documentation/type-argument/abstract-member controls, and GDScript wave1_gaps.rs exact callable-body boundaries. Their existing Erlang symbols.rs negative uses the module and record fields, while keeping the defined open/1 body positive.
+
+
+## Frozen corpus and original-baseline expectations
+
+The manifest SHA-256 is `fb6e6a8a286acd8900094023d5d8c2b110695eb459c35b52bdfb642fd1a58ec6` after setting the corrected SQL candidate diagnostic count to zero. Erlang Telemetry's diagnostic probe now points to its actual pinned revision `8d8af76720856bcf26641ee1307658ad8f25e466`; its exact source hash remains unchanged. The manifest contract regression rejects revisions borrowed from unrelated registered projects.
+
+The untimed original-baseline capture produced ten snapshots across references/full levels and original/updated/restored source states. Every snapshot scanned 44 files with zero failed/unsupported files; original-baseline diagnostics remain one malformed Rust diagnostic and nine SQL diagnostics. The candidate scan and unresolved release-profile comparison are recorded below. The receipt is archived at `2026-11-03-language-coverage/baseline-receipt/baseline-expectations.json`, SHA-256 `ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e`. Four compressed raw semantic dumps and their compressed/uncompressed checksums are archived alongside it. No timings are claimed by this capture.
+
+## Source-local C diagnostic boundary
+
+All twenty diagnostic probes index without failed or unsupported files. SQL now has zero diagnostics. Four C diagnostics occur at raw `TS_PUBLIC` prefixes in the pinned tree-sitter `alloc.c`. The same revision's `alloc.h` defines that macro as empty on Windows/hidden builds and otherwise as `__attribute__((visibility("default")))`; header SHA-256 is `2ad7cc5391be8043ffdcc111b9b21b7767f592790fc8389acb6fcee7fd1acb61`. Explicit synthetic controls replacing the prefixes with each actual branch both parse without diagnostics. These controls establish the external-header dependency; production does not read hidden headers, preprocess text or suppress diagnostics. Raw source diagnostics remain visible.
+
+## Additional exact producer ownership
+
+The web worker owns `csharp/members.rs::extract_method`, its `tests/web_body_spans.rs` regression and Razor `members/expected.json` for `RAZOR-METHOD-SIGNATURE-BODY`: `IValidatable.Validate();` must not own `()`, while `FormModel.Validate() => true` retains its expression body. The earlier shared delegate correction and C#/Razor interpolation helper are separately tested. The SQL `DECLARE @AreaCode AS NVARCHAR(4)` correction is `SQL-DECLARE-AS-TYPE`; it advances past the optional grammar `AS` token and preserves the actual type.
+
+## Shared body-hash correction evidence
+
+The 139-source probe first reproduced comment-only hash changes in interpolation, F# and PowerShell comments, nested Rust block comments, and Lua long-bracket comments. Those findings are now covered by canonical regressions. The shared `SyntaxBodyHashIndex` normalizes syntax-node comments and interpolation code from one cached source/grammar index while retaining literal payloads, delimiters and format text. `body_hash_comments` passes all 11 tests in `target/coverage-tmp/body-hash-comments-final-wrapper-run.log`; the composed Vue host/script regression passes in `.razorback/sdd/2026-11-03-language-coverage-goal-54245db20e09/audit-web-vue-hash-final.log`. Tests cover comment-only stability and meaningful literal, format, markup and code changes.
+
+The output contract records `syntax-aware-body-hash-v1`, `html-external-script-body-v1`, `declaration-body-ownership-v1`, `programming-parameter-body-v1`, and `language-coverage-corrections-v1` in `docs/contracts/extraction-output-changes.md`. The markers preserve SQLite schema 8, report schema 3, extraction contract v4 and identity epoch 10. The final canonical golden comparison passed in `target/coverage-final-golden-update.log`. Its reviewed delta inventory is archived in the [golden field delta file](2026-11-03-language-coverage/golden-field-deltas.json) and captured at `target/coverage-final-golden-field-deltas.json`. It contains 24 expected files and 40 changed fields, all under `/symbols/.../body_hash`; SHA-256 `f3c35b99198882726c38e6956f1fdd3ac5cec505de38d3a892cda9402abf8fe6`.
+
+The earlier Vue body-ownership refresh changed 48 `body_hash` values: 11 were recalculated and 37 were removed with their false body spans. The removed bodies belonged to imports, ordinary variables, export references, macro call sites, and signature-only event/model declarations. This was reviewed separately from the final hash-only delta inventory; `.razorback/sdd/2026-11-03-language-coverage-goal-54245db20e09/audit-web-report.md` records the distinction and the passing Vue regression.
+
+## Integrated verification status
+
+The current lead-owned matrix has 630 cells and 46 local defects, all recorded as fixed. `node scripts/check-language-coverage-matrix.mjs` reports `language coverage matrix valid: 630 cells` in `target/coverage-final-matrix.log`. The Node test run passes 50/50 in `target/coverage-final-node-tests.log`. The strict quality report covers 42 languages with `silent_cells: 0`, `quality_bar_debts: 0` and 11 open structural-fact gaps in `target/coverage-final-quality.log`.
+
+The latest default tier passes in 33 seconds (`target/coverage-final-default-rerun.log`). The fresh candidate CLI corpus scan covers 42 language samples and two controls, with zero failed or unsupported files (`target/coverage-final-corpus.log`); the malformed Rust control retains its expected diagnostic. The full contract rerun completes all 13 commands successfully, including the three reference-site identity tests (`target/coverage-final-contract-rerun.log`). The xtask suite, dependency deny check, and exact Clippy run pass in `target/coverage-final-xtask.log`, `target/coverage-final-deny.log` and `target/coverage-final-clippy-exact-clean.log`. The all-target format check exits 0; its empty log is `target/coverage-final-fmt-all-clean.log`.
+
+The focused certification run and real-world smoke run pass in 62 and 92 seconds, respectively (`target/coverage-final-certification.log` and `target/coverage-final-real-world-smoke.log`). The Linux rebind-equivalence tests pass 4/4 in 2.70 seconds (`target/coverage-final-rebind.log`). `compat-check` against the pinned `79eb21fa` baseline emits the declared NOTICE from the 3.11.0 output ledger (`target/coverage-final-compat.log`). Full accounting of all table differences and the performance allowlist remain pending.
+
+The real-world release profile passes all six commands after the Erlang baseline review (`target/coverage-final-real-world-release-after-update.log`, 13.67 seconds). Only Telemetry changes its exact expected counts: 52 to 60 symbols and 45 to zero diagnostics. Eight added parameter/local facts are source-backed; the other nine corpus files retain their expected counts. The focused three-test Erlang corpus rerun also passes. The original failed log remains historical evidence. No controlled baseline/candidate performance comparison or Windows run has been completed. The raw gate logs are archived with deterministic gzip and checksums in the [gate artifact index](2026-11-03-language-coverage/integration-gates/artifacts.json). Keep final release and coverage-goal acceptance open until those gates and the remaining performance/default-runtime acceptance checks are complete.
+
+The authored changes pass the staged whitespace check. The byte-pinned baseline feature-tree capture and vendored upstream SQL/VB files retain upstream whitespace; they are excluded only from this formatting check so their recorded source hashes stay valid. No fixture assertion or extraction check is excluded.

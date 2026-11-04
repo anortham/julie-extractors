@@ -224,7 +224,10 @@ fn extract_identifier_from_node(
                 return;
             }
             let name = super::helpers::variable_name(&raw);
-            if is_powershell_automatic_or_constant(&name) {
+            let is_compound_argument = node
+                .parent()
+                .is_some_and(|parent| parent.kind() == "compound_argument");
+            if is_powershell_automatic_or_constant(&name) && !is_compound_argument {
                 return;
             }
             let rules = crate::base::variable_access::rules_for_language("powershell")

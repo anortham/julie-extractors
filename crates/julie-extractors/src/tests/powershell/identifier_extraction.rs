@@ -42,7 +42,19 @@ function Get-Total {
     $s2 = $Script:counter
     $p = $env:PATH
     $rows | ForEach-Object { $_.Name }
+    $typedObject = New-Object System.Collections.ArrayList
     return $VisibilityUnknown
+}
+
+function Outer-Scoped {
+    $value = 1
+    function Inner-Scoped {
+        param([int]$value)
+        $value += 1
+        Write-Output $value
+    }
+    Inner-Scoped 2
+    Write-Output $value
 }
 
 class Worker {
@@ -55,6 +67,14 @@ class Worker {
 "#;
 
     let (symbols, identifiers) = extract_all(code);
+    let outer_scoped = symbols
+        .iter()
+        .find(|symbol| symbol.name == "Outer-Scoped")
+        .expect("outer scoped function extracted");
+    let inner_scoped = symbols
+        .iter()
+        .find(|symbol| symbol.name == "Inner-Scoped")
+        .expect("inner scoped function extracted");
 
     let var_refs: Vec<&str> = identifiers
         .iter()
@@ -142,6 +162,55 @@ class Worker {
     assert_eq!(access_at(code.find("$i]").unwrap()), Some("read"));
     let ref_target = code.find("[ref]$x").unwrap() + "[ref]".len();
     assert_eq!(access_at(ref_target), Some("write"));
+    assert_eq!(
+        access_at(code.find("$value +=").unwrap()),
+        Some("read_write")
+    );
+    assert_eq!(
+        access_at(code.find("Write-Output $value").unwrap() + "Write-Output ".len()),
+        Some("read")
+    );
+    assert_eq!(
+        access_at(code.rfind("Write-Output $value").unwrap() + "Write-Output ".len()),
+        Some("read")
+    );
+    for (start, owner) in [
+        (code.find("$value +=").unwrap(), inner_scoped),
+        (
+            code.find("Write-Output $value").unwrap() + "Write-Output ".len(),
+            inner_scoped,
+        ),
+        (
+            code.rfind("Write-Output $value").unwrap() + "Write-Output ".len(),
+            outer_scoped,
+        ),
+    ] {
+        let identifier = identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte as usize == start
+            })
+            .expect("shadowed variable occurrence");
+        assert_eq!(
+            identifier.containing_symbol_id.as_deref(),
+            Some(owner.id.as_str())
+        );
+    }
+    for kind in [IdentifierKind::Call, IdentifierKind::TypeUsage] {
+        let rows: Vec<_> = identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == kind)
+            .collect();
+        assert!(!rows.is_empty(), "expected {kind:?} rows");
+        assert!(
+            rows.iter().all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access"))),
+            "{kind:?} rows do not carry variable access"
+        );
+    }
 
     assert!(
         !identifiers.iter().any(|id| id.name == "GhostToken"),

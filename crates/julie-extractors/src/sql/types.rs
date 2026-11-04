@@ -99,9 +99,13 @@ pub(super) fn column_type(base: &BaseExtractor, column: Node) -> Option<String> 
 /// suffix (`TEXT[]`).
 pub(super) fn named_declaration_type(base: &BaseExtractor, declaration: Node) -> Option<String> {
     let name = base.find_child_by_type(&declaration, "identifier")?;
-    let type_node = name
-        .next_named_sibling()
-        .filter(|node| !matches!(node.kind(), "literal" | "keyword_default"))?;
+    let mut type_node = name.next_named_sibling()?;
+    if type_node.kind() == "keyword_as" {
+        type_node = type_node.next_named_sibling()?;
+    }
+    if matches!(type_node.kind(), "literal" | "keyword_default") {
+        return None;
+    }
     let last = type_node
         .next_named_sibling()
         .filter(|node| node.kind() == "array_size_definition")

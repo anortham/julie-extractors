@@ -232,6 +232,7 @@ impl DartExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         // WORKAROUND: Set global content cache for get_node_text() helper
         helpers::set_dart_content_cache(&self.base.content);
 

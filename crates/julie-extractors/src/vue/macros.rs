@@ -121,11 +121,22 @@ fn declare_members(
         .unwrap_or_default();
     let mut member =
         |node: Node<'_>, name: &str, kind: SymbolKind, group: &str, ty: Option<String>| {
+            let signature_event = kind == SymbolKind::Event
+                && matches!(node.kind(), "call_signature" | "property_signature");
+            let model_member =
+                callee == "defineModel" && matches!(kind, SymbolKind::Property | SymbolKind::Event);
             if let Some(id) =
                 upsert_member(base, section, node, name, kind, Some(owner), group, symbols)
-                && let Some(ty) = ty
             {
-                types.push((id, ty));
+                if (signature_event || model_member)
+                    && let Some(symbol) = symbols.iter_mut().find(|symbol| symbol.id == id)
+                {
+                    symbol.body_span = None;
+                    symbol.body_hash = None;
+                }
+                if let Some(ty) = ty {
+                    types.push((id, ty));
+                }
             }
         };
     match callee.as_str() {

@@ -1,0 +1,288 @@
+================================================================================
+T-SQL session settings
+================================================================================
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (set_statement
+      (keyword_set)
+      (keyword_nocount)
+      (keyword_on)))
+  (statement
+    (set_statement
+      (keyword_set)
+      (keyword_xact_abort)
+      (keyword_on))))
+
+================================================================================
+T-SQL conditional guards blocks and dynamic execution
+================================================================================
+
+IF SCHEMA_ID(N'edr') IS NULL EXEC(N'CREATE SCHEMA [edr];');
+GO
+
+IF OBJECT_ID(N'dbo.T', N'U') IS NOT NULL DROP TABLE dbo.T;
+GO
+
+IF EXISTS (SELECT 1 FROM dbo.T WHERE Id = 1) DROP TABLE dbo.T;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.T WHERE Id = 1) DROP TABLE dbo.T;
+GO
+
+IF COL_LENGTH('dbo.T', 'Value') IS NULL
+BEGIN
+    ALTER TABLE dbo.T ADD Value int NULL;
+END
+GO
+
+--------------------------------------------------------------------------------
+
+(program
+  (if_statement
+    (keyword_if)
+    condition: (binary_expression
+      left: (invocation
+        (object_reference
+          name: (identifier))
+        parameter: (term
+          value: (literal)))
+      operator: (keyword_is)
+      right: (literal
+        (keyword_null)))
+    consequence: (statement
+      (execute_statement
+        (keyword_exec)
+        command: (parenthesized_expression
+          (literal)))))
+  (go_statement)
+  (if_statement
+    (keyword_if)
+    condition: (binary_expression
+      left: (object_id
+        (keyword_object_id)
+        (literal)
+        (literal))
+      operator: (is_not
+        (keyword_is)
+        (keyword_not))
+      right: (literal
+        (keyword_null)))
+    consequence: (statement
+      (drop_table
+        (keyword_drop)
+        (keyword_table)
+        (object_reference
+          schema: (identifier)
+          name: (identifier)))))
+  (go_statement)
+  (if_statement
+    (keyword_if)
+    condition: (exists
+      (keyword_exists)
+      (subquery
+        (select
+          (keyword_select)
+          (select_expression
+            (term
+              value: (literal))))
+        (from
+          (keyword_from)
+          (relation
+            (object_reference
+              schema: (identifier)
+              name: (identifier)))
+          (where
+            (keyword_where)
+            predicate: (binary_expression
+              left: (field
+                name: (identifier))
+              right: (literal))))))
+    consequence: (statement
+      (drop_table
+        (keyword_drop)
+        (keyword_table)
+        (object_reference
+          schema: (identifier)
+          name: (identifier)))))
+  (go_statement)
+  (if_statement
+    (keyword_if)
+    condition: (unary_expression
+      operator: (keyword_not)
+      operand: (exists
+        (keyword_exists)
+        (subquery
+          (select
+            (keyword_select)
+            (select_expression
+              (term
+                value: (literal))))
+          (from
+            (keyword_from)
+            (relation
+              (object_reference
+                schema: (identifier)
+                name: (identifier)))
+            (where
+              (keyword_where)
+              predicate: (binary_expression
+                left: (field
+                  name: (identifier))
+                right: (literal)))))))
+    consequence: (statement
+      (drop_table
+        (keyword_drop)
+        (keyword_table)
+        (object_reference
+          schema: (identifier)
+          name: (identifier)))))
+  (go_statement)
+  (if_statement
+    (keyword_if)
+    condition: (binary_expression
+      left: (invocation
+        (object_reference
+          name: (identifier))
+        parameter: (term
+          value: (literal))
+        parameter: (term
+          value: (literal)))
+      operator: (keyword_is)
+      right: (literal
+        (keyword_null)))
+    consequence: (begin_end_block
+      (keyword_begin)
+      (statement
+        (alter_table
+              (keyword_alter)
+              (keyword_table)
+              (object_reference
+                schema: (identifier)
+                name: (identifier))
+              (add_column
+                (keyword_add)
+                (column_definition
+                  name: (identifier)
+                  type: (int
+                (keyword_int))
+              (keyword_null)))))
+      (keyword_end)))
+  (go_statement))
+
+================================================================================
+T-SQL initialized declaration
+================================================================================
+
+DECLARE @AdGroup NVARCHAR(256) = N'CH - Software Development';
+
+--------------------------------------------------------------------------------
+
+(program
+  (declare_statement
+    (keyword_declare)
+    parameter: (identifier)
+    type: (nvarchar
+      (keyword_nvarchar)
+      size: (literal))
+    initializer: (literal)))
+
+================================================================================
+T-SQL THROW with required arguments
+================================================================================
+
+THROW 50001, 'message', 1;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (throw_statement
+      (keyword_throw)
+      error_number: (literal)
+      message: (literal)
+      state: (literal))))
+
+================================================================================
+Malformed unterminated T-SQL BEGIN remains diagnostic
+================================================================================
+
+IF 1 = 1
+BEGIN
+    SELECT 1;
+
+--------------------------------------------------------------------------------
+
+(ERROR
+  (keyword_if)
+  (binary_expression
+    (literal)
+    (literal))
+  (keyword_begin)
+  (statement
+    (select
+      (keyword_select)
+      (select_expression
+        (term
+          (literal))))))
+
+================================================================================
+Malformed two-argument T-SQL THROW remains diagnostic
+================================================================================
+
+THROW 50001, N'message';
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (throw_statement
+      (keyword_throw)))
+  (ERROR
+    (literal)
+    (literal)))
+
+================================================================================
+T-SQL OBJECT_ID column predicate
+================================================================================
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.T')) SELECT 1;
+
+--------------------------------------------------------------------------------
+
+(program
+  (if_statement
+    (keyword_if)
+    condition: (exists
+      (keyword_exists)
+      (subquery
+        (select
+          (keyword_select)
+          (select_expression
+            (term
+              value: (literal))))
+        (from
+          (keyword_from)
+          (relation
+            (object_reference
+              schema: (identifier)
+              name: (identifier)))
+          (where
+            (keyword_where)
+            predicate: (binary_expression
+              left: (field
+                name: (identifier))
+              right: (object_id
+                (keyword_object_id)
+                (literal)))))))
+    consequence: (statement
+      (select
+        (keyword_select)
+        (select_expression
+          (term
+            value: (literal)))))))

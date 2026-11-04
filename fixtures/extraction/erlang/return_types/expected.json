@@ -206,15 +206,8 @@
       "end_column": 17,
       "start_byte": 0,
       "end_byte": 17,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 7,
-        "end_line": 1,
-        "end_column": 16,
-        "start_byte": 7,
-        "end_byte": 16
-      },
-      "body_hash": "cfb59d73c17a881cb54d220d28a9cff3",
+      "body_span": null,
+      "body_hash": null,
       "signature": "-module(factory)",
       "doc_comment": null,
       "visibility": "Public",
@@ -399,13 +392,13 @@
       "end_byte": 46,
       "body_span": {
         "start_line": 2,
-        "start_column": 12,
+        "start_column": 18,
         "end_line": 2,
         "end_column": 27,
-        "start_byte": 30,
+        "start_byte": 36,
         "end_byte": 45
       },
-      "body_hash": "fbf4559d63b18d8b3c46d336476324b3",
+      "body_hash": "9c56806edf366206c5856ffae47709c5",
       "signature": "-type result() :: integer()",
       "doc_comment": null,
       "visibility": "Private",
@@ -694,6 +687,329 @@
       "end_column": 23,
       "start_byte": 381,
       "end_byte": 387,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Opened:variable_ref:26:9",
+      "name": "Opened",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 26,
+      "start_column": 9,
+      "end_line": 26,
+      "end_column": 15,
+      "start_byte": 506,
+      "end_byte": 512,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Opened:variable_ref:28:49",
+      "name": "Opened",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 28,
+      "start_column": 49,
+      "end_line": 28,
+      "end_column": 55,
+      "start_byte": 595,
+      "end_byte": 601,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Picked:variable_ref:23:4",
+      "name": "Picked",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 10,
+      "start_byte": 400,
+      "end_byte": 406,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Picked:variable_ref:28:24",
+      "name": "Picked",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 28,
+      "start_column": 24,
+      "end_line": 28,
+      "end_column": 30,
+      "start_byte": 570,
+      "end_byte": 576,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Remote:variable_ref:24:4",
+      "name": "Remote",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 24,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 10,
+      "start_byte": 427,
+      "end_byte": 433,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Remote:variable_ref:28:32",
+      "name": "Remote",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 28,
+      "start_column": 32,
+      "end_line": 28,
+      "end_column": 38,
+      "start_byte": 578,
+      "end_byte": 584,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Result:variable_ref:21:4",
+      "name": "Result",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 21,
+      "start_column": 4,
+      "end_line": 21,
+      "end_column": 10,
+      "start_byte": 347,
+      "end_byte": 353,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Result:variable_ref:23:18",
+      "name": "Result",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 23,
+      "start_column": 18,
+      "end_line": 23,
+      "end_column": 24,
+      "start_byte": 414,
+      "end_byte": 420,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Result:variable_ref:28:5",
+      "name": "Result",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 28,
+      "start_column": 5,
+      "end_line": 28,
+      "end_column": 11,
+      "start_byte": 551,
+      "end_byte": 557,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Stopped:variable_ref:27:4",
+      "name": "Stopped",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 27,
+      "start_column": 4,
+      "end_line": 27,
+      "end_column": 11,
+      "start_byte": 528,
+      "end_byte": 535,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Stopped:variable_ref:28:57",
+      "name": "Stopped",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 28,
+      "start_column": 57,
+      "end_line": 28,
+      "end_column": 64,
+      "start_byte": 603,
+      "end_byte": 610,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Updated:variable_ref:25:4",
+      "name": "Updated",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 25,
+      "start_column": 4,
+      "end_line": 25,
+      "end_column": 11,
+      "start_byte": 454,
+      "end_byte": 461,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Updated:variable_ref:28:40",
+      "name": "Updated",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 28,
+      "start_column": 40,
+      "end_line": 28,
+      "end_column": 47,
+      "start_byte": 586,
+      "end_byte": 593,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Value:variable_ref:12:15",
+      "name": "Value",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 12,
+      "start_column": 15,
+      "end_line": 12,
+      "end_column": 20,
+      "start_byte": 206,
+      "end_byte": 211,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:pick:12:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Workspace:variable_ref:22:4",
+      "name": "Workspace",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 22,
+      "end_column": 13,
+      "start_byte": 368,
+      "end_byte": 377,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Workspace:variable_ref:25:14",
+      "name": "Workspace",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 25,
+      "start_column": 14,
+      "end_line": 25,
+      "end_column": 23,
+      "start_byte": 464,
+      "end_byte": 473,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/return_types/source.erl:Workspace:variable_ref:28:13",
+      "name": "Workspace",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/return_types/source.erl",
+      "start_line": 28,
+      "start_column": 13,
+      "end_line": 28,
+      "end_column": 22,
+      "start_byte": 559,
+      "end_byte": 568,
       "containing_key": "fixtures/extraction/erlang/return_types/source.erl:use:20:0",
       "target_key": null,
       "confidence": "1.000",

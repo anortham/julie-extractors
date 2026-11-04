@@ -10,6 +10,7 @@ use tree_sitter::{Node, Tree};
 
 // Private modules
 mod attributes;
+mod body_hash;
 mod elements;
 mod fallback;
 mod handlers;
@@ -24,6 +25,7 @@ pub struct HTMLExtractor {
     pub(crate) base: BaseExtractor,
     mocha_bdd_contract: bool,
     embedded: Vec<ExtractionResults>,
+    embedded_blocks: body_hash::EmbeddedBlocks,
     handler_rows: handlers::HandlerRows,
 }
 
@@ -38,6 +40,7 @@ impl HTMLExtractor {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             mocha_bdd_contract: false,
             embedded: Vec::new(),
+            embedded_blocks: body_hash::EmbeddedBlocks::default(),
             handler_rows: handlers::HandlerRows::default(),
         }
     }
@@ -50,17 +53,22 @@ impl HTMLExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         self.embedded.clear();
+        let root_node = tree.root_node();
+        self.embedded_blocks = body_hash::EmbeddedBlocks::prepare(&self.base, root_node);
+        self.base
+            .init_body_hash_syntax(self.embedded_blocks.take_syntax());
+        self.mocha_bdd_contract = self.embedded_blocks.mocha_bdd_contract();
         let mut symbols = Vec::new();
-        self.mocha_bdd_contract = self.document_has_mocha_bdd_contract(tree);
 
         // Check if tree is valid and has a root node - start from actual root standard format
-        let root_node = tree.root_node();
         if root_node.child_count() > 0 {
             self.visit_node(root_node, &mut symbols, None, 0);
         } else {
+            self.embedded_blocks.release_trees();
             // Fallback extraction when normal parsing fails
             return fallback::FallbackExtractor::extract_basic_structure(&mut self.base, tree);
         }
+        self.embedded_blocks.release_trees();
 
         // If we only extracted error symbols, try basic structure fallback
         let has_only_errors = !symbols.is_empty()
@@ -79,37 +87,6 @@ impl HTMLExtractor {
             self.handler_rows = handlers::collect_handler_rows(&self.base, tree, &symbols);
             symbols
         }
-    }
-
-    fn document_has_mocha_bdd_contract(&self, tree: &Tree) -> bool {
-        let mut nodes = vec![tree.root_node()];
-        let mut has_mocha_script = false;
-        let mut has_bdd_setup = false;
-
-        while let Some(node) = nodes.pop() {
-            if node.kind() == "script_element" {
-                let attributes = helpers::HTMLHelpers::extract_attributes(&self.base, node);
-                if scripts::is_javascript_script_type(&attributes)
-                    && attributes
-                        .get("src")
-                        .is_some_and(|src| scripts::is_mocha_script_source(src))
-                {
-                    has_mocha_script = true;
-                }
-                if !attributes.contains_key("src")
-                    && scripts::is_javascript_script_type(&attributes)
-                    && helpers::HTMLHelpers::extract_text_content(&self.base, node)
-                        .is_some_and(|content| scripts::contains_mocha_bdd_setup(&content))
-                {
-                    has_bdd_setup = true;
-                }
-            }
-
-            let mut cursor = node.walk();
-            nodes.extend(node.children(&mut cursor));
-        }
-
-        has_mocha_script && has_bdd_setup
     }
 
     fn visit_node(
@@ -161,12 +138,14 @@ impl HTMLExtractor {
                 parent_id,
                 self.mocha_bdd_contract,
                 &mut self.embedded,
+                &mut self.embedded_blocks,
             ),
             "style_element" => scripts::ScriptStyleExtractor::extract_style_element(
                 &mut self.base,
                 node,
                 parent_id,
                 &mut self.embedded,
+                &mut self.embedded_blocks,
             ),
             "doctype" if node.is_named() => vec![elements::ElementExtractor::extract_doctype(
                 &mut self.base,

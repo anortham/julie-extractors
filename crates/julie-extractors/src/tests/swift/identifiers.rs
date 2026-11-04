@@ -326,3 +326,109 @@ func writes(initial: Int, box: Holder, argument: Int, records: [Int]) {
         );
     }
 }
+#[test]
+fn shadowed_bindings_keep_exact_access_and_non_access_facts() {
+    let code = r#"
+struct Marker {}
+func consume(_ value: Int) {}
+func update(marker: Marker, count: Int) {
+    consume(count)
+    if true {
+        var count = 0
+        count += 1
+        consume(count)
+    }
+    consume(count)
+}
+"#;
+    let (symbols, identifiers) = extract_all(code);
+
+    let call_name = "consume";
+    let call_expression = format!("{call_name}(count)");
+    let call_starts: Vec<usize> = code
+        .match_indices(&call_expression)
+        .map(|(start, _)| start)
+        .collect();
+    assert_eq!(call_starts.len(), 3);
+    let calls: Vec<_> = identifiers
+        .iter()
+        .filter(|identifier| {
+            identifier.name == call_name && identifier.kind == IdentifierKind::Call
+        })
+        .collect();
+    assert_eq!(calls.len(), call_starts.len());
+    assert!(calls.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .is_none()
+    }));
+
+    let outer_before_start = call_starts[0] + call_name.len() + 1;
+    let inner_read_start = call_starts[1] + call_name.len() + 1;
+    let outer_after_start = call_starts[2] + call_name.len() + 1;
+    let compound_start = code.find("count += 1").unwrap();
+    let access_at = |start: usize| {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == "count"
+                    && identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte as usize == start
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+    assert_eq!(access_at(outer_before_start), Some("read"));
+    assert_eq!(access_at(compound_start), Some("read_write"));
+    assert_eq!(access_at(inner_read_start), Some("read"));
+    assert_eq!(access_at(outer_after_start), Some("read"));
+
+    let owner_id = identifiers
+        .iter()
+        .find(|identifier| {
+            identifier.name == "count"
+                && identifier.kind == IdentifierKind::VariableRef
+                && identifier.start_byte as usize == outer_before_start
+        })
+        .and_then(|identifier| identifier.containing_symbol_id.as_deref())
+        .expect("outer variable reference should have a containing function");
+    for start in [compound_start, inner_read_start, outer_after_start] {
+        let identifier = identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == "count"
+                    && identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte as usize == start
+            })
+            .expect("shadowed variable occurrence");
+        assert_eq!(identifier.containing_symbol_id.as_deref(), Some(owner_id));
+    }
+    let owner = symbols
+        .iter()
+        .find(|symbol| symbol.id.as_str() == owner_id)
+        .expect("containing function should be extracted");
+    assert_eq!(owner.name, "update");
+
+    let type_usages: Vec<_> = identifiers
+        .iter()
+        .filter(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+        .collect();
+    assert!(!type_usages.is_empty());
+    let type_start = code.find("marker: Marker").unwrap() + 8;
+    let type_usage = type_usages
+        .iter()
+        .find(|identifier| {
+            identifier.name == "Marker" && identifier.start_byte as usize == type_start
+        })
+        .expect("Marker type usage at exact source offset");
+    assert!(
+        type_usage
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .is_none()
+    );
+}

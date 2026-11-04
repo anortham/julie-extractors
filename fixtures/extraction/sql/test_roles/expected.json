@@ -19,7 +19,6 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "extractedFromError": true,
         "isSchema": true,
         "test_container": true,
         "test_role": "test_container"
@@ -48,7 +47,6 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "extractedFromError": true,
         "isSchema": true,
         "test_container": true,
         "test_role": "test_container"
@@ -153,7 +151,6 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "extractedFromError": true,
         "isSchema": true
       },
       "annotations": [],

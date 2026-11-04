@@ -21,6 +21,7 @@ pub(super) fn extract_import(extractor: &mut TypeScriptExtractor, node: Node) ->
         .find(|child| child.kind() == "import_require_clause")
     {
         return import_require_row(extractor, node, require_clause, signature, doc_comment)
+            .map(without_body)
             .into_iter()
             .collect();
     }
@@ -30,7 +31,7 @@ pub(super) fn extract_import(extractor: &mut TypeScriptExtractor, node: Node) ->
             ("source".to_string(), json!(source.clone())),
             ("isSideEffect".to_string(), json!(true)),
         ]);
-        return vec![extractor.base_mut().create_symbol(
+        return vec![without_body(extractor.base_mut().create_symbol(
             &node,
             source,
             SymbolKind::Import,
@@ -40,7 +41,7 @@ pub(super) fn extract_import(extractor: &mut TypeScriptExtractor, node: Node) ->
                 doc_comment,
                 ..Default::default()
             },
-        )];
+        ))];
     }
     bindings
         .into_iter()
@@ -53,7 +54,7 @@ pub(super) fn extract_import(extractor: &mut TypeScriptExtractor, node: Node) ->
             metadata.insert("isNamespace".to_string(), json!(binding.is_namespace));
             metadata.insert("isTypeOnly".to_string(), json!(binding.is_type_only));
 
-            extractor.base_mut().create_symbol(
+            without_body(extractor.base_mut().create_symbol(
                 &node,
                 binding.local_name,
                 SymbolKind::Import,
@@ -63,9 +64,15 @@ pub(super) fn extract_import(extractor: &mut TypeScriptExtractor, node: Node) ->
                     doc_comment: doc_comment.clone(),
                     ..Default::default()
                 },
-            )
+            ))
         })
         .collect()
+}
+
+fn without_body(mut symbol: Symbol) -> Symbol {
+    symbol.body_span = None;
+    symbol.body_hash = None;
+    symbol
 }
 
 fn has_import_clause(node: Node) -> bool {

@@ -192,15 +192,8 @@
       "end_column": 23,
       "start_byte": 1031,
       "end_byte": 1054,
-      "body_span": {
-        "start_line": 16,
-        "start_column": 7,
-        "end_line": 16,
-        "end_column": 22,
-        "start_byte": 1038,
-        "end_byte": 1053
-      },
-      "body_hash": "a1f3e4d72811089bc4c5a61f66bcea15",
+      "body_span": null,
+      "body_hash": null,
       "signature": "-module(ledger_client)",
       "doc_comment": "%% Cross-file fixture: module `ledger_client` is the A side of an A/B pair.\n%% Every target it names except `retry/2` lives in another file, so the golden\n%% carries both relationship shapes at once:\n%%   resolved  - settle/2 -> retry/2, a same-file call matched on name AND arity\n%%   pending   - -behaviour(gen_server)                  implements, target gen_server\n%%               ledger:record/2 and ledger:flush/0      calls, namespace [\"ledger\"]\n%%               -include(\"ledger_records.hrl\")          imports, import_context include\n%%               -include_lib(\"stdlib/include/assert.hrl\") imports, namespace [\"stdlib\",\"include\"]\n%%               -import(lists, [reverse/1])             imports, target lists\n%%               reverse/1 called unqualified            calls, namespace [\"lists\"]\n%% Negative controls in the same file: length/1 is an auto-imported BIF and\n%% `Fun(Ordered)` is a dynamic call through a variable, so neither may produce\n%% an edge, and the -spec return type must not be read as a call.",
       "visibility": "Public",
@@ -595,6 +588,215 @@
     }
   ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Amount:variable_ref:27:25",
+      "name": "Amount",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 27,
+      "start_column": 25,
+      "end_line": 27,
+      "end_column": 31,
+      "start_byte": 1319,
+      "end_byte": 1325,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Amount:variable_ref:28:22",
+      "name": "Amount",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 28,
+      "start_column": 22,
+      "end_line": 28,
+      "end_column": 28,
+      "start_byte": 1350,
+      "end_byte": 1356,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Amount:variable_ref:31:4",
+      "name": "Amount",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 31,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 10,
+      "start_byte": 1390,
+      "end_byte": 1396,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:retry:30:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Entries:variable_ref:34:22",
+      "name": "Entries",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 34,
+      "start_column": 22,
+      "end_line": 34,
+      "end_column": 29,
+      "start_byte": 1445,
+      "end_byte": 1452,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:replay:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Entry:variable_ref:27:18",
+      "name": "Entry",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 27,
+      "start_column": 18,
+      "end_line": 27,
+      "end_column": 23,
+      "start_byte": 1312,
+      "end_byte": 1317,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Entry:variable_ref:28:15",
+      "name": "Entry",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 28,
+      "start_column": 15,
+      "end_line": 28,
+      "end_column": 20,
+      "start_byte": 1343,
+      "end_byte": 1348,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Fun:variable_ref:36:8",
+      "name": "Fun",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 36,
+      "start_column": 8,
+      "end_line": 36,
+      "end_column": 11,
+      "start_byte": 1488,
+      "end_byte": 1491,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:replay:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Ordered:variable_ref:34:4",
+      "name": "Ordered",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 34,
+      "start_column": 4,
+      "end_line": 34,
+      "end_column": 11,
+      "start_byte": 1427,
+      "end_byte": 1434,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:replay:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Ordered:variable_ref:35:15",
+      "name": "Ordered",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 35,
+      "start_column": 15,
+      "end_line": 35,
+      "end_column": 22,
+      "start_byte": 1470,
+      "end_byte": 1477,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:replay:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Ordered:variable_ref:36:12",
+      "name": "Ordered",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 36,
+      "start_column": 12,
+      "end_line": 36,
+      "end_column": 19,
+      "start_byte": 1492,
+      "end_byte": 1499,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:replay:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/cross_file/source.erl:Ordered:variable_ref:38:4",
+      "name": "Ordered",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "start_line": 38,
+      "start_column": 4,
+      "end_line": 38,
+      "end_column": 11,
+      "start_byte": 1526,
+      "end_byte": 1533,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:replay:33:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
     {
       "key": "fixtures/extraction/erlang/cross_file/source.erl:flush:call:37:11",
       "name": "flush",

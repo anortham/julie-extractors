@@ -55,11 +55,12 @@ pub(super) fn extract(
         doc_comment: super::semantics::extract_qml_doc_comment(extractor, node),
         ..Default::default()
     };
-    Some(
-        extractor
-            .base
-            .create_symbol(node, name, SymbolKind::Import, options),
-    )
+    let mut symbol = extractor
+        .base
+        .create_symbol(node, name, SymbolKind::Import, options);
+    symbol.body_span = None;
+    symbol.body_hash = None;
+    Some(symbol)
 }
 
 fn normalize_source(source: &str) -> String {

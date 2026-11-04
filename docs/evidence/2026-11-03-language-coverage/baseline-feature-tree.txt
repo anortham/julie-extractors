@@ -1,0 +1,810 @@
+julie-extract-cli v3.11.0 (/home/murphy/source/julie-extractors/crates/julie-extract-cli) 
+blake3 feature "default"
+blake3 v1.8.5 default,std
+arrayvec v0.7.6 
+constant_time_eq v0.4.2 std
+arrayref feature "default"
+arrayref v0.3.9 
+cfg-if feature "default"
+cfg-if v1.0.4 
+cpufeatures feature "default"
+cpufeatures v0.3.0 
+cc feature "default"
+cc v1.2.63 
+find-msvc-tools feature "default"
+find-msvc-tools v0.1.9 
+shlex feature "default"
+shlex v2.0.1 default,std
+shlex feature "std"
+shlex v2.0.1 default,std
+blake3 feature "std"
+blake3 v1.8.5 default,std (*)
+constant_time_eq feature "std"
+constant_time_eq v0.4.2 std
+clap feature "default"
+clap v4.6.1 color,default,derive,error-context,help,std,suggestions,usage
+clap_builder v4.6.0 color,error-context,help,std,suggestions,usage
+anstream feature "default"
+anstream v1.0.0 auto,default,wincon
+anstyle feature "default"
+anstyle v1.0.14 default,std
+anstyle feature "std"
+anstyle v1.0.14 default,std
+anstyle-parse feature "default"
+anstyle-parse v1.0.0 default,utf8
+utf8parse feature "default"
+utf8parse v0.2.2 default
+anstyle-parse feature "utf8"
+anstyle-parse v1.0.0 default,utf8 (*)
+utf8parse feature "default" (*)
+anstyle-query feature "default"
+anstyle-query v1.1.5 
+colorchoice feature "default"
+colorchoice v1.0.5 
+is_terminal_polyfill feature "default"
+is_terminal_polyfill v1.70.2 default
+anstream feature "auto"
+anstream v1.0.0 auto,default,wincon (*)
+anstream feature "wincon"
+anstream v1.0.0 auto,default,wincon (*)
+anstyle feature "default" (*)
+clap_lex feature "default"
+clap_lex v1.1.0 
+strsim feature "default"
+strsim v0.11.1 
+clap_derive feature "default"
+clap_derive v4.6.1 (proc-macro) default
+heck feature "default"
+heck v0.5.0 
+proc-macro2 feature "default"
+proc-macro2 v1.0.106 default,proc-macro
+unicode-ident feature "default"
+unicode-ident v1.0.24 
+proc-macro2 feature "proc-macro"
+proc-macro2 v1.0.106 default,proc-macro (*)
+quote feature "default"
+quote v1.0.45 default,proc-macro
+proc-macro2 v1.0.106 default,proc-macro (*)
+quote feature "proc-macro"
+quote v1.0.45 default,proc-macro (*)
+proc-macro2 feature "proc-macro" (*)
+syn feature "default"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut
+proc-macro2 v1.0.106 default,proc-macro (*)
+quote v1.0.45 default,proc-macro (*)
+unicode-ident feature "default" (*)
+syn feature "clone-impls"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut (*)
+syn feature "derive"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut (*)
+syn feature "parsing"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut (*)
+syn feature "printing"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut (*)
+syn feature "proc-macro"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut (*)
+proc-macro2 feature "proc-macro" (*)
+quote feature "proc-macro" (*)
+syn feature "full"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut (*)
+clap feature "color"
+clap v4.6.1 color,default,derive,error-context,help,std,suggestions,usage (*)
+clap_builder feature "color"
+clap_builder v4.6.0 color,error-context,help,std,suggestions,usage (*)
+clap feature "error-context"
+clap v4.6.1 color,default,derive,error-context,help,std,suggestions,usage (*)
+clap_builder feature "error-context"
+clap_builder v4.6.0 color,error-context,help,std,suggestions,usage (*)
+clap feature "help"
+clap v4.6.1 color,default,derive,error-context,help,std,suggestions,usage (*)
+clap_builder feature "help"
+clap_builder v4.6.0 color,error-context,help,std,suggestions,usage (*)
+clap feature "std"
+clap v4.6.1 color,default,derive,error-context,help,std,suggestions,usage (*)
+clap_builder feature "std"
+clap_builder v4.6.0 color,error-context,help,std,suggestions,usage (*)
+anstyle feature "std" (*)
+clap feature "suggestions"
+clap v4.6.1 color,default,derive,error-context,help,std,suggestions,usage (*)
+clap_builder feature "suggestions"
+clap_builder v4.6.0 color,error-context,help,std,suggestions,usage (*)
+clap_builder feature "error-context" (*)
+clap feature "usage"
+clap v4.6.1 color,default,derive,error-context,help,std,suggestions,usage (*)
+clap_builder feature "usage"
+clap_builder v4.6.0 color,error-context,help,std,suggestions,usage (*)
+clap feature "derive"
+clap v4.6.1 color,default,derive,error-context,help,std,suggestions,usage (*)
+getrandom feature "default"
+getrandom v0.4.2 
+libc v0.2.186 
+cfg-if feature "default" (*)
+ignore feature "default"
+ignore v0.4.25 
+crossbeam-deque feature "default"
+crossbeam-deque v0.8.6 default,std
+crossbeam-epoch v0.9.20 alloc,std
+crossbeam-utils v0.8.21 default,std
+crossbeam-utils v0.8.21 default,std
+crossbeam-deque feature "std"
+crossbeam-deque v0.8.6 default,std (*)
+crossbeam-epoch feature "std"
+crossbeam-epoch v0.9.20 alloc,std (*)
+crossbeam-epoch feature "alloc"
+crossbeam-epoch v0.9.20 alloc,std (*)
+crossbeam-utils feature "std"
+crossbeam-utils v0.8.21 default,std
+crossbeam-utils feature "std" (*)
+globset feature "default"
+globset v0.4.18 default,log
+aho-corasick feature "default"
+aho-corasick v1.1.4 default,perf-literal,std
+memchr v2.8.1 alloc,default,std
+aho-corasick feature "perf-literal"
+aho-corasick v1.1.4 default,perf-literal,std (*)
+aho-corasick feature "std"
+aho-corasick v1.1.4 default,perf-literal,std (*)
+memchr feature "std"
+memchr v2.8.1 alloc,default,std
+memchr feature "alloc"
+memchr v2.8.1 alloc,default,std
+bstr feature "std"
+bstr v1.12.1 alloc,std
+memchr v2.8.1 alloc,default,std
+memchr feature "std" (*)
+bstr feature "alloc"
+bstr v1.12.1 alloc,std (*)
+memchr feature "alloc" (*)
+log feature "default"
+log v0.4.30 
+regex-automata feature "hybrid"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary
+aho-corasick v1.1.4 default,perf-literal,std (*)
+memchr v2.8.1 alloc,default,std
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-automata feature "alloc"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "nfa-thompson"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "alloc" (*)
+regex-automata feature "meta"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "nfa-pikevm"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "nfa-thompson" (*)
+regex-automata feature "syntax"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "alloc" (*)
+regex-automata feature "nfa"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "nfa-backtrack"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "nfa-thompson" (*)
+regex-automata feature "nfa-pikevm" (*)
+regex-automata feature "nfa-thompson" (*)
+regex-automata feature "perf"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "perf-inline"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "perf-literal"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "perf-literal-multisubstring"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "perf-literal-substring"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+aho-corasick feature "perf-literal" (*)
+regex-automata feature "std"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+aho-corasick feature "std" (*)
+memchr feature "std" (*)
+regex-automata feature "alloc" (*)
+regex-syntax feature "std"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-automata feature "syntax" (*)
+regex-syntax feature "std" (*)
+globset feature "log"
+globset v0.4.18 default,log (*)
+memchr feature "default"
+memchr v2.8.1 alloc,default,std
+memchr feature "std" (*)
+log feature "default" (*)
+regex-automata feature "dfa-onepass"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "nfa-thompson" (*)
+regex-automata feature "hybrid" (*)
+regex-automata feature "meta" (*)
+regex-automata feature "nfa" (*)
+regex-automata feature "perf" (*)
+regex-automata feature "std" (*)
+regex-automata feature "syntax" (*)
+same-file feature "default"
+same-file v1.0.6 
+walkdir feature "default"
+walkdir v2.5.0 
+same-file feature "default" (*)
+same-file feature "default" (*)
+julie-extract-artifact feature "default"
+julie-extract-artifact v3.11.0 (/home/murphy/source/julie-extractors/crates/julie-extract-artifact) 
+postcard feature "use-std"
+postcard v1.1.3 alloc,use-std
+cobs v0.3.0 
+thiserror v2.0.19 
+thiserror-impl feature "default"
+thiserror-impl v2.0.19 (proc-macro) 
+proc-macro2 feature "default" (*)
+quote feature "default" (*)
+syn feature "default"
+syn v3.0.3 clone-impls,default,derive,parsing,printing,proc-macro
+proc-macro2 v1.0.106 default,proc-macro (*)
+quote v1.0.45 default,proc-macro (*)
+unicode-ident feature "default" (*)
+syn feature "clone-impls"
+syn v3.0.3 clone-impls,default,derive,parsing,printing,proc-macro (*)
+syn feature "derive"
+syn v3.0.3 clone-impls,default,derive,parsing,printing,proc-macro (*)
+syn feature "parsing"
+syn v3.0.3 clone-impls,default,derive,parsing,printing,proc-macro (*)
+syn feature "printing"
+syn v3.0.3 clone-impls,default,derive,parsing,printing,proc-macro (*)
+syn feature "proc-macro"
+syn v3.0.3 clone-impls,default,derive,parsing,printing,proc-macro (*)
+proc-macro2 feature "proc-macro" (*)
+quote feature "proc-macro" (*)
+serde feature "derive"
+serde v1.0.228 alloc,default,derive,serde_derive,std
+serde_core feature "result"
+serde_core v1.0.228 alloc,result,std
+serde_derive feature "default"
+serde_derive v1.0.228 (proc-macro) default
+proc-macro2 feature "proc-macro" (*)
+quote feature "proc-macro" (*)
+syn feature "clone-impls" (*)
+syn feature "derive" (*)
+syn feature "parsing" (*)
+syn feature "printing" (*)
+syn feature "proc-macro" (*)
+serde feature "serde_derive"
+serde v1.0.228 alloc,default,derive,serde_derive,std (*)
+postcard feature "alloc"
+postcard v1.1.3 alloc,use-std (*)
+serde feature "alloc"
+serde v1.0.228 alloc,default,derive,serde_derive,std (*)
+serde_core feature "alloc"
+serde_core v1.0.228 alloc,result,std
+serde feature "std"
+serde v1.0.228 alloc,default,derive,serde_derive,std (*)
+serde_core feature "std"
+serde_core v1.0.228 alloc,result,std
+serde feature "default"
+serde v1.0.228 alloc,default,derive,serde_derive,std (*)
+serde feature "std" (*)
+serde feature "derive" (*)
+rusqlite feature "bundled"
+rusqlite v0.40.2 bundled,cache,hashlink,limits,modern_sqlite
+bitflags feature "default"
+bitflags v2.11.1 
+fallible-iterator feature "default"
+fallible-iterator v0.3.0 alloc,default
+fallible-iterator feature "alloc"
+fallible-iterator v0.3.0 alloc,default
+fallible-streaming-iterator feature "default"
+fallible-streaming-iterator v0.1.9 
+hashlink feature "default"
+hashlink v0.12.2 
+hashbrown feature "default-hasher"
+hashbrown v0.17.1 default-hasher
+foldhash v0.2.0 
+libsqlite3-sys feature "default"
+libsqlite3-sys v0.38.2 bundled,bundled_bindings,cc,default,min_sqlite_version_3_34_1,pkg-config,vcpkg
+cc feature "default" (*)
+pkg-config feature "default"
+pkg-config v0.3.33 
+vcpkg feature "default"
+vcpkg v0.2.15 
+libsqlite3-sys feature "min_sqlite_version_3_34_1"
+libsqlite3-sys v0.38.2 bundled,bundled_bindings,cc,default,min_sqlite_version_3_34_1,pkg-config,vcpkg (*)
+libsqlite3-sys feature "pkg-config"
+libsqlite3-sys v0.38.2 bundled,bundled_bindings,cc,default,min_sqlite_version_3_34_1,pkg-config,vcpkg (*)
+libsqlite3-sys feature "vcpkg"
+libsqlite3-sys v0.38.2 bundled,bundled_bindings,cc,default,min_sqlite_version_3_34_1,pkg-config,vcpkg (*)
+smallvec feature "default"
+smallvec v1.15.1 
+rusqlite feature "modern_sqlite"
+rusqlite v0.40.2 bundled,cache,hashlink,limits,modern_sqlite (*)
+libsqlite3-sys feature "bundled_bindings"
+libsqlite3-sys v0.38.2 bundled,bundled_bindings,cc,default,min_sqlite_version_3_34_1,pkg-config,vcpkg (*)
+libsqlite3-sys feature "bundled"
+libsqlite3-sys v0.38.2 bundled,bundled_bindings,cc,default,min_sqlite_version_3_34_1,pkg-config,vcpkg (*)
+libsqlite3-sys feature "bundled_bindings" (*)
+libsqlite3-sys feature "cc"
+libsqlite3-sys v0.38.2 bundled,bundled_bindings,cc,default,min_sqlite_version_3_34_1,pkg-config,vcpkg (*)
+rusqlite feature "cache"
+rusqlite v0.40.2 bundled,cache,hashlink,limits,modern_sqlite (*)
+rusqlite feature "hashlink"
+rusqlite v0.40.2 bundled,cache,hashlink,limits,modern_sqlite (*)
+rusqlite feature "limits"
+rusqlite v0.40.2 bundled,cache,hashlink,limits,modern_sqlite (*)
+serde_json feature "default"
+serde_json v1.0.150 default,std
+memchr v2.8.1 alloc,default,std
+serde_core v1.0.228 alloc,result,std
+itoa feature "default"
+itoa v1.0.18 
+zmij feature "default"
+zmij v1.0.21 
+serde_json feature "std"
+serde_json v1.0.150 default,std (*)
+memchr feature "std" (*)
+serde_core feature "std" (*)
+sha2 feature "default"
+sha2 v0.10.9 default,std
+cfg-if feature "default" (*)
+cpufeatures feature "default"
+cpufeatures v0.2.17 
+digest feature "default"
+digest v0.10.7 alloc,block-buffer,core-api,default,std
+block-buffer feature "default"
+block-buffer v0.10.4 
+generic-array feature "default"
+generic-array v0.14.7 more_lengths
+typenum feature "default"
+typenum v1.20.1 
+version_check feature "default"
+version_check v0.9.5 
+crypto-common feature "default"
+crypto-common v0.1.7 std
+generic-array feature "default" (*)
+generic-array feature "more_lengths"
+generic-array v0.14.7 more_lengths (*)
+typenum feature "default" (*)
+digest feature "core-api"
+digest v0.10.7 alloc,block-buffer,core-api,default,std (*)
+digest feature "block-buffer"
+digest v0.10.7 alloc,block-buffer,core-api,default,std (*)
+sha2 feature "std"
+sha2 v0.10.9 default,std (*)
+digest feature "std"
+digest v0.10.7 alloc,block-buffer,core-api,default,std (*)
+digest feature "alloc"
+digest v0.10.7 alloc,block-buffer,core-api,default,std (*)
+crypto-common feature "std"
+crypto-common v0.1.7 std (*)
+serde feature "default" (*)
+serde feature "derive" (*)
+rusqlite feature "bundled" (*)
+serde_json feature "default" (*)
+sha2 feature "default" (*)
+julie-extractors feature "default"
+julie-extractors v3.11.0 (/home/murphy/source/julie-extractors/crates/julie-extractors) syntax-api
+serde feature "default" (*)
+serde feature "derive" (*)
+serde_json feature "default" (*)
+anyhow feature "default"
+anyhow v1.0.103 default,std
+anyhow feature "std"
+anyhow v1.0.103 default,std
+md5 feature "default"
+md5 v0.7.0 default,std
+md5 feature "std"
+md5 v0.7.0 default,std
+regex feature "default"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+aho-corasick v1.1.4 default,perf-literal,std (*)
+memchr v2.8.1 alloc,default,std
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-automata feature "alloc" (*)
+regex-automata feature "meta" (*)
+regex-automata feature "nfa-pikevm" (*)
+regex-automata feature "syntax" (*)
+regex-syntax feature "default"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-syntax feature "std" (*)
+regex-syntax feature "unicode"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-syntax feature "unicode-age"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-syntax feature "unicode-bool"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-syntax feature "unicode-case"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-syntax feature "unicode-gencat"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-syntax feature "unicode-perl"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-syntax feature "unicode-script"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex-syntax feature "unicode-segment"
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex feature "perf"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex feature "perf-backtrack"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "nfa-backtrack" (*)
+regex feature "perf-cache"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex feature "perf-dfa"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "hybrid" (*)
+regex feature "perf-inline"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "perf-inline" (*)
+regex feature "perf-literal"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "perf-literal" (*)
+regex feature "perf-onepass"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "dfa-onepass" (*)
+regex feature "std"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+aho-corasick feature "std" (*)
+memchr feature "std" (*)
+regex-automata feature "std" (*)
+regex-syntax feature "std" (*)
+regex feature "unicode"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "unicode"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-automata feature "unicode-age"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-syntax feature "unicode-age" (*)
+regex-automata feature "unicode-bool"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-syntax feature "unicode-bool" (*)
+regex-automata feature "unicode-case"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-syntax feature "unicode-case" (*)
+regex-automata feature "unicode-gencat"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-syntax feature "unicode-gencat" (*)
+regex-automata feature "unicode-perl"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-syntax feature "unicode-perl" (*)
+regex-automata feature "unicode-script"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-syntax feature "unicode-script" (*)
+regex-automata feature "unicode-segment"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-syntax feature "unicode-segment" (*)
+regex-automata feature "unicode-word-boundary"
+regex-automata v0.4.14 alloc,dfa-onepass,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary (*)
+regex-syntax feature "unicode" (*)
+regex-syntax feature "unicode" (*)
+regex feature "unicode-age"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "unicode-age" (*)
+regex-syntax feature "unicode-age" (*)
+regex feature "unicode-bool"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "unicode-bool" (*)
+regex-syntax feature "unicode-bool" (*)
+regex feature "unicode-case"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "unicode-case" (*)
+regex-syntax feature "unicode-case" (*)
+regex feature "unicode-gencat"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "unicode-gencat" (*)
+regex-syntax feature "unicode-gencat" (*)
+regex feature "unicode-perl"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "unicode-perl" (*)
+regex-automata feature "unicode-word-boundary" (*)
+regex-syntax feature "unicode-perl" (*)
+regex feature "unicode-script"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "unicode-script" (*)
+regex-syntax feature "unicode-script" (*)
+regex feature "unicode-segment"
+regex v1.12.3 default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment (*)
+regex-automata feature "unicode-segment" (*)
+regex-syntax feature "unicode-segment" (*)
+toml feature "default"
+toml v1.1.2+spec-1.1.0 default,display,parse,serde,std
+winnow v1.0.3 
+serde_core feature "alloc" (*)
+serde_spanned feature "alloc"
+serde_spanned v1.1.1 alloc,serde,std
+serde_core v1.0.228 alloc,result,std
+serde_core feature "alloc" (*)
+toml_datetime feature "alloc"
+toml_datetime v1.1.1+spec-1.1.0 alloc,serde,std
+serde_core v1.0.228 alloc,result,std
+serde_core feature "alloc" (*)
+toml_parser feature "alloc"
+toml_parser v1.1.2+spec-1.1.0 alloc,std
+winnow v1.0.3 
+toml_writer feature "alloc"
+toml_writer v1.1.1+spec-1.1.0 alloc,std
+toml feature "display"
+toml v1.1.2+spec-1.1.0 default,display,parse,serde,std (*)
+toml feature "parse"
+toml v1.1.2+spec-1.1.0 default,display,parse,serde,std (*)
+toml feature "serde"
+toml v1.1.2+spec-1.1.0 default,display,parse,serde,std (*)
+serde_spanned feature "serde"
+serde_spanned v1.1.1 alloc,serde,std (*)
+toml_datetime feature "serde"
+toml_datetime v1.1.1+spec-1.1.0 alloc,serde,std (*)
+toml feature "std"
+toml v1.1.2+spec-1.1.0 default,display,parse,serde,std (*)
+serde_core feature "std" (*)
+serde_spanned feature "std"
+serde_spanned v1.1.1 alloc,serde,std (*)
+serde_core feature "std" (*)
+serde_spanned feature "alloc" (*)
+toml_datetime feature "std"
+toml_datetime v1.1.1+spec-1.1.0 alloc,serde,std (*)
+serde_core feature "std" (*)
+toml_datetime feature "alloc" (*)
+toml_parser feature "std"
+toml_parser v1.1.2+spec-1.1.0 alloc,std (*)
+toml_parser feature "alloc" (*)
+toml_writer feature "std"
+toml_writer v1.1.1+spec-1.1.0 alloc,std
+toml_writer feature "alloc" (*)
+tracing feature "default"
+tracing v0.1.44 attributes,default,std,tracing-attributes
+tracing-core v0.1.36 once_cell,std
+once_cell feature "default"
+once_cell v1.21.4 alloc,default,race,std
+once_cell feature "std"
+once_cell v1.21.4 alloc,default,race,std
+once_cell feature "alloc"
+once_cell v1.21.4 alloc,default,race,std
+once_cell feature "race"
+once_cell v1.21.4 alloc,default,race,std
+pin-project-lite feature "default"
+pin-project-lite v0.2.17 
+tracing-attributes feature "default"
+tracing-attributes v0.1.31 (proc-macro) 
+proc-macro2 feature "default" (*)
+quote feature "default" (*)
+syn feature "clone-impls" (*)
+syn feature "extra-traits"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut (*)
+syn feature "full" (*)
+syn feature "parsing" (*)
+syn feature "printing" (*)
+syn feature "proc-macro" (*)
+syn feature "visit-mut"
+syn v2.0.117 clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit-mut (*)
+tracing feature "attributes"
+tracing v0.1.44 attributes,default,std,tracing-attributes (*)
+tracing feature "tracing-attributes"
+tracing v0.1.44 attributes,default,std,tracing-attributes (*)
+tracing feature "std"
+tracing v0.1.44 attributes,default,std,tracing-attributes (*)
+tracing-core feature "std"
+tracing-core v0.1.36 once_cell,std (*)
+tracing-core feature "once_cell"
+tracing-core v0.1.36 once_cell,std (*)
+tree-sitter feature "default"
+tree-sitter v0.26.11 default,std
+regex-syntax v0.8.10 default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment
+regex feature "unicode" (*)
+streaming-iterator feature "default"
+streaming-iterator v0.1.9 
+tree-sitter-language feature "default"
+tree-sitter-language v0.1.7 
+cc feature "default" (*)
+serde_json feature "default"
+serde_json v1.0.150 default,indexmap,preserve_order,std
+memchr v2.8.1 alloc,std
+serde_core v1.0.228 std
+indexmap feature "default"
+indexmap v2.14.0 default,std
+equivalent v1.0.2 
+hashbrown v0.17.1 
+indexmap feature "std"
+indexmap v2.14.0 default,std (*)
+itoa feature "default"
+itoa v1.0.18 
+zmij feature "default"
+zmij v1.0.21 
+serde_json feature "std"
+serde_json v1.0.150 default,indexmap,preserve_order,std (*)
+memchr feature "std"
+memchr v2.8.1 alloc,std
+memchr feature "alloc"
+memchr v2.8.1 alloc,std
+serde_core feature "std"
+serde_core v1.0.228 std
+serde_json feature "preserve_order"
+serde_json v1.0.150 default,indexmap,preserve_order,std (*)
+serde_json feature "indexmap"
+serde_json v1.0.150 default,indexmap,preserve_order,std (*)
+serde_json feature "std" (*)
+tree-sitter feature "std"
+tree-sitter v0.26.11 default,std (*)
+regex-syntax feature "unicode" (*)
+regex feature "perf" (*)
+regex feature "std" (*)
+tree-sitter-bash feature "default"
+tree-sitter-bash v0.25.1 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-c feature "default"
+tree-sitter-c v0.24.2 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-c-sharp feature "default"
+tree-sitter-c-sharp v0.23.5 (https://github.com/anortham/tree-sitter-c-sharp?rev=388c0e74f41a3f074f4bbc0f62aaf4e6ca48fffe#388c0e74) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-cpp feature "default"
+tree-sitter-cpp v0.23.4 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-css feature "default"
+tree-sitter-css v0.25.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-dart feature "default"
+tree-sitter-dart v0.2.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-elixir feature "default"
+tree-sitter-elixir v0.3.5 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-erlang feature "default"
+tree-sitter-erlang v0.20.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-fsharp feature "default"
+tree-sitter-fsharp v0.3.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-gdscript feature "default"
+tree-sitter-gdscript v6.1.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-go feature "default"
+tree-sitter-go v0.25.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-gomod feature "default"
+tree-sitter-gomod v1.1.1 (https://github.com/anortham/tree-sitter-go-mod?rev=655fba88f326a7c8588d118c716428d038296189#655fba88) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-gosum feature "default"
+tree-sitter-gosum v1.0.0 (https://github.com/anortham/tree-sitter-go-sum?rev=b1727178d527bf4171dc4772afca3d220def49cd#b1727178) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-html feature "default"
+tree-sitter-html v0.23.2 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-java feature "default"
+tree-sitter-java v0.23.5 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-javascript feature "default"
+tree-sitter-javascript v0.25.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-json feature "default"
+tree-sitter-json v0.24.8 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-kotlin-ng feature "default"
+tree-sitter-kotlin-ng v1.1.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-lua feature "default"
+tree-sitter-lua v0.5.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-md feature "default"
+tree-sitter-md v0.5.3 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-php feature "default"
+tree-sitter-php v0.24.2 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-powershell feature "default"
+tree-sitter-powershell v0.26.4 (https://github.com/airbus-cert/tree-sitter-powershell?rev=d398441825243b00e317e87e1829b9d6a3e54ce0#d3984418) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-python feature "default"
+tree-sitter-python v0.25.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-qmldir feature "default"
+tree-sitter-qmldir v0.1.0 (https://github.com/tree-sitter-grammars/tree-sitter-qmldir?rev=c57e00865a1a6f1cca83340d6dad91f13df55479#c57e0086) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-qmljs feature "default"
+tree-sitter-qmljs v0.3.0 (https://github.com/yuja/tree-sitter-qmljs?rev=606a66b96a13ef30ed5c7ec7e5adc20a9a40157a#606a66b9) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-r feature "default"
+tree-sitter-r v1.3.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-razor feature "default"
+tree-sitter-razor v0.1.1 (https://github.com/anortham/tree-sitter-razor?rev=fba8571f06c06aa5acca01e3d762f5a5e78dc50f#fba8571f) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-regex feature "default"
+tree-sitter-regex v0.25.0-julie.1 (/home/murphy/source/julie-extractors/vendor/tree-sitter-regex) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-ruby feature "default"
+tree-sitter-ruby v0.23.1 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-rust feature "default"
+tree-sitter-rust v0.24.2 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-scala feature "default"
+tree-sitter-scala v0.26.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-sequel-tsql feature "default"
+tree-sitter-sequel-tsql v0.4.2 (https://github.com/anortham/tree-sitter-sql?rev=63ea933e464813d01cab5d7febcb0f77409c247b#63ea933e) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-swift feature "default"
+tree-sitter-swift v0.7.3 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-toml-ng feature "default"
+tree-sitter-toml-ng v0.7.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-typescript feature "default"
+tree-sitter-typescript v0.23.2 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-vb-dotnet feature "default"
+tree-sitter-vb-dotnet v0.1.0 (https://github.com/LuisCarreras/tree-sitter-vb-dotnet?rev=25dca4ac1456c691e2381a2d76151ef432aefc9e#25dca4ac) 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-xml feature "default"
+tree-sitter-xml v0.7.0 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-yaml feature "default"
+tree-sitter-yaml v0.7.2 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+tree-sitter-zig feature "default"
+tree-sitter-zig v1.1.2 
+tree-sitter-language feature "default" (*)
+cc feature "default" (*)
+unicode-ident feature "default"
+unicode-ident v1.0.24 
+julie-extractors feature "syntax-api"
+julie-extractors v3.11.0 (/home/murphy/source/julie-extractors/crates/julie-extractors) syntax-api (*)
+rayon feature "default"
+rayon v1.12.0 
+either v1.16.0 
+rayon-core feature "default"
+rayon-core v1.13.0 
+crossbeam-deque feature "default" (*)
+crossbeam-utils feature "default"
+crossbeam-utils v0.8.21 default,std
+crossbeam-utils feature "std" (*)
+time feature "default"
+time v0.3.47 alloc,default,formatting,std
+powerfmt v0.2.0 
+itoa feature "default" (*)
+deranged feature "default"
+deranged v0.5.8 default,powerfmt
+powerfmt v0.2.0 
+deranged feature "powerfmt"
+deranged v0.5.8 default,powerfmt (*)
+num-conv feature "default"
+num-conv v0.2.2 
+time-core feature "default"
+time-core v0.1.8 
+time feature "std"
+time v0.3.47 alloc,default,formatting,std (*)
+time feature "alloc"
+time v0.3.47 alloc,default,formatting,std (*)
+time feature "formatting"
+time v0.3.47 alloc,default,formatting,std (*)
+time feature "std" (*)

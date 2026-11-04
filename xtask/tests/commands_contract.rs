@@ -42,6 +42,21 @@ fn test_tiers_module_does_not_own_release_routing() {
 }
 
 #[test]
+fn commands_route_coverage_before_test_tier_parser() {
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args(["coverage", "--language"])
+        .output()
+        .expect("run xtask coverage");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("missing value for --language"),
+        "coverage route must reach the corpus argument parser, stderr: {stderr}"
+    );
+}
+
+#[test]
 fn commands_route_test_list() {
     let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
         .args(["test", "list"])

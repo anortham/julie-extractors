@@ -1,4 +1,6 @@
-use crate::base::{RelationshipKind, Symbol, SymbolKind, SymbolOptions, UnresolvedTarget};
+use crate::base::{
+    NormalizedSpan, RelationshipKind, Symbol, SymbolKind, SymbolOptions, UnresolvedTarget,
+};
 use crate::r::RExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -286,7 +288,7 @@ pub(super) fn extract_assignment_class_factory(
         );
     }
 
-    let symbol = extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         &node,
         assigned_name.to_string(),
         SymbolKind::Class,
@@ -299,6 +301,9 @@ pub(super) fn extract_assignment_class_factory(
             ..Default::default()
         },
     );
+    if let Some(arguments) = call.child_by_field_name("arguments") {
+        set_body_from_node(extractor, &mut symbol, arguments);
+    }
     extractor.symbols.push(symbol.clone());
     if let Some(site) = parent_value {
         for parent in parents {
@@ -683,7 +688,7 @@ pub(super) fn extract_import_call(
                 serde_json::Value::String(format!("{form}()")),
             ),
         ]);
-        let symbol = extractor.base.create_symbol(
+        let mut symbol = extractor.base.create_symbol(
             &node,
             module,
             SymbolKind::Import,
@@ -695,6 +700,7 @@ pub(super) fn extract_import_call(
                 ..Default::default()
             },
         );
+        super::clear_body(&mut symbol);
         extractor.symbols.push(symbol.clone());
         if form == "source" {
             emit_source_import_pending(extractor, &symbol, node);
@@ -911,7 +917,7 @@ fn extract_s4_class(
         metadata.insert("contains".to_string(), serde_json::Value::String(contains));
     }
 
-    let symbol = extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         &node,
         name.clone(),
         SymbolKind::Class,
@@ -924,6 +930,7 @@ fn extract_s4_class(
             ..Default::default()
         },
     );
+    set_body_from_node(extractor, &mut symbol, args);
     extractor.symbols.push(symbol.clone());
     for (parent, site) in parents {
         request_extends(extractor, &symbol.id, parent, site);
@@ -938,6 +945,13 @@ fn extract_s4_class(
         extract_typed_slots(extractor, slots, &symbol);
     }
     Some(symbol)
+}
+
+fn set_body_from_node(extractor: &RExtractor, symbol: &mut Symbol, node: Node) {
+    let span = NormalizedSpan::from_node(&node);
+    symbol.body_hash =
+        crate::base::body::body_hash(&extractor.base.content, span, &extractor.base.language);
+    symbol.body_span = Some(span);
 }
 
 fn extract_s4_generic(

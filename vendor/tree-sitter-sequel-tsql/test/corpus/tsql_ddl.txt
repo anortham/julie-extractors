@@ -1,0 +1,410 @@
+================================================================================
+T-SQL bracket identifiers preserve escaped closing brackets
+================================================================================
+
+CREATE TABLE [dbo].[a]]b] ([Id] int);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int)))))))
+
+================================================================================
+T-SQL IDENTITY is a named column modifier
+================================================================================
+
+CREATE TABLE [dbo].[Users] (
+  [Id] int IDENTITY NOT NULL,
+  [Sequence] bigint IDENTITY(10, 5) NOT NULL
+);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))
+          (identity_clause
+            (keyword_identity))
+          (keyword_not)
+          (keyword_null))
+        (column_definition
+          name: (identifier)
+          type: (bigint
+            (keyword_bigint))
+          (identity_clause
+            (keyword_identity)
+            seed: (identity_integer)
+            increment: (identity_integer))
+          (keyword_not)
+          (keyword_null))))))
+
+================================================================================
+T-SQL MAX and numeric type lengths remain parameterized
+================================================================================
+
+CREATE TABLE [dbo].[Payloads] (
+  [Description] nvarchar(max),
+  [DescriptionCode] nvarchar(256),
+  [Payload] varbinary(max),
+  [PayloadHash] varbinary(64)
+);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (nvarchar
+            (keyword_nvarchar)
+            size: (keyword_max)))
+        (column_definition
+          name: (identifier)
+          type: (nvarchar
+            (keyword_nvarchar)
+            size: (literal)))
+        (column_definition
+          name: (identifier)
+          type: (varbinary
+            (keyword_varbinary)
+            precision: (keyword_max)))
+        (column_definition
+          name: (identifier)
+          type: (varbinary
+            (keyword_varbinary)
+            precision: (literal)))))))
+
+================================================================================
+T-SQL computed columns remain column definitions
+================================================================================
+
+CREATE TABLE [dbo].[OrderLines] (
+  [Quantity] int NOT NULL,
+  [UnitPrice] decimal(18, 2) NOT NULL,
+  [Total] AS ([Quantity] * [UnitPrice]) PERSISTED
+);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))
+          (keyword_not)
+          (keyword_null))
+        (column_definition
+          name: (identifier)
+          type: (decimal
+            (keyword_decimal)
+            precision: (literal)
+            scale: (literal))
+          (keyword_not)
+          (keyword_null))
+        (column_definition
+          name: (identifier)
+          (keyword_as)
+          expression: (parenthesized_expression
+            (binary_expression
+              left: (field
+                name: (identifier))
+              right: (field
+                name: (identifier))))
+          (keyword_persisted))))))
+
+================================================================================
+T-SQL inline named primary and default constraints
+================================================================================
+
+CREATE TABLE [dbo].[Audit] (
+  [Id] int IDENTITY(1, 1) NOT NULL CONSTRAINT [PK_Audit] PRIMARY KEY,
+  [ChangedAtUtc] datetime2 NOT NULL CONSTRAINT [DF_Audit_ChangedAtUtc] DEFAULT (GETUTCDATE())
+);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))
+          (identity_clause
+            (keyword_identity)
+            seed: (identity_integer)
+            increment: (identity_integer))
+          (keyword_not)
+          (keyword_null)
+          (named_column_constraint
+            (keyword_constraint)
+            name: (identifier)
+            (keyword_primary)
+            (keyword_key)))
+        (column_definition
+          name: (identifier)
+          type: (datetime2
+            (keyword_datetime2))
+          (keyword_not)
+          (keyword_null)
+          (named_column_constraint
+            (keyword_constraint)
+            name: (identifier)
+            (keyword_default)
+            (list
+              (invocation
+                (object_reference
+                  name: (identifier))))))))))
+
+================================================================================
+T-SQL named composite primary and foreign keys
+================================================================================
+
+CREATE TABLE [app].[Links] (
+  [ParentId] int NOT NULL,
+  [ChildId] int NOT NULL,
+  CONSTRAINT [PK_Links] PRIMARY KEY ([ParentId], [ChildId]),
+  CONSTRAINT [FK_Links_Items] FOREIGN KEY ([ParentId], [ChildId])
+    REFERENCES [app].[Items] ([ParentId], [ChildId]) ON DELETE NO ACTION
+);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))
+          (keyword_not)
+          (keyword_null))
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))
+          (keyword_not)
+          (keyword_null))
+        (constraints
+          (constraint
+            (keyword_constraint)
+            name: (identifier)
+            (keyword_primary)
+            (keyword_key)
+            (ordered_columns
+              (column
+                name: (identifier))
+              (column
+                name: (identifier))))
+          (constraint
+            (keyword_constraint)
+            name: (identifier)
+            (keyword_foreign)
+            (keyword_key)
+            (ordered_columns
+              (column
+                name: (identifier))
+              (column
+                name: (identifier)))
+            (keyword_references)
+            (object_reference
+              schema: (identifier)
+              name: (identifier))
+            (identifier)
+            (identifier)
+            (keyword_on)
+            (keyword_delete)
+            (keyword_no)
+            (keyword_action)))))))
+
+================================================================================
+T-SQL rowversion ALTER INDEX and foreign-key controls
+================================================================================
+
+CREATE TABLE [app].[Versioned] (
+  [Id] int NOT NULL,
+  [RowVersion] rowversion NOT NULL
+);
+ALTER TABLE [app].[Versioned] ADD [Payload] varbinary(64) NULL;
+CREATE UNIQUE INDEX [IX_Versioned_Id] ON [app].[Versioned] ([Id]);
+ALTER TABLE [app].[Versioned]
+  ADD CONSTRAINT [FK_Versioned_Parent] FOREIGN KEY ([Id])
+  REFERENCES [app].[Parent] ([Id]) ON DELETE CASCADE;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))
+          (keyword_not)
+          (keyword_null))
+        (column_definition
+          name: (identifier)
+          custom_type: (object_reference
+            name: (identifier))
+          (keyword_not)
+          (keyword_null)))))
+  (statement
+    (alter_table
+      (keyword_alter)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (add_column
+        (keyword_add)
+        (column_definition
+          name: (identifier)
+          type: (varbinary
+            (keyword_varbinary)
+            precision: (literal))
+          (keyword_null)))))
+  (statement
+    (create_index
+      (keyword_create)
+      (keyword_unique)
+      (keyword_index)
+      column: (identifier)
+      (keyword_on)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (index_fields
+        (field
+          column: (identifier)))))
+  (statement
+    (alter_table
+      (keyword_alter)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (add_constraint
+        (keyword_add)
+        (keyword_constraint)
+        name: (identifier)
+        (constraint
+          (keyword_foreign)
+          (keyword_key)
+          (ordered_columns
+            (column
+              name: (identifier)))
+          (keyword_references)
+          (object_reference
+            schema: (identifier)
+            name: (identifier))
+          (identifier)
+          (keyword_on)
+          (keyword_delete)
+          (keyword_cascade))))))
+
+================================================================================
+Malformed T-SQL IDENTITY remains diagnostic
+================================================================================
+
+CREATE TABLE [dbo].[BadIdentity] ([Id] int IDENTITY(1,));
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))
+          (identity_clause
+            (keyword_identity)))
+        (ERROR
+          (identity_integer))))))
+
+================================================================================
+Malformed T-SQL computed columns remain diagnostic
+================================================================================
+
+CREATE TABLE [dbo].[BadComputed] ([Value] AS (1 + 2 3) PERSISTED);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          (keyword_as)
+          expression: (parenthesized_expression
+            (binary_expression
+              left: (literal)
+              right: (literal))
+            (ERROR))
+          (keyword_persisted))))))

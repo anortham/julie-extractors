@@ -7,6 +7,7 @@
 /// - Property assignments: `obj.prop = value`
 /// - Module property assignments: `M.PI = 3.14159`
 use super::core::{self, ValueOwners};
+use super::functions;
 use super::helpers;
 use super::parameters;
 use super::scope;
@@ -103,7 +104,7 @@ pub(super) fn push_variable_symbol(
     };
 
     let function = value.and_then(scope::function_value);
-    let symbol = match function {
+    let mut symbol = match function {
         Some(function) => base.create_symbol_from_span(
             &function,
             scope::span_between(name_node, &function),
@@ -113,6 +114,9 @@ pub(super) fn push_variable_symbol(
         ),
         None => base.create_symbol(name_node, name, kind, options),
     };
+    if let Some(function) = function {
+        base.set_body_span(&mut symbol, functions::lua_function_body_span(&function));
+    }
     let symbol_id = symbol.id.clone();
     symbols.push(symbol);
 

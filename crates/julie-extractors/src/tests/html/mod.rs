@@ -44,11 +44,15 @@ pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relati
     (symbols, relationships)
 }
 
+pub mod annotations;
+mod body_hash;
+mod complexity_metrics;
 pub mod cross_file_pending;
 pub mod doc_comments;
 pub mod edge_cases;
 pub mod forms;
 mod gap_closure;
+mod identifier_access_coverage;
 pub mod identifier_extraction;
 #[cfg(test)]
 mod literals;

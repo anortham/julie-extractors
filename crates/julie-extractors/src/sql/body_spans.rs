@@ -40,6 +40,43 @@ pub(super) fn finalize_sql_callable_symbol(base: &BaseExtractor, symbol: &mut Sy
     }
 }
 
+pub(super) fn finalize_sql_trigger_symbol(
+    base: &BaseExtractor,
+    symbol: &mut Symbol,
+    node: tree_sitter::Node,
+) {
+    if is_trigger_execution_reference(node) {
+        base.set_body_span(symbol, None);
+        if let Some(metadata) = symbol.metadata.as_mut() {
+            metadata.remove("bodySpanSource");
+        }
+    } else {
+        finalize_sql_callable_symbol(base, symbol);
+    }
+}
+
+fn is_trigger_execution_reference(node: tree_sitter::Node) -> bool {
+    if node.kind() != "create_trigger" {
+        return false;
+    }
+
+    let mut cursor = node.walk();
+    let mut after_execute = false;
+    let mut has_execution_target = false;
+    let mut has_inline_body = false;
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "keyword_execute" => after_execute = true,
+            "keyword_function" | "keyword_procedure" if after_execute => {
+                has_execution_target = true;
+            }
+            "function_body" | "keyword_begin" => has_inline_body = true,
+            _ => {}
+        }
+    }
+    has_execution_target && !has_inline_body
+}
+
 /// Whether a routine's `function_body` node holds the whole body: a
 /// `BEGIN` block must reach its `END`; any other body must parse cleanly.
 pub(super) fn is_complete_body(body: tree_sitter::Node) -> bool {

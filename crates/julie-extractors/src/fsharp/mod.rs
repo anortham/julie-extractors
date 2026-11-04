@@ -36,6 +36,7 @@ impl FSharpExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         let mut symbols = declarations::extract_symbols(self, tree.root_node());
         test_detection::apply_test_roles(&mut symbols);
         self.base.type_info.clear();

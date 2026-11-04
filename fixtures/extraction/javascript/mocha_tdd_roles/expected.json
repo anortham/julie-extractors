@@ -398,15 +398,8 @@
       "end_column": 1,
       "start_byte": 633,
       "end_byte": 694,
-      "body_span": {
-        "start_line": 30,
-        "start_column": 16,
-        "end_line": 34,
-        "end_column": 1,
-        "start_byte": 643,
-        "end_byte": 694
-      },
-      "body_hash": "5b7123b48861f1a4653ad1c35fcdacdf",
+      "body_span": null,
+      "body_hash": null,
       "signature": "const harness = {\n  suite(name, run) {\n    return run(name);\n  },\n...",
       "doc_comment": null,
       "visibility": "Public",

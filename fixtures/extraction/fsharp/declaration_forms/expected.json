@@ -718,7 +718,7 @@
         "start_byte": 370,
         "end_byte": 790
       },
-      "body_hash": "b7d3d866348ff343d71fc1b2e2b34810",
+      "body_hash": "b52a0e8a38141f4c3f2d8e42d9e2b83a",
       "signature": "type Repo(conn: string, timeout: int) =",
       "doc_comment": null,
       "visibility": "Public",
@@ -749,7 +749,7 @@
         "start_byte": 25,
         "end_byte": 1890
       },
-      "body_hash": "eec9a40c9561d6bbcef75fde1488e142",
+      "body_hash": "95c31a245e808d4b55412e2ab8139b7c",
       "signature": "namespace rec Shop.Core",
       "doc_comment": null,
       "visibility": "Public",
@@ -1631,7 +1631,7 @@
         "start_byte": 378,
         "end_byte": 424
       },
-      "body_hash": "d94cec5d0b3d1595694acf5e77899c1c",
+      "body_hash": "03b7e83853ad9859f0305e867700dc40",
       "signature": "new() = Repo(\"local\", 30)",
       "doc_comment": null,
       "visibility": "Public",

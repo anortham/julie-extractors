@@ -1,0 +1,234 @@
+{
+  "format_version": 1,
+  "baseline_binary_sha256": "79eb21fa95d39445e78b7237a0300fe071649d5671db0fbc4b3baff0ee2fd78d",
+  "manifest_sha256": "fb6e6a8a286acd8900094023d5d8c2b110695eb459c35b52bdfb642fd1a58ec6",
+  "source": {
+    "commit": "f9a1b6cfbd6c51e9aecad39a19610695f210ad05",
+    "tree_hash_algorithm": "git-ls-tree-r-v1-sha256",
+    "tree_sha256": "2f7afb3f50ea96fa2046f04eb2f1c75312fe5449926394cec31f52630c290599",
+    "dirty": false,
+    "dirty_state_sha256": null
+  },
+  "snapshots": [
+    {
+      "language": "all",
+      "level": "references",
+      "workload": "fresh_scan",
+      "source_state_sha256": "cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6",
+      "semantic_dump_sha256": "c47f0747b7273e2030012e78016fcbc4c9e6ddfcdb3e7f55853d01807cf190ff",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "references",
+      "workload": "no_change_scan",
+      "source_state_sha256": "cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6",
+      "semantic_dump_sha256": "c47f0747b7273e2030012e78016fcbc4c9e6ddfcdb3e7f55853d01807cf190ff",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "references",
+      "workload": "single_file_update",
+      "source_state_sha256": "586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700",
+      "semantic_dump_sha256": "b48bba97ba82daab428b3e065ccfe806050b6338223a9107f43dab1fdb3050d3",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "references",
+      "workload": "fresh_scan",
+      "source_state_sha256": "586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700",
+      "semantic_dump_sha256": "b48bba97ba82daab428b3e065ccfe806050b6338223a9107f43dab1fdb3050d3",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "references",
+      "workload": "single_file_update",
+      "source_state_sha256": "cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6",
+      "semantic_dump_sha256": "c47f0747b7273e2030012e78016fcbc4c9e6ddfcdb3e7f55853d01807cf190ff",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "full",
+      "workload": "fresh_scan",
+      "source_state_sha256": "cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6",
+      "semantic_dump_sha256": "63390c99fe3dc8b83982f0399dabbcaba9c6c9015c2141862e99b7802bd16ff8",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "full",
+      "workload": "no_change_scan",
+      "source_state_sha256": "cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6",
+      "semantic_dump_sha256": "63390c99fe3dc8b83982f0399dabbcaba9c6c9015c2141862e99b7802bd16ff8",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "full",
+      "workload": "single_file_update",
+      "source_state_sha256": "586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700",
+      "semantic_dump_sha256": "db445789bf62bffb86a992654fe7b31237fc085b8943b24e36c6182050a05fb6",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "full",
+      "workload": "fresh_scan",
+      "source_state_sha256": "586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700",
+      "semantic_dump_sha256": "db445789bf62bffb86a992654fe7b31237fc085b8943b24e36c6182050a05fb6",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    },
+    {
+      "language": "all",
+      "level": "full",
+      "workload": "single_file_update",
+      "source_state_sha256": "cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6",
+      "semantic_dump_sha256": "63390c99fe3dc8b83982f0399dabbcaba9c6c9015c2141862e99b7802bd16ff8",
+      "diagnostic_counts_by_file": {
+        "rust/malformed-recovery.rs": 1,
+        "sql/InsertCustomerOrders.sql": 9
+      },
+      "health": {
+        "files_scanned": 44,
+        "files_failed": 0,
+        "files_unsupported": 0,
+        "errors": 0,
+        "skipped": {},
+        "warnings": {},
+        "parse_diagnostics": {
+          "reported_total": 10
+        }
+      }
+    }
+  ]
+}

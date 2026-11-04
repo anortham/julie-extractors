@@ -246,6 +246,7 @@ impl RazorExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         let mut symbols = Vec::new();
         self.return_types = crate::csharp::initializer_types::ReturnTypeIndex::for_razor(
             &self.base,
@@ -342,8 +343,7 @@ impl RazorExtractor {
         );
         let body = crate::base::NormalizedSpan::from_node(&root_node);
         symbol.body_span = Some(body);
-        symbol.body_hash =
-            crate::base::body::body_hash(&self.base.content, body, &self.base.language);
+        symbol.body_hash = self.base.hash_body(body);
         Some(symbol)
     }
 
@@ -534,9 +534,7 @@ impl RazorExtractor {
                 .and_then(|node| value_body(node, 0))
                 .map(|body| crate::base::NormalizedSpan::from_node(&body));
             symbol.body_span = body;
-            symbol.body_hash = body.and_then(|body| {
-                crate::base::body::body_hash(&self.base.content, body, &self.base.language)
-            });
+            symbol.body_hash = body.and_then(|body| self.base.hash_body(body));
         }
     }
 

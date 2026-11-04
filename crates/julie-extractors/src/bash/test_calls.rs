@@ -38,7 +38,6 @@
 //! name in `test_detection`. ShellSpec hooks (`BeforeEach 'fn'`) are commands
 //! and become lifecycle symbols here, only in test files.
 
-use crate::base::body::body_hash;
 use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolOptions};
 use crate::test_calls::{
     TestCallCategory, TestCallVocab, build_test_call_symbol, classify_call_exact,
@@ -265,7 +264,7 @@ pub(super) fn extract_bash_test_block(
     );
     let body = span_between(&body_start, &closer);
     symbol.body_span = Some(body);
-    symbol.body_hash = body_hash(&base.content, body, &base.language);
+    symbol.body_hash = base.hash_body(body);
     Some(symbol)
 }
 

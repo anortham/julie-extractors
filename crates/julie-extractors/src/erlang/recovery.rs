@@ -1,31 +1,7 @@
-//! Bounded parse-error recovery for Erlang.
+//! Bounded fallback recovery for Erlang files whose primary parse has errors.
 //!
-//! `tree-sitter-erlang` has no preprocessor, so a macro that expands to a partial
-//! clause head — `-define(WITH_STACKTRACE(T, R, S), T:R:S ->).` used as a `catch`
-//! clause — cannot parse. The damage is not local: the grammar reinterprets the
-//! rest of the file as a continuation of the broken construct, so every top-level
-//! form after the first such macro is lost. `telemetry` 1.3.0 loses four of its
-//! eight exports that way.
-//!
-//! The cascade is unbounded at file scope but contained at form scope. Recovery
-//! therefore re-parses the file from successive top-level form starts: everything
-//! before the resume point is blanked to spaces (newlines kept), so the re-parsed
-//! buffer has byte-for-byte the same offsets and line numbers as the original and
-//! its nodes can be read against the original content. tree-sitter re-synchronises
-//! on its own, which is why this needs no Erlang form tokenizer.
-//!
-//! The budget is deliberately small and the trigger is narrow:
-//! - a clean parse does zero extra work ([`recover`] returns before touching the
-//!   parser when the root has no error);
-//! - at most [`MAX_RECOVERY_PARSES`] re-parses per file;
-//! - resume points are only column-0 form starts, never offsets inside a
-//!   string, a comment, or a multiline quoted atom, so neither doc-comment prose
-//!   nor quoted text is re-read as code.
-//!
-//! Literal extents come from [`lexical`], not from the parse tree. The tree is
-//! the broken artifact recovery exists to work around: an unclosed `"` never
-//! becomes a `string` node, so a tree-derived literal map cannot see it and the
-//! form-shaped lines in its interior would be re-parsed as declarations.
+//! Recovery re-parses later top-level forms while preserving their original
+//! source offsets, so declarations hidden by parser error recovery can be read.
 
 use tree_sitter::{Node, Parser, Tree};
 

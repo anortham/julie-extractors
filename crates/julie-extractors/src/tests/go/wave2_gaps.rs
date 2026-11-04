@@ -303,6 +303,43 @@ func create() {
 }
 
 #[test]
+fn interface_method_signatures_do_not_claim_parenthesized_bodies() {
+    let source = "package shapes\ntype Closer interface { Close() error }\ntype Circle struct{}\nfunc (c *Circle) Close() error { return nil }\n";
+    let result = extract_at("shapes.go", source);
+    let interface_close = find(&result, "Close", 2);
+    let implementation_close = find(&result, "Close", 4);
+    let closer = find(&result, "Closer", 2);
+
+    assert_eq!(interface_close.kind, SymbolKind::Method);
+    assert_eq!(
+        interface_close.parent_id.as_deref(),
+        Some(closer.id.as_str())
+    );
+    assert_eq!(interface_close.signature.as_deref(), Some("Close() error"));
+    assert_eq!(interface_close.body_span, None);
+    assert_eq!(interface_close.body_hash, None);
+    assert_eq!(
+        type_of(&result, "Close", 2),
+        Some(("error".to_string(), false))
+    );
+
+    assert_eq!(implementation_close.kind, SymbolKind::Method);
+    let body = implementation_close
+        .body_span
+        .as_ref()
+        .expect("method body");
+    assert_eq!(
+        &source[body.start_byte as usize..body.end_byte as usize],
+        "{ return nil }"
+    );
+    assert!(implementation_close.body_hash.is_some());
+    assert_eq!(
+        type_of(&result, "Close", 4),
+        Some(("error".to_string(), false))
+    );
+}
+
+#[test]
 fn doc_comments_follow_go_doc_rules() {
     let result = extract(
         r#"package store
@@ -629,6 +666,29 @@ func fiberRoutes() {
     let fiber = facts(&result, "fiber.route.v1");
     assert_contains(&fiber, "GET /health");
     assert_contains(&fiber, "POST /api/orders/:id");
+}
+
+#[test]
+fn net_http_method_names_without_serve_mux_type_evidence_are_not_routes() {
+    let result = extract(
+        r#"package api
+
+import "net/http"
+
+type RouterLike struct{}
+
+func (r *RouterLike) HandleFunc(pattern string, handler func()) {}
+
+func register(lookalike *RouterLike, mux *http.ServeMux) {
+	lookalike.HandleFunc("GET /not-a-route", handler)
+	mux.HandleFunc("POST /orders", handler)
+}
+
+func handler() {}
+"#,
+    );
+
+    assert_eq!(facts(&result, "go.net_http.route.v1"), ["POST /orders"]);
 }
 
 #[test]

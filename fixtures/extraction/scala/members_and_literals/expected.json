@@ -80,7 +80,7 @@
         "start_byte": 1533,
         "end_byte": 1763
       },
-      "body_hash": "579af38d98b12c52001148e08be9d36b",
+      "body_hash": "a9cb4422f0492f40cc50e39108830d70",
       "signature": "object Dao",
       "doc_comment": null,
       "visibility": "Public",
@@ -665,7 +665,7 @@
         "start_byte": 1558,
         "end_byte": 1616
       },
-      "body_hash": "dfcad644b1d354e662e71a14f86fc8d1",
+      "body_hash": "07c0c71ccdcfe5a216d49b83e3c0368c",
       "signature": "def byId(id: Long)",
       "doc_comment": null,
       "visibility": "Public",
@@ -859,7 +859,7 @@
         "start_byte": 1641,
         "end_byte": 1691
       },
-      "body_hash": "e57906b440aa8d4e0dbfb391beee901f",
+      "body_hash": "a06503021a9a8f718e2b2de427d5a5ee",
       "signature": "def fetch(id: Long)",
       "doc_comment": null,
       "visibility": "Public",

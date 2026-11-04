@@ -1,4 +1,4 @@
-use crate::base::body::{body_hash, infer_body_span_from_span};
+use crate::base::body::infer_body_span_from_span;
 use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -26,7 +26,7 @@ pub(super) fn create_symbol_manual(
     };
     let span = NormalizedSpan::from_content_range(&base.content, start, end.max(start))?;
     let body_span = infer_body_span_from_span(&base.content, span);
-    let body_hash = body_span.and_then(|span| body_hash(&base.content, span, &base.language));
+    let body_hash = body_span.and_then(|span| base.hash_body(span));
 
     Some(Symbol {
         id: base.generate_id_for_span(name, &span),

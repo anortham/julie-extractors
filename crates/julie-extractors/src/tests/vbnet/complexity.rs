@@ -67,4 +67,5 @@ End Namespace
     assert_eq!(symbol_metric.max_nesting_depth, 3);
     assert_eq!(symbol_metric.parameter_count, Some(2));
     assert!(symbol_metric.end_byte > symbol_metric.start_byte);
+    assert_eq!(results.complexity_metrics.len(), 2);
 }

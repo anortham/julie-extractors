@@ -1,3 +1,4 @@
+mod body_spans;
 mod complexity;
 mod docs;
 mod headers;
@@ -10,6 +11,7 @@ mod symbols;
 mod test_roles;
 mod type_facts;
 mod types;
+mod variable_access;
 mod visibility;
 mod wave2_gaps;
 

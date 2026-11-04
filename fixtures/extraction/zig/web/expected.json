@@ -613,15 +613,8 @@
       "end_column": 40,
       "start_byte": 74,
       "end_byte": 101,
-      "body_span": {
-        "start_line": 4,
-        "start_column": 34,
-        "end_line": 4,
-        "end_column": 40,
-        "start_byte": 95,
-        "end_byte": 101
-      },
-      "body_hash": "e7b11c0a3c292cb85fa4b9bffdf49104",
+      "body_span": null,
+      "body_hash": null,
       "signature": "server: *httpz.Server(void)",
       "doc_comment": null,
       "visibility": null,

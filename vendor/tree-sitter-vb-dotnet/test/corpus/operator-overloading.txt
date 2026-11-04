@@ -1,0 +1,185 @@
+==================
+Binary operator overload
+==================
+
+Class Vector
+    Public Shared Operator +(a As Vector, b As Vector) As Vector
+        Return New Vector()
+    End Operator
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (operator_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier))))
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier)))))
+        (namespace_name
+          (identifier))
+        (return_statement
+          (element_access
+            (new_expression
+              (namespace_name
+                (identifier)))))))))
+
+==================
+Unary operator overload
+==================
+
+Class Counter
+    Public Shared Operator Not(c As Counter) As Counter
+        Return New Counter()
+    End Operator
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (operator_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier)))))
+        (namespace_name
+          (identifier))
+        (return_statement
+          (element_access
+            (new_expression
+              (namespace_name
+                (identifier)))))))))
+
+==================
+Comparison operator overload
+==================
+
+Class Money
+    Public Shared Operator =(a As Money, b As Money) As Boolean
+        Return True
+    End Operator
+
+    Public Shared Operator <>(a As Money, b As Money) As Boolean
+        Return False
+    End Operator
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (operator_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier))))
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier)))))
+        (primitive_type)
+        (return_statement
+          (boolean_literal)))
+      (blank_line)
+      (operator_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier))))
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier)))))
+        (primitive_type)
+        (return_statement
+          (boolean_literal))))))
+
+==================
+CType conversion operator
+==================
+
+Class Temperature
+    Public Shared Widening Operator CType(t As Temperature) As Double
+        Return 0.0
+    End Operator
+
+    Public Shared Narrowing Operator CType(d As Double) As Temperature
+        Return New Temperature()
+    End Operator
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (operator_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier)))))
+        (primitive_type)
+        (return_statement
+          (floating_point_literal)))
+      (blank_line)
+      (operator_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (namespace_name
+          (identifier))
+        (return_statement
+          (element_access
+            (new_expression
+              (namespace_name
+                (identifier)))))))))

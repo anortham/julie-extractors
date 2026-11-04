@@ -546,15 +546,8 @@
       "end_column": 31,
       "start_byte": 2428,
       "end_byte": 2455,
-      "body_span": {
-        "start_line": 121,
-        "start_column": 11,
-        "end_line": 121,
-        "end_column": 31,
-        "start_byte": 2435,
-        "end_byte": 2455
-      },
-      "body_hash": "4e23c1dbdd533c9593d4240c34e9f6ff",
+      "body_span": null,
+      "body_hash": null,
       "signature": "require(\"lazy.core.config\")",
       "doc_comment": null,
       "visibility": "Public",

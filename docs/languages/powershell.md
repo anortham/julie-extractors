@@ -127,11 +127,15 @@ without quotes; `$PSScriptRoot` and other variables stay in the text) and
   module specification hashtable (`@{ ModuleName = 'X' }` gives `X`).
 - `Set-Alias` and `New-Alias` rows are aliases, not loads. They have `form`
   and no `source`.
-- Known limit: tree-sitter-powershell does not parse
-  `Import-Module -Name A, B` (a comma and a space) or
-  `Import-Module $PSScriptRoot\Mods\X.psm1` (a bare path that starts with a
-  variable). Neither line writes a row, and the parse error of the first form
-  can also hide the import rows after it.
+- Comma-separated command values, with or without spaces after commas, emit
+  one row per literal value. Array arguments such as `@('A', 'B')` do the
+  same, and later commands remain visible.
+- An unquoted path may begin with a simple variable and continue with adjacent
+  path text, such as `Import-Module $PSScriptRoot\Mods\X.psm1`. The source keeps
+  the variable and path exactly as written; the extractor does not expand or
+  resolve it. The row name comes from the visible final path segment.
+- Parenthesized or otherwise computed arguments are not evaluated to invent an
+  import target.
 
 ## Test labels
 

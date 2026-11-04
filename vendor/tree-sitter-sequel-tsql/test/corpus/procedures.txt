@@ -1,0 +1,144 @@
+================================================================================
+Basic CREATE PROCEDURE with body
+================================================================================
+
+CREATE PROCEDURE usp_GetOrders
+AS
+BEGIN
+  SELECT OrderID FROM Orders;
+END;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_procedure
+      (keyword_create)
+      (keyword_procedure)
+      (object_reference
+        name: (identifier))
+      (function_body
+        (keyword_as)
+        (keyword_begin)
+        (statement
+          (select
+            (keyword_select)
+            (select_expression
+              (term
+                value: (field
+                  name: (identifier)))))
+          (from
+            (keyword_from)
+            (relation
+              (object_reference
+                name: (identifier)))))
+        (keyword_end)))))
+
+================================================================================
+CREATE OR REPLACE PROCEDURE with params
+================================================================================
+
+CREATE OR REPLACE PROCEDURE get_customer(p_id INT)
+AS
+BEGIN
+  SELECT name FROM customers;
+END;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_procedure
+      (keyword_create)
+      (keyword_or)
+      (keyword_replace)
+      (keyword_procedure)
+      (object_reference
+        name: (identifier))
+      (function_arguments
+        (function_argument
+          (identifier)
+          (int
+            (keyword_int))))
+      (function_body
+        (keyword_as)
+        (keyword_begin)
+        (statement
+          (select
+            (keyword_select)
+            (select_expression
+              (term
+                value: (field
+                  name: (identifier)))))
+          (from
+            (keyword_from)
+            (relation
+              (object_reference
+                name: (identifier)))))
+        (keyword_end)))))
+
+================================================================================
+Schema-qualified procedure
+================================================================================
+
+CREATE PROCEDURE dbo.usp_Process
+AS
+BEGIN
+  SELECT 1;
+END;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_procedure
+      (keyword_create)
+      (keyword_procedure)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (function_body
+        (keyword_as)
+        (keyword_begin)
+        (statement
+          (select
+            (keyword_select)
+            (select_expression
+              (term
+                value: (literal)))))
+        (keyword_end)))))
+
+================================================================================
+Procedure with LANGUAGE
+================================================================================
+
+CREATE PROCEDURE do_maintenance()
+LANGUAGE plpgsql
+AS
+BEGIN
+  SELECT 1;
+END;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_procedure
+      (keyword_create)
+      (keyword_procedure)
+      (object_reference
+        name: (identifier))
+      (function_arguments)
+      (function_language
+        (keyword_language)
+        (identifier))
+      (function_body
+        (keyword_as)
+        (keyword_begin)
+        (statement
+          (select
+            (keyword_select)
+            (select_expression
+              (term
+                value: (literal)))))
+        (keyword_end)))))

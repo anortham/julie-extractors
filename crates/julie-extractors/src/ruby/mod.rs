@@ -68,6 +68,7 @@ impl RubyExtractor {
 
     /// Extract all symbols from Ruby source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         let mut symbols = Vec::new();
         self.current_visibility = Visibility::Public; // Reset for each file
 

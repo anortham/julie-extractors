@@ -22,6 +22,7 @@ fn capture(code: &str) -> Vec<Literal> {
         .set_language(&tree_sitter_gdscript::LANGUAGE.into())
         .expect("load GDScript grammar");
     let tree = parser.parse(code, None).expect("parse GDScript");
+    assert!(!tree.root_node().has_error(), "{code}");
     let mut ext = GDScriptExtractor::new(
         "gdscript".to_string(),
         "test.gd".to_string(),
@@ -31,6 +32,12 @@ fn capture(code: &str) -> Vec<Literal> {
     let symbols = ext.extract_symbols(&tree);
     ext.extract_identifiers(&tree, &symbols);
     ext.base().literals.clone()
+}
+
+#[test]
+fn non_call_strings_emit_no_argument_literals() {
+    let code = "const LABEL = \"constant\"\nfunc ready():\n\tvar title = \"assigned\"\n";
+    assert!(capture(code).is_empty());
 }
 
 #[test]

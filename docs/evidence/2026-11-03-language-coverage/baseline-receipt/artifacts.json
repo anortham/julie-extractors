@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "capture_kind": "untimed_original_baseline",
+  "artifacts": [
+    {
+      "path": "baseline-expectations.json",
+      "sha256": "ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e",
+      "uncompressed_sha256": "ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e",
+      "uncompressed_bytes": 7280
+    },
+    {
+      "path": "semantic-dump-all-full-586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700.tsv.gz",
+      "sha256": "dfa4d0fb15bc7ace0aa347673856d7fd3041e1f7e9a7ef6bc17550f4de713654",
+      "uncompressed_sha256": "dbbd07ec1d2fb8f2ed4ee4405a2d3ed9ade83d5394fdbcf2beea3e19e33830c8",
+      "uncompressed_bytes": 2953924
+    },
+    {
+      "path": "semantic-dump-all-full-cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6.tsv.gz",
+      "sha256": "c8e0f24e83dbf5df3963b8a183d656d8e8592bd35945337392623c03fc48d76c",
+      "uncompressed_sha256": "f34de7f4eea6b1f78a7d7f0a87be845269322f91ce1366862591369101f021ae",
+      "uncompressed_bytes": 2953924
+    },
+    {
+      "path": "semantic-dump-all-references-586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700.tsv.gz",
+      "sha256": "48a8491746c84732e001168d7f4085cec4fea87c33b7eeffcae7543ba6285888",
+      "uncompressed_sha256": "7b2744e860e61ad2e69a68c5ecdc81ad1e1ce8a7b0d585fedf659ac6fdc01996",
+      "uncompressed_bytes": 2107453
+    },
+    {
+      "path": "semantic-dump-all-references-cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6.tsv.gz",
+      "sha256": "d2bcf2190586790ed126e0bef77c3bd9e59db94e133061f0dff7436dc2253f34",
+      "uncompressed_sha256": "60c890873fd88f3adfb3b46ff2fa690dfc94a9eb121e526610e79081f4742439",
+      "uncompressed_bytes": 2107453
+    }
+  ]
+}

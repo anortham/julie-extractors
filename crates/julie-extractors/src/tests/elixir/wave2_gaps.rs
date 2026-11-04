@@ -586,6 +586,78 @@ fn phoenix_nested_resources_live_routes_and_scope_options() {
 }
 
 #[test]
+fn phoenix_forward_sites_keep_each_mount_local_to_its_file() {
+    let router_source = "defmodule ShopWeb.Router do\n  use Phoenix.Router\n  forward \"/api\", ShopWeb.ApiRouter\n  forward \"/admin\", ShopWeb.ApiRouter\nend\n";
+    let router = extract("lib/router.ex", router_source);
+    assert!(
+        router.parse_diagnostics.is_empty(),
+        "{:?}",
+        router.parse_diagnostics
+    );
+    let forwards = router
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == "phoenix.forward.v1")
+        .map(|fact| {
+            let metadata = fact.metadata.as_ref().expect("forward metadata");
+            (
+                fact.start_byte,
+                metadata
+                    .get("normalized_mount_path")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("")
+                    .to_owned(),
+                metadata
+                    .get("mount_target")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("")
+                    .to_owned(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        forwards
+            .iter()
+            .map(|(_, path, target)| (path.clone(), target.clone()))
+            .collect::<Vec<_>>(),
+        [
+            ("/api".to_string(), "ShopWeb.ApiRouter".to_string()),
+            ("/admin".to_string(), "ShopWeb.ApiRouter".to_string()),
+        ]
+    );
+    assert!(forwards[0].0 < forwards[1].0);
+    assert!(facts(&router, "phoenix.route.v1").is_empty());
+
+    let target_router = extract(
+        "lib/api_router.ex",
+        "defmodule ShopWeb.ApiRouter do\n  use Phoenix.Router\n  scope \"/v1\" do\n    get \"/items\", ItemController, :index\n  end\nend\n",
+    );
+    assert!(
+        target_router.parse_diagnostics.is_empty(),
+        "{:?}",
+        target_router.parse_diagnostics
+    );
+    let routes = facts(&target_router, "phoenix.route.v1")
+        .iter()
+        .map(|fact| {
+            (
+                text(fact, "route_template"),
+                text(fact, "route_group_prefix"),
+                text(fact, "effective_route_template"),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        routes,
+        [(
+            "/items".to_string(),
+            "/v1".to_string(),
+            "/v1/items".to_string()
+        )]
+    );
+}
+
+#[test]
 fn tesla_module_clients_join_the_base_url_and_aliases_resolve() {
     let result = extract(
         "lib/github.ex",

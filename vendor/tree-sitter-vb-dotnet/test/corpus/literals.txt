@@ -1,0 +1,1047 @@
+==================
+Integer literal
+==================
+
+Module M
+    Sub Main()
+        Dim x = 42
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Integer literal with type suffix
+==================
+
+Module M
+    Sub Main()
+        Dim a = 42L
+        Dim b = 7UI
+        Dim c = 99S
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Hex integer literal
+==================
+
+Module M
+    Sub Main()
+        Dim x = &HFF
+        Dim y = &H1A2B
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Octal integer literal
+==================
+
+Module M
+    Sub Main()
+        Dim x = &O777
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Floating point literal
+==================
+
+Module M
+    Sub Main()
+        Dim a = 3.14
+        Dim b = 0.5
+        Dim c = 1.0E-5
+        Dim d = 2.5F
+        Dim e = 1.0R
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))))))
+
+==================
+String literal
+==================
+
+Module M
+    Sub Main()
+        Dim s = "hello world"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (string_literal))))))
+
+==================
+String literal with escaped quote
+==================
+
+Module M
+    Sub Main()
+        Dim s = "She said ""hi"" loudly"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (string_literal))))))
+
+==================
+Interpolated string literal
+==================
+
+Module M
+    Sub Main()
+        Dim name = "Ada"
+        Dim s = $"Hello, {name}!"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (string_literal))
+        (dim_statement
+          (identifier)
+          (string_literal
+            (interpolated_string_literal
+              (interpolation
+                (identifier)))))))))
+
+==================
+Interpolated string with format specifier
+==================
+
+Module M
+    Sub Main()
+        Dim price = 9.99
+        Dim s = $"Total: {price:F2}"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (string_literal
+            (interpolated_string_literal
+              (interpolation
+                (identifier)))))))))
+
+==================
+Character literal
+==================
+
+Module M
+    Sub Main()
+        Dim c = "A"c
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (character_literal))))))
+
+==================
+Date literal
+==================
+
+Module M
+    Sub Main()
+        Dim d = #1/1/2020#
+        Dim t = #12:30:00 PM#
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (date_literal))
+        (dim_statement
+          (identifier)
+          (date_literal))))))
+
+==================
+Boolean literals
+==================
+
+Module M
+    Sub Main()
+        Dim a = True
+        Dim b = False
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (boolean_literal))
+        (dim_statement
+          (identifier)
+          (boolean_literal))))))
+
+==================
+Nothing literal
+==================
+
+Module M
+    Sub Main()
+        Dim x = Nothing
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier))))))
+
+==================
+Multi-line string literal
+==================
+
+Module M
+    Sub Main()
+        Dim sql = "SELECT id, name
+                   FROM [Table]
+                   WHERE id = @id"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (string_literal))))))
+
+==================
+Binary integer literal
+==================
+
+Module M
+    Sub Main()
+        Dim x = &B1010
+        Dim y = &b11110000
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Binary integer literal with type suffix
+==================
+
+Module M
+    Sub Main()
+        Dim a = &B1010UL
+        Dim b = &B11110000S
+        Dim c = &B1I
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Binary literal in expression
+==================
+
+Module M
+    Sub Main()
+        Dim mask = &B11110000 Or &B00001111
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (integer_literal)
+            (integer_literal)))))))
+
+==================
+Decimal integer with digit separators
+==================
+
+Module M
+    Sub Main()
+        Dim x = 1_000_000
+        Dim y = 123_456_789L
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Hex literal with digit separators
+==================
+
+Module M
+    Sub Main()
+        Dim x = &HFF_FF
+        Dim y = &H00_FF_00_FFUL
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Binary literal with digit separators
+==================
+
+Module M
+    Sub Main()
+        Dim x = &B1010_0101
+        Dim y = &B1111_0000_1111_0000UL
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Octal literal with digit separators
+==================
+
+Module M
+    Sub Main()
+        Dim x = &O777_777
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Floating point with digit separators
+==================
+
+Module M
+    Sub Main()
+        Dim a = 1_000.5
+        Dim b = 3.141_592_653
+        Dim c = 1_000_000.0R
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))))))
+
+==================
+Interpolated string with escaped braces
+==================
+
+Module M
+    Sub Main()
+        Dim x = $"Value is {{not interpolated}}"
+        Dim y = $"Use {{braces}} like this"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (string_literal
+            (interpolated_string_literal)))
+        (dim_statement
+          (identifier)
+          (string_literal
+            (interpolated_string_literal)))))))
+
+==================
+Interpolated string multi-line
+==================
+
+Module M
+    Sub Main()
+        Dim x = $"Hello
+World {name}
+Done"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (string_literal
+            (interpolated_string_literal
+              (interpolation
+                (identifier)))))))))
+
+==================
+Interpolated string with nested expression
+==================
+
+Module M
+    Sub Main()
+        Dim x = $"Result: {If(a > b, 1, 2)}"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (string_literal
+            (interpolated_string_literal
+              (interpolation
+                (ternary_expression
+                  (binary_expression
+                    (identifier)
+                    (identifier))
+                  (integer_literal)
+                  (integer_literal))))))))))
+
+==================
+Bracketed identifier as variable name
+==================
+
+Module M
+    Sub Main()
+        Dim [Class] = 42
+        Dim [End] = "done"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (string_literal))))))
+
+==================
+Bracketed identifier as method name
+==================
+
+Class C
+    Sub [New]()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)))))
+
+==================
+Bracketed identifier as parameter name
+==================
+
+Class C
+    Sub F([If] As Integer, [For] As String)
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))))))
+
+==================
+Type-character suffix on identifier
+==================
+
+Module M
+    Sub Main()
+        Dim count% = 10
+        Dim name$ = "test"
+        Dim total& = 100
+        Dim rate# = 3.14
+        Dim price@ = 9.99
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (string_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))))))
+
+==================
+Floating point leading dot
+==================
+
+Module M
+    Sub Main()
+        Dim x = .5
+        Dim y = .123F
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))))))
+
+==================
+Floating point with explicit type suffix
+==================
+
+Module M
+    Sub Main()
+        Dim a = 1F
+        Dim b = 1R
+        Dim c = 1D
+        Dim d = 1.0!
+        Dim e = 1.0#
+        Dim f = 1.0@
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))))))
+
+==================
+Floating point with exponent
+==================
+
+Module M
+    Sub Main()
+        Dim a = 1E10
+        Dim b = 1.5E-3
+        Dim c = .5E+2F
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))
+        (dim_statement
+          (identifier)
+          (floating_point_literal))))))
+
+==================
+Date literal year-first format
+==================
+
+Module M
+    Sub Main()
+        Dim d = #2017-04-11#
+        Dim dt = #2017-04-11 09:30:00#
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (date_literal))
+        (dim_statement
+          (identifier)
+          (date_literal))))))
+
+==================
+Date literal with time only
+==================
+
+Module M
+    Sub Main()
+        Dim t = #3:45:00 PM#
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (date_literal))))))
+
+==================
+Hex literal with various type suffixes
+==================
+
+Module M
+    Sub Main()
+        Dim a = &HFFS
+        Dim b = &HFFI
+        Dim c = &HFFL
+        Dim d = &HFFUS
+        Dim e = &HFFUI
+        Dim f = &HFFUL
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Octal literal with type suffix
+==================
+
+Module M
+    Sub Main()
+        Dim a = &O777L
+        Dim b = &O77US
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))))))

@@ -36,6 +36,7 @@ pub fn extract_symbols(code: &str) -> Vec<Symbol> {
 pub mod advanced;
 pub mod annotations;
 pub mod basics;
+mod complexity;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod declarators;

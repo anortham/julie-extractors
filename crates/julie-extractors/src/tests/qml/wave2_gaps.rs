@@ -49,6 +49,16 @@ fn body_text<'a>(source: &'a str, symbol: &Symbol) -> Option<&'a str> {
     Some(&source[span.start_byte as usize..span.end_byte as usize])
 }
 
+fn annotation_keys(symbol: &Symbol) -> Vec<&str> {
+    let mut keys: Vec<_> = symbol
+        .annotations
+        .iter()
+        .map(|annotation| annotation.annotation_key.as_str())
+        .collect();
+    keys.sort_unstable();
+    keys
+}
+
 #[test]
 fn enum_members_with_assigned_values_are_extracted() {
     let source =
@@ -159,7 +169,7 @@ Item {
 }
 
 #[test]
-fn qdoc_and_signal_doc_comments_are_extracted() {
+fn qml_documentation_comments_attach_but_plain_comments_do_not() {
     let source = r#"/*!
     \qmltype Docs
 */
@@ -172,6 +182,8 @@ Item {
     signal activated(int index)
     /// Fired on close.
     signal closed()
+    // Plain comments are not symbol documentation.
+    property string undocumented
     /*! Resets the view. */
     function reset() {}
 }
@@ -188,6 +200,10 @@ Item {
     assert!(docs("activated", SymbolKind::Event).contains("Emitted when activated."));
     assert!(docs("closed", SymbolKind::Event).contains("Fired on close."));
     assert!(docs("reset", SymbolKind::Function).contains("Resets the view."));
+    assert_eq!(
+        symbol(&results, "undocumented", SymbolKind::Property).doc_comment,
+        None
+    );
     assert_eq!(
         symbol(&results, "closed", SymbolKind::Event).visibility,
         Some(Visibility::Public)
@@ -536,6 +552,82 @@ Item {
         "{:?}",
         variable_refs(&results)
     );
+}
+
+#[test]
+fn qml_annotations_follow_extraction_levels_and_keep_declaration_offsets() {
+    let source = r#"@Deprecated { reason: "Use NewThing" }
+Item {
+    @Designer { importance: 100 }
+    property color accent: "red"
+    @Deprecated { reason: "old" }
+    function legacy() {}
+}
+"#;
+    let root_source = "Item {\n    @Designer { importance: 100 }\n    property color accent: \"red\"\n    @Deprecated { reason: \"old\" }\n    function legacy() {}\n}";
+    let property_source = "property color accent: \"red\"";
+    let method_source = "function legacy() {}";
+    let root_start = source.find(root_source).unwrap();
+    let property_start = source.find(property_source).unwrap();
+    let method_start = source.find(method_source).unwrap();
+
+    for (level, has_annotations) in [
+        (crate::ExtractionLevel::Symbols, false),
+        (crate::ExtractionLevel::Facts, false),
+        (crate::ExtractionLevel::References, true),
+        (crate::ExtractionLevel::Full, true),
+    ] {
+        let results = crate::pipeline::extract_canonical_at(
+            "Annot.qml",
+            source,
+            std::path::Path::new("/tmp/test"),
+            level,
+        )
+        .expect("canonical QML extraction should succeed");
+        assert!(
+            results.parse_diagnostics.is_empty(),
+            "{:#?}",
+            results.parse_diagnostics
+        );
+
+        let component = symbol(&results, "Annot", SymbolKind::Class);
+        let accent = symbol(&results, "accent", SymbolKind::Property);
+        let legacy = symbol(&results, "legacy", SymbolKind::Function);
+        let component_keys = if has_annotations {
+            vec!["deprecated"]
+        } else {
+            Vec::new()
+        };
+        let accent_keys = if has_annotations {
+            vec!["designer"]
+        } else {
+            Vec::new()
+        };
+        let legacy_keys = if has_annotations {
+            vec!["deprecated"]
+        } else {
+            Vec::new()
+        };
+
+        assert_eq!(annotation_keys(component), component_keys, "{level:?}");
+        assert_eq!(annotation_keys(accent), accent_keys, "{level:?}");
+        assert_eq!(annotation_keys(legacy), legacy_keys, "{level:?}");
+        assert_eq!(component.start_byte as usize, root_start);
+        assert_eq!(
+            source.get(component.start_byte as usize..component.end_byte as usize),
+            Some(root_source)
+        );
+        assert_eq!(accent.start_byte as usize, property_start);
+        assert_eq!(
+            source.get(accent.start_byte as usize..accent.end_byte as usize),
+            Some(property_source)
+        );
+        assert_eq!(legacy.start_byte as usize, method_start);
+        assert_eq!(
+            source.get(legacy.start_byte as usize..legacy.end_byte as usize),
+            Some(method_source)
+        );
+    }
 }
 
 #[test]

@@ -911,8 +911,10 @@ mod tests {
         fixture.write("artifact.sqlite-wal", "wal");
         fixture.write("artifact.sqlite-shm", "shm");
         fixture.write("artifact.sqlite-journal", "journal");
-        let summary = fixture.policy().discover();
+        let policy = fixture.policy_with_sqlite_sidecars_visible();
+        let summary = policy.discover();
 
+        assert_eq!(summary.unsupported_files, 3);
         assert_eq!(summary.unsupported_targets, Vec::new());
     }
 
@@ -1782,7 +1784,7 @@ mod tests {
                 );
             }
         }
-        let policy = DiscoveryPolicy::build(fixture.root(), &artifact, &[]).unwrap();
+        let policy = fixture.policy_with_sqlite_sidecars_visible_at(&artifact);
         IDENTITY_HANDLE_OPENS.with(|count| count.set(0));
 
         let summary = policy.discover();
@@ -1800,18 +1802,33 @@ mod tests {
     #[test]
     fn discovery_excludes_sidecars_created_after_the_policy() {
         let fixture = DiscoveryFixture::new();
-        let artifact = fixture.temp.path().join("artifact.sqlite");
+        let artifact_directory = TempDir::new().unwrap();
+        let artifact = artifact_directory.path().join("artifact.sqlite");
         fs::write(&artifact, "artifact").unwrap();
-        let policy = DiscoveryPolicy::build(fixture.root(), &artifact, &[]).unwrap();
+        let policy = fixture.policy_with_sqlite_sidecars_visible_at(&artifact);
         assert!(policy.discover().unsupported_targets.is_empty());
         let sidecar = crate::paths::artifact_sidecar(&artifact, "-wal");
         fs::write(&sidecar, "sidecar").unwrap();
-        if fs::hard_link(&sidecar, fixture.root().join("artifact.sqlite-wal")).is_err() {
-            eprintln!("skipping: filesystem does not support hard links");
+        let candidate = fixture.root().join("artifact.sqlite-wal");
+        if let Err(error) = fs::hard_link(&sidecar, &candidate) {
+            eprintln!("skipping: hard links are unavailable: {error}");
             return;
         }
 
-        assert!(policy.discover().unsupported_targets.is_empty());
+        let target = FileTarget {
+            absolute_path: candidate,
+            root_relative_path: "artifact.sqlite-wal".to_string(),
+        };
+        assert_eq!(
+            policy.select_file(&target),
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::UnsupportedExtension
+            }
+        );
+        let summary = policy.discover();
+        assert_eq!(summary.unsupported_files, 1);
+        assert!(summary.unsupported_targets.is_empty());
+        drop(policy);
         fs::remove_file(&sidecar).unwrap();
     }
 
@@ -2007,6 +2024,20 @@ mod tests {
 
         fn policy(&self) -> DiscoveryPolicy {
             DiscoveryPolicy::build(self.root(), &self.root().join("artifact.sqlite"), &[]).unwrap()
+        }
+
+        fn policy_with_sqlite_sidecars_visible(&self) -> DiscoveryPolicy {
+            self.policy_with_sqlite_sidecars_visible_at(&self.root().join("artifact.sqlite"))
+        }
+
+        fn policy_with_sqlite_sidecars_visible_at(&self, db_path: &Path) -> DiscoveryPolicy {
+            let ignore_path = self.root().join("caller.ignore");
+            fs::write(&ignore_path, "!*.sqlite-wal\n!*.sqlite-shm\n").unwrap();
+            let policy =
+                DiscoveryPolicy::build(self.root(), db_path, std::slice::from_ref(&ignore_path))
+                    .unwrap();
+            fs::remove_file(ignore_path).unwrap();
+            policy
         }
 
         fn policy_excluding(&self, exclusions: DiscoveryExclusions) -> DiscoveryPolicy {

@@ -91,4 +91,5 @@ fn yaml_outside_templates_does_not_treat_ref_keys_as_intrinsics() {
     let results = extract("config.yaml", "Ref: DataBucket\nDataBucket: 1\n");
 
     assert!(results.relationships.is_empty());
+    assert!(facts_with_pattern(&results, "yaml.ref.v1").is_empty());
 }

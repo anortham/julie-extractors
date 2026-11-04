@@ -99,7 +99,7 @@
         "start_byte": 346,
         "end_byte": 715
       },
-      "body_hash": "02eb10a4f937921a90491265116c7ea6",
+      "body_hash": "9832943bec502ca5072852adfc3b8fa8",
       "signature": "type Calculator(value: int) =",
       "doc_comment": null,
       "visibility": "Public",
@@ -216,7 +216,7 @@
         "start_byte": 18,
         "end_byte": 1446
       },
-      "body_hash": "b87f0104a9afee9a6bec55962e26cb28",
+      "body_hash": "23b4aad8fb6504a5eb2412a4b39b9156",
       "signature": "module Domain =",
       "doc_comment": null,
       "visibility": "Public",

@@ -145,9 +145,9 @@ simple_func() {
         .find(|s| s.name == "simple_func")
         .expect("Function not found");
 
-    // Verify function was extracted - doc comment may be None or empty
     assert_eq!(func.name, "simple_func");
     assert_eq!(func.kind, SymbolKind::Function);
+    assert_eq!(func.doc_comment, None);
 }
 
 #[test]

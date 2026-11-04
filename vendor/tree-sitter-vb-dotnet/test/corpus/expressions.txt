@@ -1,0 +1,1939 @@
+==================
+Binary arithmetic
+==================
+
+Module M
+    Sub Main()
+        Dim a = 1 + 2
+        Dim b = 10 - 3
+        Dim c = 4 * 5
+        Dim d = 20 / 4
+        Dim e = 20 \ 3
+        Dim f = 10 Mod 3
+        Dim g = 2 ^ 8
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (integer_literal)
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (integer_literal)
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (integer_literal)
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (integer_literal)
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (integer_literal)
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (integer_literal)
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (integer_literal)
+            (integer_literal)))))))
+
+==================
+Binary string concatenation
+==================
+
+Module M
+    Sub Main()
+        Dim s = "Hello, " & "world"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (string_literal)
+            (string_literal)))))))
+
+==================
+Binary relational operators
+==================
+
+Module M
+    Sub Main()
+        Dim a = x = y
+        Dim b = x <> y
+        Dim c = x < y
+        Dim d = x > y
+        Dim e = x <= y
+        Dim f = x >= y
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (identifier)))))))
+
+==================
+Binary Is and IsNot
+==================
+
+Module M
+    Sub Main()
+        Dim a = x Is Nothing
+        Dim b = x IsNot Nothing
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)))))))
+
+==================
+Binary bit shift operators
+==================
+
+Module M
+    Sub Main()
+        Dim a = x << 2
+        Dim b = x >> 3
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (integer_literal)))))))
+
+==================
+Binary Like operator
+==================
+
+Module M
+    Sub Main()
+        Dim ok = name Like "A*"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (identifier)
+            (string_literal)))))))
+
+==================
+Unary Not
+==================
+
+Module M
+    Sub Main()
+        Dim a = Not done
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (unary_expression
+            (identifier)))))))
+
+==================
+Unary negation
+==================
+
+Module M
+    Sub Main()
+        Dim a = -x
+        Dim b = +y
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (unary_expression
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (unary_expression
+            (identifier)))))))
+
+==================
+Unary AddressOf
+==================
+
+Module M
+    Sub Main()
+        Dim h = AddressOf Handler
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (unary_expression
+            (identifier)))))))
+
+==================
+Unary Await
+==================
+
+Module M
+    Async Function F() As Task
+        Dim r = Await SomeAsyncCall()
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (namespace_name
+          (identifier))
+        (dim_statement
+          (identifier)
+          (unary_expression
+            (invocation
+              (identifier)
+              (argument_list))))))))
+
+==================
+Ternary If expression
+==================
+
+Module M
+    Sub Main()
+        Dim r = If(x > 0, "positive", "non-positive")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (ternary_expression
+            (binary_expression
+              (identifier)
+              (integer_literal))
+            (string_literal)
+            (string_literal)))))))
+
+==================
+Null-coalescing If expression
+==================
+
+Module M
+    Sub Main()
+        Dim r = If(value, defaultValue)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (ternary_expression
+            (identifier)
+            (identifier)))))))
+
+==================
+Member access
+==================
+
+Module M
+    Sub Main()
+        Dim n = customer.FirstName
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (member_access
+            (identifier)
+            (identifier)))))))
+
+==================
+Chained member access
+==================
+
+Module M
+    Sub Main()
+        Dim n = order.Customer.Address.City
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (member_access
+            (member_access
+              (member_access
+                (identifier)
+                (identifier))
+              (identifier))
+            (identifier)))))))
+
+==================
+Element access
+==================
+
+Module M
+    Sub Main()
+        Dim item = xs(0)
+        Dim val = map("key")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (integer_literal)))))
+        (dim_statement
+          (identifier)
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))))))
+
+==================
+Method invocation
+==================
+
+Module M
+    Sub Main()
+        Foo(1, 2, 3)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (integer_literal))
+              (argument
+                (integer_literal))
+              (argument
+                (integer_literal)))))))))
+
+==================
+Method invocation with named arguments
+==================
+
+Module M
+    Sub Main()
+        Connect(host:="localhost", port:=8080)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (identifier)
+                (string_literal))
+              (argument
+                (identifier)
+                (integer_literal)))))))))
+
+==================
+CType cast
+==================
+
+Module M
+    Sub Main()
+        Dim i = CType(x, Integer)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (cast_expression
+            (identifier)
+            (primitive_type)))))))
+
+==================
+DirectCast
+==================
+
+Module M
+    Sub Main()
+        Dim s = DirectCast(obj, String)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (cast_expression
+            (identifier)
+            (primitive_type)))))))
+
+==================
+TryCast
+==================
+
+Module M
+    Sub Main()
+        Dim s = TryCast(obj, String)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (cast_expression
+            (identifier)
+            (primitive_type)))))))
+
+==================
+Conversion function CInt
+==================
+
+Module M
+    Sub Main()
+        Dim n = CInt(x)
+        Dim s = CStr(n)
+        Dim b = CBool(flag)
+        Dim d = CDbl(x)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (identifier)))))))
+
+==================
+GetType expression
+==================
+
+Module M
+    Sub Main()
+        Dim t = GetType(String)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (gettype_expression
+            (primitive_type)))))))
+
+==================
+GetType of generic type
+==================
+
+Module M
+    Sub Main()
+        Dim t = GetType(List(Of Integer))
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (gettype_expression
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (primitive_type)))))))))
+
+==================
+TypeOf Is expression
+==================
+
+Module M
+    Sub Main()
+        If TypeOf x Is String Then
+            Return
+        End If
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (typeof_expression
+            (identifier)
+            (primitive_type))
+          (return_statement))))))
+
+==================
+TypeOf IsNot expression
+==================
+
+Module M
+    Sub Main()
+        If TypeOf x IsNot Integer Then
+            Return
+        End If
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (typeof_expression
+            (identifier)
+            (primitive_type))
+          (return_statement))))))
+
+==================
+Me expression
+==================
+
+Class C
+    Sub Reset()
+        Me.Value = 0
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (assignment_statement
+          (left_hand_side
+            (member_access
+              (me_expression)
+              (identifier)))
+          (integer_literal))))))
+
+==================
+MyBase expression
+==================
+
+Class C
+    Sub Init()
+        MyBase.Init()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (member_access
+              (me_expression)
+              (identifier))
+            (argument_list)))))))
+
+==================
+MyClass expression
+==================
+
+Class C
+    Sub Hello()
+        MyClass.SayHi()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (member_access
+              (me_expression)
+              (identifier))
+            (argument_list)))))))
+
+==================
+New expression with constructor args
+==================
+
+Module M
+    Sub Main()
+        Dim ex = New Exception("failure")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (element_access
+            (new_expression
+              (namespace_name
+                (identifier)))
+            (string_literal)))))))
+
+==================
+New with object initializer
+==================
+
+Module M
+    Sub Main()
+        Dim p = New Person With {.Name = "Ada", .Age = 36}
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (new_expression
+            (namespace_name
+              (identifier))
+            (with_initializer
+              (member_initializer
+                (identifier)
+                (string_literal))
+              (member_initializer
+                (identifier)
+                (integer_literal)))))))))
+
+==================
+Array literal
+==================
+
+Module M
+    Sub Main()
+        Dim xs = {1, 2, 3, 4}
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_literal
+            (integer_literal)
+            (integer_literal)
+            (integer_literal)
+            (integer_literal)))))))
+
+==================
+Nested array literal
+==================
+
+Module M
+    Sub Main()
+        Dim grid = {{1, 2}, {3, 4}}
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_literal
+            (array_literal
+              (integer_literal)
+              (integer_literal))
+            (array_literal
+              (integer_literal)
+              (integer_literal))))))))
+
+==================
+Parenthesized expression
+==================
+
+Module M
+    Sub Main()
+        Dim r = (a + b) * c
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (parenthesized_expression
+              (binary_expression
+                (identifier)
+                (identifier)))
+            (identifier)))))))
+
+==================
+Implicit line continuation after OrElse
+==================
+
+Module M
+    Sub Main()
+        If x > 0 OrElse
+           y > 0 Then
+            Print("yes")
+        End If
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (binary_expression
+            (binary_expression
+              (identifier)
+              (integer_literal))
+            (binary_expression
+              (identifier)
+              (integer_literal)))
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (string_literal))))))))))
+
+==================
+Implicit line continuation after AndAlso
+==================
+
+Module M
+    Sub Main()
+        If a AndAlso
+           b AndAlso
+           c Then
+            Print("all")
+        End If
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (binary_expression
+            (binary_expression
+              (identifier)
+              (identifier))
+            (identifier))
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (string_literal))))))))))
+
+==================
+Implicit line continuation after ampersand concat
+==================
+
+Module M
+    Sub Main()
+        Dim s = "Hello " &
+                name &
+                "!"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (binary_expression
+            (binary_expression
+              (string_literal)
+              (identifier))
+            (string_literal)))))))
+
+==================
+Member access on integer literal
+==================
+
+Module M
+    Sub Main()
+        Dim s = 1.ToString()
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (invocation
+            (member_access
+              (integer_literal)
+              (identifier))
+            (argument_list)))))))
+
+==================
+Dictionary bang access
+==================
+
+Module M
+    Sub Main()
+        Dim name = row!FirstName
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (bang_access
+            (identifier)
+            (identifier)))))))
+
+==================
+Dictionary bang access chained
+==================
+
+Module M
+    Sub Main()
+        Dim total = table.Rows(i)!Amount.ToString()
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (invocation
+            (member_access
+              (bang_access
+                (invocation
+                  (member_access
+                    (identifier)
+                    (identifier))
+                  (argument_list
+                    (argument
+                      (identifier))))
+                (identifier))
+              (identifier))
+            (argument_list)))))))
+
+==================
+Method invocation with omitted argument
+==================
+
+Module M
+    Sub Main()
+        Err.Raise(9999, , "Invalid format")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (member_access
+              (identifier)
+              (identifier))
+            (argument_list
+              (argument
+                (integer_literal))
+              (argument
+                (string_literal)))))))))
+
+==================
+Method invocation with multiple omitted arguments
+==================
+
+Module M
+    Sub Main()
+        ValidateData(value, field, False, True, 4, 4, , , "FY")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (identifier))
+              (argument
+                (identifier))
+              (argument
+                (boolean_literal))
+              (argument
+                (boolean_literal))
+              (argument
+                (integer_literal))
+              (argument
+                (integer_literal))
+              (argument
+                (string_literal)))))))))
+
+==================
+NameOf expression with simple identifier
+==================
+
+Module M
+    Sub Main()
+        Dim s = NameOf(x)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (nameof_expression
+            (identifier)))))))
+
+==================
+NameOf expression with member access
+==================
+
+Module M
+    Sub Main()
+        Dim s = NameOf(Customer.Name)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (nameof_expression
+            (member_access
+              (identifier)
+              (identifier))))))))
+
+==================
+NameOf expression in argument
+==================
+
+Class C
+    Sub F(x As Integer)
+        Throw New ArgumentNullException(NameOf(x))
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (throw_statement
+          (element_access
+            (new_expression
+              (namespace_name
+                (identifier)))
+            (nameof_expression
+              (identifier))))))))
+
+==================
+GetXmlNamespace expression
+==================
+
+Module M
+    Sub Main()
+        Dim ns = GetXmlNamespace(xhtml)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (get_xml_namespace_expression
+            (identifier)))))))
+
+==================
+GetXmlNamespace with no prefix
+==================
+
+Module M
+    Sub Main()
+        Dim ns = GetXmlNamespace()
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (get_xml_namespace_expression))))))
+
+==================
+Anonymous type with named properties
+==================
+
+Module M
+    Sub Main()
+        Dim p = New With {.Name = "Alice", .Age = 30}
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (anonymous_type_expression
+            (member_initializer
+              (identifier)
+              (string_literal))
+            (member_initializer
+              (identifier)
+              (integer_literal))))))))
+
+==================
+Anonymous type with single property
+==================
+
+Module M
+    Sub Main()
+        Dim x = New With {.Value = 42}
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (anonymous_type_expression
+            (member_initializer
+              (identifier)
+              (integer_literal))))))))
+
+==================
+Anonymous type with inferred property names
+==================
+
+Module M
+    Sub Main()
+        Dim name = "Alice"
+        Dim p = New With {name, .Age = 30}
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (string_literal))
+        (dim_statement
+          (identifier)
+          (anonymous_type_expression
+            (identifier)
+            (member_initializer
+              (identifier)
+              (integer_literal))))))))
+
+===
+Tuple literal expression
+===
+
+Module M
+    Sub Main()
+        Dim t = (1, "hello")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (tuple_expression
+            (integer_literal)
+            (string_literal)))))))
+
+===
+Tuple literal with three elements
+===
+
+Module M
+    Sub Main()
+        Dim t = (1, "hello", True)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (tuple_expression
+            (integer_literal)
+            (string_literal)
+            (boolean_literal)))))))
+
+===
+Tuple literal as function argument
+===
+
+Class C
+    Sub F(t As (Integer, String))
+    End Sub
+
+    Sub Main()
+        F((42, "test"))
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (tuple_type
+                (primitive_type)
+                (primitive_type))))))
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (tuple_expression
+                  (integer_literal)
+                  (string_literal))))))))))
+
+==================
+AddressOf with qualified member
+==================
+
+Class C
+    Sub Main()
+        Dim d As Action = AddressOf Me.HandleClick
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (namespace_name
+              (identifier)))
+          (unary_expression
+            (member_access
+              (me_expression)
+              (identifier))))))))
+
+==================
+Multiple conversion functions
+==================
+
+Module M
+    Sub Main()
+        Dim a = CBool(1)
+        Dim b = CStr(42)
+        Dim c = CDbl("3.14")
+        Dim d = CLng(x)
+        Dim e = CDate("2017-01-01")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (string_literal)))
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (identifier)))
+        (dim_statement
+          (identifier)
+          (conversion_expression
+            (string_literal)))))))
+
+==================
+Cast with generic type
+==================
+
+Module M
+    Sub Main()
+        Dim x = DirectCast(obj, List(Of Integer))
+        Dim y = CType(obj, Dictionary(Of String, Integer))
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (cast_expression
+            (identifier)
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (primitive_type)))))
+        (dim_statement
+          (identifier)
+          (cast_expression
+            (identifier)
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (primitive_type)
+                (primitive_type)))))))))
+
+==================
+Ternary If with complex expressions
+==================
+
+Module M
+    Sub Main()
+        Dim x = If(a > 0 AndAlso b > 0, a + b, 0)
+        Dim y = If(name, "default")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (ternary_expression
+            (binary_expression
+              (binary_expression
+                (identifier)
+                (integer_literal))
+              (binary_expression
+                (identifier)
+                (integer_literal)))
+            (binary_expression
+              (identifier)
+              (identifier))
+            (integer_literal)))
+        (dim_statement
+          (identifier)
+          (ternary_expression
+            (identifier)
+            (string_literal)))))))
+
+==================
+Nested query expressions
+==================
+
+Module M
+    Sub Main()
+        Dim q = From x In items
+                Where x > 0
+                Let doubled = x * 2
+                Order By doubled Descending
+                Select doubled
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (from_clause
+              (collection_range_variable
+                (identifier)
+                (identifier)))
+            (where_clause
+              (binary_expression
+                (identifier)
+                (integer_literal)))
+            (let_clause
+              (identifier)
+              (binary_expression
+                (identifier)
+                (integer_literal)))
+            (order_by_clause
+              (identifier))
+            (select_clause
+              (identifier))))))))
+
+==================
+Aggregate query with multiple Into items
+==================
+
+Module M
+    Sub Main()
+        Dim result = Aggregate x In numbers Into Sum(x), Count(), Average(x)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (query_expression
+            (aggregate_clause
+              (collection_range_variable
+                (identifier)
+                (identifier))
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (identifier))))
+              (invocation
+                (identifier)
+                (argument_list))
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (identifier)))))))))))
+
+==================
+Null-conditional member access
+==================
+
+Module M
+    Sub Main()
+        Dim x = obj?.Name
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (null_conditional_member_access
+            (identifier)
+            (identifier)))))))
+
+==================
+Null-conditional chained
+==================
+
+Module M
+    Sub Main()
+        Dim x = a?.b?.c
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (null_conditional_member_access
+            (null_conditional_member_access
+              (identifier)
+              (identifier))
+            (identifier)))))))
+
+==================
+Null-conditional element access
+==================
+
+Module M
+    Sub Main()
+        Dim x = arr?(0)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (null_conditional_element_access
+            (identifier)
+            (integer_literal)))))))
+
+==================
+Null-conditional method call
+==================
+
+Module M
+    Sub Main()
+        obj?.ToString()
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (element_access
+            (null_conditional_member_access
+              (identifier)
+              (identifier))))))))

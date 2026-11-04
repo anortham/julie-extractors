@@ -3,6 +3,7 @@ use super::extract_symbols;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     #[test]
     fn test_extract_schema_and_index_metadata() {
@@ -345,5 +346,38 @@ CREATE DOMAIN email_address AS VARCHAR(255)
             let signature = broken_domain.signature.as_ref().unwrap();
             assert!(!signature.contains(" AS "));
         }
+    }
+
+    #[test]
+    fn parsed_create_schema_is_a_namespace_without_recovery_metadata() {
+        let source = concat!(
+            "-- CREATE SCHEMA comment_only;\n",
+            "SELECT 'CREATE SCHEMA string_only';\n",
+            "CREATE SCHEMA app;\n",
+        );
+        let results = crate::pipeline::extract_canonical("schema.sql", source, Path::new("/repo"))
+            .expect("SQL extraction");
+
+        assert!(results.parse_diagnostics.is_empty());
+        let namespaces: Vec<_> = results
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == crate::base::SymbolKind::Namespace)
+            .collect();
+        assert_eq!(namespaces.len(), 1);
+        let schema = namespaces[0];
+        assert_eq!(schema.name, "app");
+        assert_eq!(
+            &source[schema.start_byte as usize..schema.end_byte as usize],
+            "CREATE SCHEMA app"
+        );
+        let metadata = schema.metadata.as_ref().expect("schema metadata");
+        assert_eq!(
+            metadata
+                .get("isSchema")
+                .and_then(serde_json::Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(metadata.get("extractedFromError"), None);
     }
 }

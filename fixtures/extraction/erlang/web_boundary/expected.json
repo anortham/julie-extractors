@@ -174,15 +174,8 @@
       "end_column": 17,
       "start_byte": 140,
       "end_byte": 157,
-      "body_span": {
-        "start_line": 3,
-        "start_column": 7,
-        "end_line": 3,
-        "end_column": 16,
-        "start_byte": 147,
-        "end_byte": 156
-      },
-      "body_hash": "d858605ee8d9ee8f358ffbeea86bdbd8",
+      "body_span": null,
+      "body_hash": null,
       "signature": "-module(kv_http)",
       "doc_comment": "%% Cowboy dispatch tables, outbound HTTP clients (httpc, hackney, gun), and\n%% SQL/URL literal carriers, including binary-string arguments.",
       "visibility": "Public",
@@ -567,6 +560,158 @@
     }
   ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Body:variable_ref:19:81",
+      "name": "Body",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 19,
+      "start_column": 81,
+      "end_line": 19,
+      "end_column": 85,
+      "start_byte": 796,
+      "end_byte": 800,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Body:variable_ref:22:37",
+      "name": "Body",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 22,
+      "start_column": 37,
+      "end_line": 22,
+      "end_column": 41,
+      "start_byte": 993,
+      "end_byte": 997,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Body:variable_ref:24:70",
+      "name": "Body",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 24,
+      "start_column": 70,
+      "end_line": 24,
+      "end_column": 74,
+      "start_byte": 1145,
+      "end_byte": 1149,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Conn:variable_ref:22:13",
+      "name": "Conn",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 22,
+      "start_column": 13,
+      "end_line": 22,
+      "end_column": 17,
+      "start_byte": 969,
+      "end_byte": 973,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Conn:variable_ref:23:18",
+      "name": "Conn",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 23,
+      "start_column": 18,
+      "end_line": 23,
+      "end_column": 22,
+      "start_byte": 1018,
+      "end_byte": 1022,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Conn:variable_ref:24:18",
+      "name": "Conn",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 24,
+      "start_column": 18,
+      "end_line": 24,
+      "end_column": 22,
+      "start_byte": 1093,
+      "end_byte": 1097,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Dispatch:variable_ref:15:75",
+      "name": "Dispatch",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 15,
+      "start_column": 75,
+      "end_line": 15,
+      "end_column": 83,
+      "start_byte": 624,
+      "end_byte": 632,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Dispatch:variable_ref:7:4",
+      "name": "Dispatch",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 12,
+      "start_byte": 215,
+      "end_byte": 223,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
     {
       "key": "fixtures/extraction/erlang/web_boundary/source.erl:compile:call:7:29",
       "name": "compile",

@@ -2,7 +2,7 @@
 
 **Date / reviewed baseline:** 2026-11-03; `main` at `f9a1b6cfbd6c51e9aecad39a19610695f210ad05`, the recorded v3.11.0 publication.
 
-**Status:** Implementation in progress. Tasks 1–2 are reviewed and locally committed; the Task 3 validator component is verified, four language-audit groups are active, and the pinned corpus is in progress. Performance and final integration acceptance remain open. Push and release remain outside the authorized scope.
+**Status:** Implementation in progress. Tasks 1–2 are reviewed and locally committed. All eight audit fragments are integrated into the validated 630-cell canonical matrix, with 46 fixed extraction defects. Shared hash corrections, all 465 goldens, the default and contract tiers, exact formatting/Clippy, parser certification and the 42-language candidate corpus pass. The comparison harness and original-baseline receipt are implemented. The real-world release tier also passes after source-backed review of eight additional Erlang facts and the removal of 45 parse diagnostics. Final clean candidate provenance, performance, Windows and integration acceptance remain open. Push and release remain outside the authorized scope.
 
 **Goal:** Make the existing 42-language coverage claims demonstrably accurate, close every locally actionable defect found by the bounded audit below, and install repeatable correctness and performance checks that prevent those defects from returning.
 
@@ -199,14 +199,14 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 
 **What to build:** A machine-checked audit matrix with exact fixture/test pointers and dispositions, followed by fixes for every local omission it reproduces. Keep JSON as the source of truth and generate the Markdown view from it. **Approach:** Start with HTML/CSS/qmldir, gomod/gosum/XML, then recent access/annotation additions, wrappers/embedded languages, and the remaining languages. Reuse existing tests where their assertions are sufficient.
 
-- [ ] Matrix format v1 has exactly one cell for each of the 42 registry languages × 15 observed domains (630 cells). Each cell requires `language`, `domain`, `classification`, `evidence`, `negative_or_boundary_evidence`, `rationale`, `local_defects`, and `retained_gap_ids`. Classification is `supported`, `not_applicable`, or `convention_only`; retained gaps coexist with support instead of replacing it.
-- [ ] Supported cells have meaningful positive and negative/boundary evidence; every advertised kind/pattern has a named test assertion or golden JSON pointer. N/A and convention-only cells require rationale and source/contract pointers, not fabricated positive examples. Each local defect records its ID, status, fix and verification evidence; completion allows no unresolved local defect.
-- [ ] The new `node scripts/check-language-coverage-matrix.mjs` rejects missing/duplicate/unknown cells, broken file or JSON pointers, nonexistent named tests, absent required rationale/proof, unresolved local defects, and unmatched retained-gap IDs. Fast mutation tests under `node --test scripts/check-language-coverage-matrix.test.mjs` prove those failures. The completion check validates the real matrix and enters regular CI at integration.
-- [ ] Access-fact checks distinguish receiver reads, member writes, compound assignments, shadowing and unsupported syntax for all 33 claiming languages; call/type-usage identifiers never gain access metadata. Annotation checks cover all four extraction levels and applicable embedded formats.
-- [ ] Body/hash checks include Unicode/CRLF boundaries, nested ownership and comment-only edits. Relationships distinguish lexical targets from unresolved calls; duplicate names and multiple mounts cannot fabricate a unique target.
-- [ ] All 11 retained gaps have positive local-fact and negative/context evidence. Preserve every mount and refrain from inventing signal-free framework routes or unknown receiver types.
-- [ ] Every discovered local defect has a failing reproduction, implementation, focused green check, and reviewed golden delta. Any output change is handed to the lead for contract declaration.
-- [ ] All required language tiers pass; hand verified fixes and the complete matrix to the lead.
+- [x] Matrix format v1 has exactly one cell for each of the 42 registry languages × 15 observed domains (630 cells). Each cell requires `language`, `domain`, `classification`, `evidence`, `negative_or_boundary_evidence`, `rationale`, `local_defects`, and `retained_gap_ids`. Classification is `supported`, `not_applicable`, or `convention_only`; retained gaps coexist with support instead of replacing it.
+- [x] Supported cells have meaningful positive and negative/boundary evidence; every advertised kind/pattern has a named test assertion or golden JSON pointer. N/A and convention-only cells require rationale and source/contract pointers, not fabricated positive examples. Each local defect records its ID, status, fix and verification evidence; completion allows no unresolved local defect.
+- [x] The new `node scripts/check-language-coverage-matrix.mjs` rejects missing/duplicate/unknown cells, broken file or JSON pointers, nonexistent named tests, absent required rationale/proof, unresolved local defects, and unmatched retained-gap IDs. Fast mutation tests under `node --test scripts/check-language-coverage-matrix.test.mjs` prove those failures. The completion check validates the real matrix and enters regular CI at integration.
+- [x] Access-fact checks distinguish receiver reads, member writes, compound assignments, shadowing and unsupported syntax for all 33 claiming languages; call/type-usage identifiers never gain access metadata. Annotation checks cover all four extraction levels and applicable embedded formats.
+- [x] Body/hash checks include Unicode/CRLF boundaries, nested ownership and comment-only edits. Relationships distinguish lexical targets from unresolved calls; duplicate names and multiple mounts cannot fabricate a unique target.
+- [x] All 11 retained gaps have positive local-fact and negative/context evidence. Preserve every mount and refrain from inventing signal-free framework routes or unknown receiver types.
+- [x] Every discovered local defect has a failing reproduction, implementation, focused green check, and reviewed golden delta. Any output change is handed to the lead for contract declaration.
+- [x] All required language tiers pass; hand verified fixes and the complete matrix to the lead.
 
 ### Task 4: Make representative validation reproducible for all languages
 
@@ -214,12 +214,12 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 
 **What to build:** A small, pinned real-source sample for every language row and a runner that validates useful persisted facts. **Approach:** Preserve the existing specialized fixtures; add complementary samples with provenance instead of downloading live repository heads. Start with changed/risky languages and finish all 42. A purpose-built synthetic stress sample supplements real-source evidence; it does not replace it.
 
-- [ ] Manifest records format version, language, local path, source URL/project, immutable revision/release, source content hash, license, expected domains and fact assertions. Locally authored controls are explicitly labeled and hashed.
-- [ ] Coverage is 42/42, including TSX/JSX, Vue, Razor, QML, qmldir, gomod and gosum as separate rows. Each sample proves its advertised native facts through CLI-produced SQLite.
-- [ ] Existing QML/R/JSON samples have truthful provenance or explicit synthetic status; do not invent historical source revisions. All added upstream files have license evidence.
-- [ ] The proposed new `cargo xtask coverage --language <language> --binary <path>` and `cargo xtask coverage --all --binary <path>` commands select exact samples, reject missing/hash-mismatched inputs, run offline, and report skipped/failed/diagnostic counts and facts.
-- [ ] Positive assertions, confusable negative controls, malformed recovery, and embedded source offsets are covered where applicable. Runs fail on missing expected rows rather than accepting nonzero totals alone.
-- [ ] Fast runner contract tests use tiny local inputs; corpus extraction stays outside default. Hand the verified diff to the lead.
+- [x] Manifest records format version, language, local path, source URL/project, immutable revision/release, source content hash, license, expected domains and fact assertions. Locally authored controls are explicitly labeled and hashed.
+- [x] Coverage is 42/42, including TSX/JSX, Vue, Razor, QML, qmldir, gomod and gosum as separate rows. Each sample proves its advertised native facts through CLI-produced SQLite.
+- [x] Existing QML/R/JSON samples have truthful provenance or explicit synthetic status; do not invent historical source revisions. All added upstream files have license evidence.
+- [x] The proposed new `cargo xtask coverage --language <language> --binary <path>` and `cargo xtask coverage --all --binary <path>` commands select exact samples, reject missing/hash-mismatched inputs, run offline, and report skipped/failed/diagnostic counts and facts.
+- [x] Positive assertions, confusable negative controls, malformed recovery, and embedded source offsets are covered where applicable. Runs fail on missing expected rows rather than accepting nonzero totals alone.
+- [x] Fast runner contract tests use tiny local inputs; corpus extraction stays outside default. Hand the verified diff to the lead.
 
 ### Task 5: Add measured extractor regression protection
 
@@ -227,10 +227,10 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 
 **What to build:** Reusable paired release-binary measurements, semantic checks, controlled budgets, and scaling guards. **Approach:** Extend `run_baseline`/summary machinery where appropriate; preserve the existing report-only baseline command. Add a proposed new `cargo xtask performance compare --baseline <path> --candidate <path> --manifest <path> --out-dir <new-dir>` entry point with per-language selection. Record peak memory with a documented native platform mechanism; unsupported collection is an explicit incomplete required measurement, not a fabricated zero.
 
-- [ ] Comparison enforces provenance, row/diagnostic/skip checks, alternating samples, extraction levels, fresh scan/no-change/update scenarios, and the stated latency/memory/storage budgets.
-- [ ] Controlled bad summary/input cases fail and valid cases pass; output changes require named evidence. There is no silent baseline refresh.
-- [ ] Changed traversal/index code has meaningful N/2N/4N checks and no repeated whole-tree/symbol indexing per emitted row. Shared changes exercise representative large/nested files beyond tiny goldens.
-- [ ] Dedicated workflow runs an opt-in comparison with explicit pinned baseline/candidate inputs and uploads summaries; ordinary PR CI runs comparator logic tests, not host-sensitive timing gates.
+- [x] Comparison enforces provenance, row/diagnostic/skip checks, alternating samples, extraction levels, fresh scan/no-change/update scenarios, and the stated latency/memory/storage budgets.
+- [x] Controlled bad summary/input cases fail and valid cases pass; output changes require named evidence. There is no silent baseline refresh.
+- [x] Changed traversal/index code has meaningful N/2N/4N checks and no repeated whole-tree/symbol indexing per emitted row. Shared changes exercise representative large/nested files beyond tiny goldens.
+- [x] Dedicated workflow runs an opt-in comparison with explicit pinned baseline/candidate inputs and uploads summaries; ordinary PR CI runs comparator logic tests, not host-sensitive timing gates.
 - [ ] Final candidate passes the pinned corpus comparison and applicable writer/batching checks; hand the verified diff and raw measurements to the lead.
 
 ### Task 6: Integrate contracts, prevent test-tier drift, and close the goal
@@ -239,8 +239,8 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 
 **What to build:** A locally integrated, verified change with an honest final report and durable prevention checks. **Approach:** Review golden deltas, run final gates once, fix any integration defects, then record the final source state and metrics.
 
-- [ ] New fast contract tests are routed explicitly; convention tests prove corpus, certification and timed stress gates stay outside default. Retain narrow language commands.
-- [ ] Public capability snapshots, docs and contract markers agree with the result; docs point to schema v8/extraction v4 and the SQLite-only product. No unsolicited version bump or release.
+- [x] New fast contract tests are routed explicitly; convention tests prove corpus, certification and timed stress gates stay outside default. Retain narrow language commands.
+- [x] Public capability snapshots, docs and contract markers agree with the result; docs point to schema v8/extraction v4 and the SQLite-only product. No unsolicited version bump or release.
 - [ ] Compatibility against the pinned 3.11.0 binary accounts for every intended row change. Reuse `crates/julie-extract-cli/tests/rebind_equivalence.rs` to check add/edit/delete/rename/malformed-to-valid/no-change against fresh scans with all fact tables and multiplicities.
 - [ ] Run the final branch gate, real-world tiers, all-language corpus, controlled performance comparison and escalation gates. Native Windows runs cover changed platform-sensitive paths and incremental/file lifecycle behavior; log exact commands and source identity.
 - [ ] Record three warm default runs with min/median/max and repair a median above 180 seconds. Retain broad coverage rather than hiding expensive tests in ad hoc exclusions.

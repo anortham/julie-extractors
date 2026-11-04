@@ -1,0 +1,39 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "tree_sitter_vb_dotnet",
+      "camelcase": "TreeSitterVbDotnet",
+      "title": "TreeSitterVbDotnet",
+      "scope": "source.tree_sitter_vb_dotnet",
+      "file-types": [
+        "tree_sitter_vb_dotnet"
+      ],
+      "injection-regex": "^tree_sitter_vb_dotnet$",
+      "class-name": "TreeSitterTreeSitterVbDotnet"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Tree sitter grammar for VB.NET",
+    "authors": [
+      {
+        "name": "CodeAnt AI",
+        "email": "chinmay@codeant.ai"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/tree-sitter/tree-sitter-tree_sitter_vb_dotnet"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true,
+    "zig": false
+  }
+}

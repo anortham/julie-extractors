@@ -1,0 +1,2075 @@
+{
+  "format_version": 1,
+  "languages": [
+    {
+      "language": "rust",
+      "source_path": "fixtures/real-world/coverage/rust/input.rs",
+      "source_sha256": "b6ce5919b55c887b43d72e4cbcf3abb55c525623ef4751c1dfb2d7a7ba1686eb",
+      "provenance": {
+        "project": "Tree-sitter",
+        "source_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/cli/src/input.rs",
+        "revision": "da6fe9beb4f7f67beb75914ca8e0d48ae48d6406",
+        "source_file": "cli/src/input.rs",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/tree-sitter/LICENSE",
+            "sha256": "5f9cf9fb6acb1972b35ae29119ce563bb60ec097656bc4b69b9bac2d04c7a147",
+            "source_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "CliInput",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 258
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "c",
+      "source_path": "fixtures/real-world/coverage/c/tree.c",
+      "source_sha256": "ef55fd2d34daad7e43605ba0469f6c67a9afb31963077e9c73f2fb0478e254bb",
+      "provenance": {
+        "project": "Tree-sitter",
+        "source_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/lib/src/tree.c",
+        "revision": "da6fe9beb4f7f67beb75914ca8e0d48ae48d6406",
+        "source_file": "lib/src/tree.c",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/tree-sitter/LICENSE",
+            "sha256": "5f9cf9fb6acb1972b35ae29119ce563bb60ec097656bc4b69b9bac2d04c7a147",
+            "source_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "ts_tree_new",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 177
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "cpp",
+      "source_path": "fixtures/real-world/coverage/cpp/status.hpp",
+      "source_sha256": "e10fc8b551f2b7cf78385648af54983b192b150de531e7c55d8289b414afcc76",
+      "provenance": {
+        "project": "Ninja",
+        "source_url": "https://github.com/ninja-build/ninja/blob/2daa09ba270b0a43e1929d29b073348aa985dfaa/src/status.h",
+        "revision": "2daa09ba270b0a43e1929d29b073348aa985dfaa",
+        "source_file": "src/status.h",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/ninja-build/ninja/blob/2daa09ba270b0a43e1929d29b073348aa985dfaa/COPYING",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/ninja/COPYING",
+            "sha256": "eb7e9ab9690124c5c9f42bdc81383d886a3dede26345b6ed15bbad7caf81f7ea",
+            "source_url": "https://github.com/ninja-build/ninja/blob/2daa09ba270b0a43e1929d29b073348aa985dfaa/COPYING"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "Status",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 850
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "cpp.preprocessor_definition.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 634
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "go",
+      "source_path": "fixtures/real-world/coverage/go/args.go",
+      "source_sha256": "db24bf6cce3df231100f6b79387e8b4f96b994b438a05d653b0c0a869f605660",
+      "provenance": {
+        "project": "Cobra",
+        "source_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/args.go",
+        "revision": "e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec",
+        "source_file": "args.go",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/LICENSE.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/cobra/LICENSE.txt",
+            "sha256": "5e3400b93bbb099e83e52bab885e7441750673c21f97988ca3f1240639b63283",
+            "source_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/LICENSE.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "NoArgs",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 1371
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "gomod",
+      "source_path": "fixtures/real-world/coverage/gomod/go.mod",
+      "source_sha256": "68bd4de711579c64b38277ed1a8f4c5e97a4b3c8e481604c1f1e21cafbe949a8",
+      "provenance": {
+        "project": "Cobra",
+        "source_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/go.mod",
+        "revision": "e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec",
+        "source_file": "go.mod",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/LICENSE.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/cobra/LICENSE.txt",
+            "sha256": "5e3400b93bbb099e83e52bab885e7441750673c21f97988ca3f1240639b63283",
+            "source_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/LICENSE.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "capture_name",
+          "value": "module",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "gosum",
+      "source_path": "fixtures/real-world/coverage/gosum/go.sum",
+      "source_sha256": "4a47dc8b06264d33a2bee2dbe21e1ca6eae420e0871c7f8030cf8c69c33c40c6",
+      "provenance": {
+        "project": "Cobra",
+        "source_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/go.sum",
+        "revision": "e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec",
+        "source_file": "go.sum",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/LICENSE.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/cobra/LICENSE.txt",
+            "sha256": "5e3400b93bbb099e83e52bab885e7441750673c21f97988ca3f1240639b63283",
+            "source_url": "https://github.com/spf13/cobra/blob/e94f6d0dd9a5e5738dca6bce03c4b1207ffbc0ec/LICENSE.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "capture_name",
+          "value": "checksum",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "zig",
+      "source_path": "fixtures/real-world/coverage/zig/isnan.zig",
+      "source_sha256": "8f4a14a95749e37f3e21172ebc5dcc8e50e26b2420ca5c80f8e05665093b3cb2",
+      "provenance": {
+        "project": "Zig",
+        "source_url": "https://github.com/ziglang/zig/blob/cf90dfd3098bef5b3c22d5ab026173b3c357f2dd/lib/std/math/isnan.zig",
+        "revision": "cf90dfd3098bef5b3c22d5ab026173b3c357f2dd",
+        "source_file": "lib/std/math/isnan.zig",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/ziglang/zig/blob/cf90dfd3098bef5b3c22d5ab026173b3c357f2dd/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/zig/LICENSE",
+            "sha256": "5c537d6853e005298a285d508cff9ac7192cea23576c840d485b2b586a7ff177",
+            "source_url": "https://github.com/ziglang/zig/blob/cf90dfd3098bef5b3c22d5ab026173b3c357f2dd/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "isNan",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 153
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "zig.builtin_call.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 12
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "typescript",
+      "source_path": "fixtures/real-world/coverage/typescript/utils.ts",
+      "source_sha256": "d98b733a9eb168c9f1d5979a77470b4c9c5049dd03c9231e7a7358ddf73dff6e",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/packages/vite/src/shared/utils.ts",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "packages/vite/src/shared/utils.ts",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "wrapId",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 355
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "tsx",
+      "source_path": "fixtures/real-world/coverage/tsx/App.tsx",
+      "source_sha256": "5cb2286e66193c18f0943efb0dcecc72278cd3d92c6dd619dc3b73b73e2b9495",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/packages/create-vite/template-react-ts/src/App.tsx",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "packages/create-vite/template-react-ts/src/App.tsx",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "App",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 129
+        }
+      ],
+      "negative_controls": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "App",
+          "min_count": 0,
+          "max_count": 0,
+          "expected_start_byte": 129,
+          "fact_language": "jsx"
+        }
+      ],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "javascript",
+      "source_path": "fixtures/real-world/coverage/javascript/counter.js",
+      "source_sha256": "54889d2272060b1af76601561c91a76a7a025b27fdbcc1ad05aadce17f1ed43e",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/packages/create-vite/template-vanilla/src/counter.js",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "packages/create-vite/template-vanilla/src/counter.js",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "source_regions"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "setupCounter",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 7
+        },
+        {
+          "domain": "source_regions",
+          "table": "source_regions",
+          "field": "kind",
+          "value": "string_literal",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 136
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "jsx",
+      "source_path": "fixtures/real-world/coverage/jsx/App.jsx",
+      "source_sha256": "100c17d90f5d9296d8f74ca4176bb2f43ad93578b0ea5461d90b5ef8a84b63a5",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/packages/create-vite/template-react/src/App.jsx",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "packages/create-vite/template-react/src/App.jsx",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "App",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 129
+        }
+      ],
+      "negative_controls": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "App",
+          "min_count": 0,
+          "max_count": 0,
+          "expected_start_byte": 129,
+          "fact_language": "tsx"
+        }
+      ],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "html",
+      "source_path": "fixtures/real-world/coverage/html/index.html",
+      "source_sha256": "66d83d8d96319e721109438138efe998fe03baff83c262b5894098ec21bd9f07",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/packages/create-vite/template-vanilla/index.html",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "packages/create-vite/template-vanilla/index.html",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts",
+        "source_regions"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "capture_name",
+          "value": "resource_link",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 75
+        },
+        {
+          "domain": "source_regions",
+          "table": "source_regions",
+          "field": "kind",
+          "value": "embedded",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 286
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "css",
+      "source_path": "fixtures/real-world/coverage/css/style.css",
+      "source_sha256": "2444c5cd6609a5069408fd705869447ca8a13342a7ef2b7c2f6a8a11387e4834",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/packages/create-vite/template-vue/src/style.css",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "packages/create-vite/template-vue/src/style.css",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "css.media_query.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 1088
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "vue",
+      "source_path": "fixtures/real-world/coverage/vue/App.vue",
+      "source_sha256": "c08ab41a6f8a5695b152d3daa80ebabba002bbf667a88d0238e103e11461eeb3",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/packages/create-vite/template-vue/src/App.vue",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "packages/create-vite/template-vue/src/App.vue",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts",
+        "source_regions"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "App",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "capture_name",
+          "value": "section",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "css.selector_rule.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 413
+        },
+        {
+          "domain": "source_regions",
+          "table": "source_regions",
+          "field": "kind",
+          "value": "embedded",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "python",
+      "source_path": "fixtures/real-world/coverage/python/structures.py",
+      "source_sha256": "f886e6855cf4e92fb968f499b94b6167afba0fd5ce8d1b935c739a6d8d38d573",
+      "provenance": {
+        "project": "Requests",
+        "source_url": "https://github.com/psf/requests/blob/0e322af87745eff34caffe4df68456ebc20d9068/src/requests/structures.py",
+        "revision": "0e322af87745eff34caffe4df68456ebc20d9068",
+        "source_file": "src/requests/structures.py",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/psf/requests/blob/0e322af87745eff34caffe4df68456ebc20d9068/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/requests/LICENSE",
+            "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b",
+            "source_url": "https://github.com/psf/requests/blob/0e322af87745eff34caffe4df68456ebc20d9068/LICENSE"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/requests/NOTICE",
+            "sha256": "f5110972dedad2b4e9d314518daf3b7d72d6e02e499acd802181de6f74571dcc",
+            "source_url": "https://github.com/psf/requests/blob/0e322af87745eff34caffe4df68456ebc20d9068/NOTICE"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/requests/AUTHORS.rst",
+            "sha256": "67b09ec1002aef944fec0a4c6ab76d5662e0f596f289e1c7b280c24cbb749678",
+            "source_url": "https://github.com/psf/requests/blob/0e322af87745eff34caffe4df68456ebc20d9068/AUTHORS.rst"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "CaseInsensitiveDict",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 170
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "java",
+      "source_path": "fixtures/real-world/coverage/java/FailableConsumer.java",
+      "source_sha256": "3e4115f3ef4b5713baae2d1745d8752e4ba406972bcf5d21d2625e6d19d2baf4",
+      "provenance": {
+        "project": "Apache Commons Lang",
+        "source_url": "https://github.com/apache/commons-lang/blob/e547d704b21a1b10a2dae0158f7288d7afa4d064/src/main/java/org/apache/commons/lang3/function/FailableConsumer.java",
+        "revision": "e547d704b21a1b10a2dae0158f7288d7afa4d064",
+        "source_file": "src/main/java/org/apache/commons/lang3/function/FailableConsumer.java",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/apache/commons-lang/blob/e547d704b21a1b10a2dae0158f7288d7afa4d064/LICENSE.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/apache-commons-lang/LICENSE.txt",
+            "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+            "source_url": "https://github.com/apache/commons-lang/blob/e547d704b21a1b10a2dae0158f7288d7afa4d064/LICENSE.txt"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/apache-commons-lang/NOTICE.txt",
+            "sha256": "cf09f75076609b76308528f42dd3c1595643a9a1fc5c275600fd578c567f1821",
+            "source_url": "https://github.com/apache/commons-lang/blob/e547d704b21a1b10a2dae0158f7288d7afa4d064/NOTICE.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "FailableConsumer",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 1263
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "java.lambda_expression.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 3120
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "csharp",
+      "source_path": "fixtures/real-world/coverage/csharp/SpecialType.cs",
+      "source_sha256": "a79cf2e8c5f6046f0a6846ebca38d1656917757d2691f8dede8fc675bfdbf07b",
+      "provenance": {
+        "project": "Roslyn",
+        "source_url": "https://github.com/dotnet/roslyn/blob/956ac80ad4fa08e0415a49e9415a51a41fe716a9/src/Compilers/Core/Portable/SpecialType.cs",
+        "revision": "956ac80ad4fa08e0415a49e9415a51a41fe716a9",
+        "source_file": "src/Compilers/Core/Portable/SpecialType.cs",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/dotnet/roslyn/blob/956ac80ad4fa08e0415a49e9415a51a41fe716a9/License.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/roslyn/License.txt",
+            "sha256": "ae48df11a335dc1a615f4f938b69cba73bcf4485c4f97af49b38efb0f216353b",
+            "source_url": "https://github.com/dotnet/roslyn/blob/956ac80ad4fa08e0415a49e9415a51a41fe716a9/License.txt"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/roslyn/THIRD-PARTY-NOTICES.txt",
+            "sha256": "9879407362c623ca2af5d0460a556d25a2fa1afbaa6530707963fc7166102d4d",
+            "source_url": "https://github.com/dotnet/roslyn/blob/956ac80ad4fa08e0415a49e9415a51a41fe716a9/THIRD-PARTY-NOTICES.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "source_regions"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "SpecialType",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 822
+        },
+        {
+          "domain": "source_regions",
+          "table": "source_regions",
+          "field": "kind",
+          "value": "doc_comment",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 360
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "vbnet",
+      "source_path": "fixtures/real-world/coverage/vbnet/AbstractRegionControlFlowPass.vb",
+      "source_sha256": "2ec82cd6e6191236ba2a97cb35307f3ca212a5f319217bd8cd8a4d93001e9df3",
+      "provenance": {
+        "project": "Roslyn",
+        "source_url": "https://github.com/dotnet/roslyn/blob/956ac80ad4fa08e0415a49e9415a51a41fe716a9/src/Compilers/VisualBasic/Portable/Analysis/FlowAnalysis/AbstractRegionControlFlowPass.vb",
+        "revision": "956ac80ad4fa08e0415a49e9415a51a41fe716a9",
+        "source_file": "src/Compilers/VisualBasic/Portable/Analysis/FlowAnalysis/AbstractRegionControlFlowPass.vb",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/dotnet/roslyn/blob/956ac80ad4fa08e0415a49e9415a51a41fe716a9/License.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/roslyn/License.txt",
+            "sha256": "ae48df11a335dc1a615f4f938b69cba73bcf4485c4f97af49b38efb0f216353b",
+            "source_url": "https://github.com/dotnet/roslyn/blob/956ac80ad4fa08e0415a49e9415a51a41fe716a9/License.txt"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/roslyn/THIRD-PARTY-NOTICES.txt",
+            "sha256": "9879407362c623ca2af5d0460a556d25a2fa1afbaa6530707963fc7166102d4d",
+            "source_url": "https://github.com/dotnet/roslyn/blob/956ac80ad4fa08e0415a49e9415a51a41fe716a9/THIRD-PARTY-NOTICES.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "AbstractRegionControlFlowPass",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 617
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "php",
+      "source_path": "fixtures/real-world/coverage/php/AcceptHeaderItem.php",
+      "source_sha256": "0d0e79ca0c27bcddab46e5ed535f1598c5201af947852abe382eb8f921e2c546",
+      "provenance": {
+        "project": "Symfony HttpFoundation",
+        "source_url": "https://github.com/symfony/http-foundation/blob/f9c54a6b1697d0b3b3d541e89e7843cdb3c9bfb7/AcceptHeaderItem.php",
+        "revision": "f9c54a6b1697d0b3b3d541e89e7843cdb3c9bfb7",
+        "source_file": "AcceptHeaderItem.php",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/symfony/http-foundation/blob/f9c54a6b1697d0b3b3d541e89e7843cdb3c9bfb7/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/symfony-httpfoundation/LICENSE",
+            "sha256": "18da7e490d2aa77197a0619b25bcc771a0110132a9d76071665718d3295e73cb",
+            "source_url": "https://github.com/symfony/http-foundation/blob/f9c54a6b1697d0b3b3d541e89e7843cdb3c9bfb7/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "AcceptHeaderItem",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 386
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "php.namespace_definition.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 238
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "ruby",
+      "source_path": "fixtures/real-world/coverage/ruby/name_space.rb",
+      "source_sha256": "d0fabe49bfd0a61ac55f743fd680930d6a044517a03df870cb7c0122585fb3d3",
+      "provenance": {
+        "project": "Rake",
+        "source_url": "https://github.com/ruby/rake/blob/d84f6ef7f3540a1d0e95fabe451ea3a16157791b/lib/rake/name_space.rb",
+        "revision": "d84f6ef7f3540a1d0e95fabe451ea3a16157791b",
+        "source_file": "lib/rake/name_space.rb",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/ruby/rake/blob/d84f6ef7f3540a1d0e95fabe451ea3a16157791b/MIT-LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/rake/MIT-LICENSE",
+            "sha256": "3e8179ae8e3354a22ad6c9f08a81ac2e7e39cf7b65c7dd97895cb23bf22cd48c",
+            "source_url": "https://github.com/ruby/rake/blob/d84f6ef7f3540a1d0e95fabe451ea3a16157791b/MIT-LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "source_regions"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "NameSpace",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 128
+        },
+        {
+          "domain": "source_regions",
+          "table": "source_regions",
+          "field": "kind",
+          "value": "doc_comment",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 30
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "swift",
+      "source_path": "fixtures/real-world/coverage/swift/CollectionExtensions.swift",
+      "source_sha256": "e5e0379db6be7817a9c503d6a30d2cef76da5ff7cc3eba4584eeb24640ac1afc",
+      "provenance": {
+        "project": "Swift Argument Parser",
+        "source_url": "https://github.com/apple/swift-argument-parser/blob/41982a3656a71c768319979febd796c6fd111d5c/Sources/ArgumentParser/Utilities/CollectionExtensions.swift",
+        "revision": "41982a3656a71c768319979febd796c6fd111d5c",
+        "source_file": "Sources/ArgumentParser/Utilities/CollectionExtensions.swift",
+        "license": "Apache-2.0 WITH LLVM-exception",
+        "license_evidence_url": "https://github.com/apple/swift-argument-parser/blob/41982a3656a71c768319979febd796c6fd111d5c/LICENSE.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/swift-argument-parser/LICENSE.txt",
+            "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+            "source_url": "https://github.com/apple/swift-argument-parser/blob/41982a3656a71c768319979febd796c6fd111d5c/LICENSE.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "mapEmpty",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 470
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "kotlin",
+      "source_path": "fixtures/real-world/coverage/kotlin/Timeout.kt",
+      "source_sha256": "a44a7c46043aa8b325930dc303c74d4dfdd2fe5512fb3fda969162e7aed1441c",
+      "provenance": {
+        "project": "Okio",
+        "source_url": "https://github.com/square/okio/blob/d6c38c257c79974ac7e6d77b84ce2eeefc1b92b0/okio/src/commonMain/kotlin/okio/Timeout.kt",
+        "revision": "d6c38c257c79974ac7e6d77b84ce2eeefc1b92b0",
+        "source_file": "okio/src/commonMain/kotlin/okio/Timeout.kt",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/square/okio/blob/d6c38c257c79974ac7e6d77b84ce2eeefc1b92b0/LICENSE.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/okio/LICENSE.txt",
+            "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+            "source_url": "https://github.com/square/okio/blob/d6c38c257c79974ac7e6d77b84ce2eeefc1b92b0/LICENSE.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "Timeout",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 1643
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "scala",
+      "source_path": "fixtures/real-world/coverage/scala/Tuple2.scala",
+      "source_sha256": "84ec985bb540e9703a2f01fe13dfd7d5999152c863b68308ae8c6f1e5b226842",
+      "provenance": {
+        "project": "Scala",
+        "source_url": "https://github.com/scala/scala/blob/3f6bdaeafde17d790023cc3f299b81eaaf876ca3/src/library/scala/Tuple2.scala",
+        "revision": "3f6bdaeafde17d790023cc3f299b81eaaf876ca3",
+        "source_file": "src/library/scala/Tuple2.scala",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/scala/scala/blob/3f6bdaeafde17d790023cc3f299b81eaaf876ca3/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/scala/LICENSE",
+            "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+            "source_url": "https://github.com/scala/scala/blob/3f6bdaeafde17d790023cc3f299b81eaaf876ca3/LICENSE"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/scala/NOTICE",
+            "sha256": "50ce10d50898ba07e632c8913b34098521416d6eed480d44edca93bd92344a45",
+            "source_url": "https://github.com/scala/scala/blob/3f6bdaeafde17d790023cc3f299b81eaaf876ca3/NOTICE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "Tuple2",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 674
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "scala.annotation.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 698
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "dart",
+      "source_path": "fixtures/real-world/coverage/dart/option.dart",
+      "source_sha256": "a720cf663e1d0409e5b1ad969e0f9c7c3917c6b95c212b03795633bef82c8f4d",
+      "provenance": {
+        "project": "Dart Args",
+        "source_url": "https://github.com/dart-lang/args/blob/7a2dfb528768f0a2e5680f711dbfb948f1d6c255/lib/src/option.dart",
+        "revision": "7a2dfb528768f0a2e5680f711dbfb948f1d6c255",
+        "source_file": "lib/src/option.dart",
+        "license": "BSD-3-Clause",
+        "license_evidence_url": "https://github.com/dart-lang/args/blob/7a2dfb528768f0a2e5680f711dbfb948f1d6c255/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/dart-args/LICENSE",
+            "sha256": "dfb09c74e29386cd3e2719f32d4995d59526179753931d31840757c77fbf2791",
+            "source_url": "https://github.com/dart-lang/args/blob/7a2dfb528768f0a2e5680f711dbfb948f1d6c255/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "Option",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 1110
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "elixir",
+      "source_path": "fixtures/real-world/coverage/elixir/server.ex",
+      "source_sha256": "3b9e00b061543f514cace7b06bb0c4c40589e5e2cd19ad101eeee9b32872ce4b",
+      "provenance": {
+        "project": "Elixir",
+        "source_url": "https://github.com/elixir-lang/elixir/blob/78f63d08313677a680868685701ae79a2459dcc1/lib/elixir/lib/agent/server.ex",
+        "revision": "78f63d08313677a680868685701ae79a2459dcc1",
+        "source_file": "lib/elixir/lib/agent/server.ex",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/elixir-lang/elixir/blob/78f63d08313677a680868685701ae79a2459dcc1/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/elixir/LICENSE",
+            "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9",
+            "source_url": "https://github.com/elixir-lang/elixir/blob/78f63d08313677a680868685701ae79a2459dcc1/LICENSE"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/elixir/NOTICE",
+            "sha256": "fbaac553e40ce7bfe063d49af44c26446ffc55299cb559a297cc37db69c9349f",
+            "source_url": "https://github.com/elixir-lang/elixir/blob/78f63d08313677a680868685701ae79a2459dcc1/NOTICE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "Agent.Server",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "elixir.defmodule_call.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "fsharp",
+      "source_path": "fixtures/real-world/coverage/fsharp/PathMap.fs",
+      "source_sha256": "2e648a5c4b6f0e55c0ab582fc87a494823d18a58dd68548f39dd0cb3069d91d3",
+      "provenance": {
+        "project": "F# Compiler",
+        "source_url": "https://github.com/dotnet/fsharp/blob/5f77356816c9dda5c59c8b9b5fab276729480bcd/src/Compiler/Utilities/PathMap.fs",
+        "revision": "5f77356816c9dda5c59c8b9b5fab276729480bcd",
+        "source_file": "src/Compiler/Utilities/PathMap.fs",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/dotnet/fsharp/blob/5f77356816c9dda5c59c8b9b5fab276729480bcd/License.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/f-compiler/License.txt",
+            "sha256": "480d420fd388a3ce0cecb73d79aee3f02f70fee060e95f4727b1335feff33201",
+            "source_url": "https://github.com/dotnet/fsharp/blob/5f77356816c9dda5c59c8b9b5fab276729480bcd/License.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "addMapping",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 492
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "erlang",
+      "source_path": "fixtures/real-world/coverage/erlang/telemetry_handler_table.erl",
+      "source_sha256": "16bba537c5bd6a6dfe4db546f3870a5326c18895e6a7e8776adb1f13932033e5",
+      "provenance": {
+        "project": "Telemetry",
+        "source_url": "https://github.com/beam-telemetry/telemetry/blob/8d8af76720856bcf26641ee1307658ad8f25e466/src/telemetry_handler_table.erl",
+        "revision": "8d8af76720856bcf26641ee1307658ad8f25e466",
+        "source_file": "src/telemetry_handler_table.erl",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/beam-telemetry/telemetry/blob/8d8af76720856bcf26641ee1307658ad8f25e466/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/telemetry/LICENSE",
+            "sha256": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9",
+            "source_url": "https://github.com/beam-telemetry/telemetry/blob/8d8af76720856bcf26641ee1307658ad8f25e466/LICENSE"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/telemetry/NOTICE",
+            "sha256": "3ca23c239bc03e2bcd3899da04d4271370e230e30f7dc171c7e8ad35809c6bb0",
+            "source_url": "https://github.com/beam-telemetry/telemetry/blob/8d8af76720856bcf26641ee1307658ad8f25e466/NOTICE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "telemetry_handler_table",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 467
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "erlang.export_attribute.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 527
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "lua",
+      "source_path": "fixtures/real-world/coverage/lua/ltn12.lua",
+      "source_sha256": "17ded4a93e07bfa74c362267e22a35c89b90c8a52a183f0d51d11dc202e7d2b1",
+      "provenance": {
+        "project": "LuaSocket",
+        "source_url": "https://github.com/lunarmodules/luasocket/blob/95b7efa9da506ef968c1347edf3fc56370f0deed/src/ltn12.lua",
+        "revision": "95b7efa9da506ef968c1347edf3fc56370f0deed",
+        "source_file": "src/ltn12.lua",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/lunarmodules/luasocket/blob/95b7efa9da506ef968c1347edf3fc56370f0deed/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/luasocket/LICENSE",
+            "sha256": "224afe42d0738eaaeb57ab289466a1c4e77091591e69dbcef2dbb385589f2f41",
+            "source_url": "https://github.com/lunarmodules/luasocket/blob/95b7efa9da506ef968c1347edf3fc56370f0deed/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "lua.module_return.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 8835
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "qml",
+      "source_path": "fixtures/real-world/coverage/qml/App.qml",
+      "source_sha256": "2eaa8dcb83049e401b60a1abbc42648a2636cc8512036a4d64e38e78961de895",
+      "provenance": {
+        "project": "Qt Declarative",
+        "source_url": "https://github.com/qt/qtdeclarative/blob/2884c601242f030307a5acdca984b3aa0d34e064/examples/qml/tutorials/extending-qml/chapter1-basics/App.qml",
+        "revision": "2884c601242f030307a5acdca984b3aa0d34e064",
+        "source_file": "examples/qml/tutorials/extending-qml/chapter1-basics/App.qml",
+        "license": "LicenseRef-Qt-Commercial OR BSD-3-Clause",
+        "license_evidence_url": "https://github.com/qt/qtdeclarative/blob/2884c601242f030307a5acdca984b3aa0d34e064/LICENSES/BSD-3-Clause.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/qt-declarative/LICENSES/BSD-3-Clause.txt",
+            "sha256": "9f0490f18656c6f2435bd14f603ef0c96434d1825615363dce43abb42ed1dcce",
+            "source_url": "https://github.com/qt/qtdeclarative/blob/2884c601242f030307a5acdca984b3aa0d34e064/LICENSES/BSD-3-Clause.txt"
+          },
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/qt-declarative/LICENSES/LicenseRef-Qt-Commercial.txt",
+            "sha256": "9b1f50aae6267f9d5e0ceb6775ee86450262c25ec7c0573e151fe5d3f18a4700",
+            "source_url": "https://github.com/qt/qtdeclarative/blob/2884c601242f030307a5acdca984b3aa0d34e064/LICENSES/LicenseRef-Qt-Commercial.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "App",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 148
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "qml.binding.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 159
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "qmldir",
+      "source_path": "fixtures/real-world/coverage/qmldir/qmldir",
+      "source_sha256": "a1525ec6a61b8fa2648565e6fefcfa9d7d49d0702183f81b2223dace1f83e065",
+      "provenance": {
+        "project": "QML Material",
+        "source_url": "https://github.com/papyros/qml-material/blob/80e0294cec30fd9ca794ed0c545d3e4be511291c/src/qmldir",
+        "revision": "80e0294cec30fd9ca794ed0c545d3e4be511291c",
+        "source_file": "src/qmldir",
+        "license": "LGPL-2.1-or-later",
+        "license_evidence_url": "https://github.com/papyros/qml-material/blob/80e0294cec30fd9ca794ed0c545d3e4be511291c/README.md#L104-L107",
+        "license_evidence_files": [
+          {
+            "kind": "scope",
+            "path": "fixtures/real-world/coverage/licenses/qml-material/README.md",
+            "sha256": "c6eceeda3f4ecdad54e8c19f3518f075ce6ae841d17121eaafd45bda41d8d890",
+            "source_url": "https://github.com/papyros/qml-material/blob/80e0294cec30fd9ca794ed0c545d3e4be511291c/README.md#L104-L107"
+          },
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/qml-material/LICENSE",
+            "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+            "source_url": "https://github.com/papyros/qml-material/blob/80e0294cec30fd9ca794ed0c545d3e4be511291c/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "ActionButton",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 115
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "qmldir.module.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        }
+      ],
+      "negative_controls": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "ActionButton",
+          "min_count": 0,
+          "max_count": 0,
+          "expected_start_byte": 115,
+          "fact_language": "qml"
+        }
+      ],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "r",
+      "source_path": "fixtures/real-world/coverage/r/scale-identity.R",
+      "source_sha256": "d06f71e278a4c8e9ad34b29577d1fc479562acab281b45665b69b1734ead0f96",
+      "provenance": {
+        "project": "ggplot2",
+        "source_url": "https://github.com/tidyverse/ggplot2/blob/8fa3974166aa998f1c61ae77e67886bbb94d8065/R/scale-identity.R",
+        "revision": "8fa3974166aa998f1c61ae77e67886bbb94d8065",
+        "source_file": "R/scale-identity.R",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/tidyverse/ggplot2/blob/8fa3974166aa998f1c61ae77e67886bbb94d8065/LICENSE.md",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/ggplot2/LICENSE.md",
+            "sha256": "43157a6c01de01d38d6823030cc174400099c6665dc326fc321bcd36b1540c58",
+            "source_url": "https://github.com/tidyverse/ggplot2/blob/8fa3974166aa998f1c61ae77e67886bbb94d8065/LICENSE.md"
+          },
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/ggplot2/LICENSE",
+            "sha256": "9a80c26b0c1f04501bc9146497db699ef9d95e35eac8985cac380e542d858b5f",
+            "source_url": "https://github.com/tidyverse/ggplot2/blob/8fa3974166aa998f1c61ae77e67886bbb94d8065/LICENSE"
+          },
+          {
+            "kind": "scope",
+            "path": "fixtures/real-world/coverage/licenses/ggplot2/DESCRIPTION",
+            "sha256": "f660b0dfc35418d79672aef07bbbce219daf4a9ebc6af6a117dbe2cb386f43e2",
+            "source_url": "https://github.com/tidyverse/ggplot2/blob/8fa3974166aa998f1c61ae77e67886bbb94d8065/DESCRIPTION"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "source_regions"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "scale_colour_identity",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 2646
+        },
+        {
+          "domain": "source_regions",
+          "table": "source_regions",
+          "field": "kind",
+          "value": "doc_comment",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "bash",
+      "source_path": "fixtures/real-world/coverage/bash/rbenv-sh-shell.sh",
+      "source_sha256": "8d52a333f0fe6b243afe82e24efd6afe69fe5768f627b58a2e224d06e01ebece",
+      "provenance": {
+        "project": "rbenv",
+        "source_url": "https://github.com/rbenv/rbenv/blob/10e96bfc473c7459a447fbbda12164745a72fd37/libexec/rbenv-sh-shell",
+        "revision": "10e96bfc473c7459a447fbbda12164745a72fd37",
+        "source_file": "libexec/rbenv-sh-shell",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/rbenv/rbenv/blob/10e96bfc473c7459a447fbbda12164745a72fd37/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/rbenv/LICENSE",
+            "sha256": "add51f9f4d69302093f7bc28d993f9b8eac85e9f8ece590b131a774db712be4c",
+            "source_url": "https://github.com/rbenv/rbenv/blob/10e96bfc473c7459a447fbbda12164745a72fd37/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts",
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "bash.command_substitution.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 997
+        },
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "version",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 977
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "powershell",
+      "source_path": "fixtures/real-world/coverage/powershell/RegisterMicrosoftUpdate.ps1",
+      "source_sha256": "b6de8cc4bd4693349495b05927331847033966ec9d556b3ba4ac65f58fb48004",
+      "provenance": {
+        "project": "PowerShell",
+        "source_url": "https://github.com/PowerShell/PowerShell/blob/81930547a20205e5bfed32c66ab6fed50d6e2008/assets/MicrosoftUpdate/RegisterMicrosoftUpdate.ps1",
+        "revision": "81930547a20205e5bfed32c66ab6fed50d6e2008",
+        "source_file": "assets/MicrosoftUpdate/RegisterMicrosoftUpdate.ps1",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/PowerShell/PowerShell/blob/81930547a20205e5bfed32c66ab6fed50d6e2008/LICENSE.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/powershell/LICENSE.txt",
+            "sha256": "7c77a44a8acd9b41fdc209864a8016b3d430b5d0e09309818d5b7444336df744",
+            "source_url": "https://github.com/PowerShell/PowerShell/blob/81930547a20205e5bfed32c66ab6fed50d6e2008/LICENSE.txt"
+          },
+          {
+            "kind": "notice",
+            "path": "fixtures/real-world/coverage/licenses/powershell/ThirdPartyNotices.txt",
+            "sha256": "aa1cc81223f8d959f82c3734bc3fb716dcb90b273d2dd29c6524d5c2c40b359b",
+            "source_url": "https://github.com/PowerShell/PowerShell/blob/81930547a20205e5bfed32c66ab6fed50d6e2008/ThirdPartyNotices.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "powershell.param_block.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 74
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "gdscript",
+      "source_path": "fixtures/real-world/coverage/gdscript/player.gd",
+      "source_sha256": "87f4fcf7481dba031f74a363475cee75b81c3d42eb1347b318f6b824e37329a6",
+      "provenance": {
+        "project": "Godot Demo Projects",
+        "source_url": "https://github.com/godotengine/godot-demo-projects/blob/52e30044658448149b04e8f69b475eebbfbd8f6e/2d/dodge_the_creeps/player.gd",
+        "revision": "52e30044658448149b04e8f69b475eebbfbd8f6e",
+        "source_file": "2d/dodge_the_creeps/player.gd",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/godotengine/godot-demo-projects/blob/52e30044658448149b04e8f69b475eebbfbd8f6e/2d/dodge_the_creeps/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/godot-demo-projects/2d/dodge_the_creeps/LICENSE",
+            "sha256": "fa7c29376d85c548b5ba7abfbb664faf55d407ddda7b4766c33022cfc9f385b0",
+            "source_url": "https://github.com/godotengine/godot-demo-projects/blob/52e30044658448149b04e8f69b475eebbfbd8f6e/2d/dodge_the_creeps/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "player",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "gdscript.signal_declaration.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 16
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "razor",
+      "source_path": "fixtures/real-world/coverage/razor/Counter.razor",
+      "source_sha256": "fa90dc1a6850fe26ab76c34c73bb6639029938857abb034369af3c44c41baa3b",
+      "provenance": {
+        "project": "Blazor Samples",
+        "source_url": "https://github.com/dotnet/blazor-samples/blob/667ca0ae3edf683abc5234647cca441a17313f6d/9.0/BlazorSample_BlazorWebApp/Components/Pages/Counter.razor",
+        "revision": "667ca0ae3edf683abc5234647cca441a17313f6d",
+        "source_file": "9.0/BlazorSample_BlazorWebApp/Components/Pages/Counter.razor",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/dotnet/blazor-samples/blob/667ca0ae3edf683abc5234647cca441a17313f6d/LICENSE-CODE.md",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/blazor-samples/LICENSE-CODE.md",
+            "sha256": "5c124ba1707e9edeae4fa704df5c46b922a38b194b563c86650237bd172069ae",
+            "source_url": "https://github.com/dotnet/blazor-samples/blob/667ca0ae3edf683abc5234647cca441a17313f6d/LICENSE-CODE.md"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts",
+        "source_regions"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "Counter",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "IncrementCount",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 243
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "razor.page_directive.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "source_regions",
+          "table": "source_regions",
+          "field": "kind",
+          "value": "embedded",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 196
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "sql",
+      "source_path": "fixtures/real-world/coverage/sql/InsertCustomerOrders.sql",
+      "source_sha256": "fa030c063de85f55ec3f848d854ae35ee0c9d73d081fd1345d2ba285e5beba10",
+      "provenance": {
+        "project": "SQL Server Samples",
+        "source_url": "https://github.com/microsoft/sql-server-samples/blob/3c71696a3942879f0481f3bd65fe112a40023f18/samples/databases/wide-world-importers/wwi-ssdt/wwi-ssdt/Website/Stored%20Procedures/InsertCustomerOrders.sql",
+        "revision": "3c71696a3942879f0481f3bd65fe112a40023f18",
+        "source_file": "samples/databases/wide-world-importers/wwi-ssdt/wwi-ssdt/Website/Stored Procedures/InsertCustomerOrders.sql",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/microsoft/sql-server-samples/blob/3c71696a3942879f0481f3bd65fe112a40023f18/license.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/sql-server-samples/license.txt",
+            "sha256": "201f3705979e932c92cd3c6ddbddf4dc3c71dcc5a82089a1e4018227cfe1cf09",
+            "source_url": "https://github.com/microsoft/sql-server-samples/blob/3c71696a3942879f0481f3bd65fe112a40023f18/license.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "InsertCustomerOrders",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 4
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "sql.procedure_definition.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 4
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "regex",
+      "source_path": "fixtures/real-world/coverage/regex/first-user-agent.regex",
+      "source_sha256": "71c1f39cad2fc6a3766380b7bebd6d7c38b511ffff27365caee87facb5b7d703",
+      "provenance": {
+        "project": "UA Parser Core",
+        "source_url": "https://github.com/ua-parser/uap-core/blob/73e7340c3ed8055051607b296bf46ead7aa5f19e/regexes.yaml#L5",
+        "revision": "73e7340c3ed8055051607b296bf46ead7aa5f19e",
+        "source_file": "regexes.yaml",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/ua-parser/uap-core/blob/73e7340c3ed8055051607b296bf46ead7aa5f19e/LICENSE",
+        "source_selection": {
+          "kind": "byte_range",
+          "start_byte": 88,
+          "end_byte": 135,
+          "line_start": 5,
+          "line_end": 5,
+          "container_sha256": "acf2c9af91158a00c444c3b795e7769f8af3d894106327a299c70bd64a81c8e6",
+          "description": "The first user_agent_parsers regex scalar is stored as its exact unescaped single-quoted regex bytes.",
+          "container_path": "fixtures/real-world/coverage/regex/regexes.yaml"
+        },
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/ua-parser-core/LICENSE",
+            "sha256": "0c6f6cd66573dd12f68c71bffca774e58087c3c9168aed0eabf0a5ae10d3800f",
+            "source_url": "https://github.com/ua-parser/uap-core/blob/73e7340c3ed8055051607b296bf46ead7aa5f19e/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts",
+        "literals"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "regex.capture_group.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "literals",
+          "table": "literals",
+          "field": "literal_text",
+          "value": "GeoEvent",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 1
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "markdown",
+      "source_path": "fixtures/real-world/coverage/markdown/CONTRIBUTING.md",
+      "source_sha256": "98b603667a9b18ba7a4e702781605710416a930d6efe98c0c81f50e093b56e32",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/CONTRIBUTING.md",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "CONTRIBUTING.md",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "markdown.heading.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "markdown.inline_link.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 207
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "json",
+      "source_path": "fixtures/real-world/coverage/json/package.json",
+      "source_sha256": "dff53fdd95c9ab8e6e536626ad1236b6df1d9b5dab184c9902f7f05d5b19eb71",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/packages/create-vite/package.json",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": "packages/create-vite/package.json",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "literals",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "literals",
+          "table": "literals",
+          "field": "literal_text",
+          "value": "MIT",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 82
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "json.object.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "toml",
+      "source_path": "fixtures/real-world/coverage/toml/Cargo.toml",
+      "source_sha256": "a3a4527b5ce8f0f883c0b7bd65454375c153e89f84e2fc7130c2b9d1ebdfd146",
+      "provenance": {
+        "project": "Tree-sitter",
+        "source_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/Cargo.toml",
+        "revision": "da6fe9beb4f7f67beb75914ca8e0d48ae48d6406",
+        "source_file": "Cargo.toml",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/tree-sitter/LICENSE",
+            "sha256": "5f9cf9fb6acb1972b35ae29119ce563bb60ec097656bc4b69b9bac2d04c7a147",
+            "source_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "symbols",
+        "structural_facts"
+      ],
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "workspace",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "toml.table.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "yaml",
+      "source_path": "fixtures/real-world/coverage/yaml/ci.yml",
+      "source_sha256": "62224d80ac3e00a2dcca37c945fdad43a3628e30f96a6e845b1799de2f68453e",
+      "provenance": {
+        "project": "Vite",
+        "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/.github/workflows/ci.yml",
+        "revision": "814120f2ad387ca3d1e16c7dd403b04ca4b97f75",
+        "source_file": ".github/workflows/ci.yml",
+        "license": "MIT",
+        "license_evidence_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/vite/LICENSE",
+            "sha256": "692057af3d664cbb79ac38293eb50aa3c4987f8182e2a440136e59e08f1b4a54",
+            "source_url": "https://github.com/vitejs/vite/blob/814120f2ad387ca3d1e16c7dd403b04ca4b97f75/LICENSE"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts",
+        "literals"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "yaml.document.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "literals",
+          "table": "literals",
+          "field": "literal_text",
+          "value": "CI",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 6
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    },
+    {
+      "language": "xml",
+      "source_path": "fixtures/real-world/coverage/xml/pom.xml",
+      "source_sha256": "7e61df0a43d538a5404e8130a55b8085541ec8e841fcf39f81bb6d3d81dcd2f4",
+      "provenance": {
+        "project": "Spring Petclinic",
+        "source_url": "https://github.com/spring-projects/spring-petclinic/blob/500158f732419217507c7656904b8e6aa1bcc0d6/pom.xml",
+        "revision": "500158f732419217507c7656904b8e6aa1bcc0d6",
+        "source_file": "pom.xml",
+        "license": "Apache-2.0",
+        "license_evidence_url": "https://github.com/spring-projects/spring-petclinic/blob/500158f732419217507c7656904b8e6aa1bcc0d6/LICENSE.txt",
+        "license_evidence_files": [
+          {
+            "kind": "license",
+            "path": "fixtures/real-world/coverage/licenses/spring-petclinic/LICENSE.txt",
+            "sha256": "56dfc19e0dc836e30177332f73e8e6fbc297941acf3d906eec6eaaa46c2c452a",
+            "source_url": "https://github.com/spring-projects/spring-petclinic/blob/500158f732419217507c7656904b8e6aa1bcc0d6/LICENSE.txt"
+          }
+        ]
+      },
+      "expected_domains": [
+        "structural_facts",
+        "symbols"
+      ],
+      "expected_facts": [
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "pattern_id",
+          "value": "xml.document.v1",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 0
+        },
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "spring-petclinic",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 39
+        }
+      ],
+      "negative_controls": [],
+      "expected_parse_diagnostics": 0
+    }
+  ],
+  "controls": [
+    {
+      "name": "html-unicode-embedded-offset",
+      "language": "html",
+      "source_path": "fixtures/real-world/coverage/controls/unicode-embedded.html",
+      "expected_parse_diagnostics": 0,
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "offsetProbe",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 37
+        },
+        {
+          "domain": "structural_facts",
+          "table": "structural_facts",
+          "field": "capture_name",
+          "value": "script",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 28
+        },
+        {
+          "domain": "source_regions",
+          "table": "source_regions",
+          "field": "kind",
+          "value": "embedded",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 28
+        }
+      ],
+      "negative_controls": [],
+      "source_sha256": "735e2cf46b2a67d567c56925f0f1561466925bda308a87dbffe6feb5b380c4b0",
+      "authored_by": "Julie Extractors Task 4 contributors",
+      "license": "MIT",
+      "expected_domains": [
+        "symbols",
+        "structural_facts",
+        "source_regions"
+      ],
+      "license_evidence_files": [
+        {
+          "kind": "license",
+          "path": "fixtures/real-world/coverage/licenses/tree-sitter/LICENSE",
+          "sha256": "5f9cf9fb6acb1972b35ae29119ce563bb60ec097656bc4b69b9bac2d04c7a147",
+          "source_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/LICENSE"
+        },
+        {
+          "kind": "scope",
+          "path": "fixtures/real-world/coverage/licenses/controls/Cargo.toml",
+          "sha256": "8d47c922922d7366a78bf84cf8e7c9bcb304f586c425c1260a6b56f9faf65689",
+          "source_url": "https://github.com/anortham/julie-extractors/blob/f9a1b6cfbd6c51e9aecad39a19610695f210ad05/Cargo.toml"
+        }
+      ]
+    },
+    {
+      "name": "rust-malformed-recovery",
+      "language": "rust",
+      "source_path": "fixtures/real-world/coverage/controls/malformed-recovery.rs",
+      "expected_parse_diagnostics": 1,
+      "expected_facts": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "after_error",
+          "min_count": 1,
+          "max_count": 1,
+          "expected_start_byte": 61
+        }
+      ],
+      "negative_controls": [
+        {
+          "domain": "symbols",
+          "table": "symbols",
+          "field": "name",
+          "value": "lost_after_error",
+          "min_count": 0,
+          "max_count": 0,
+          "expected_start_byte": null
+        }
+      ],
+      "source_sha256": "5553efe24a05ff8a04914f91b6ec33ff54306cb708216a277ba4845574642ca1",
+      "authored_by": "Julie Extractors Task 4 contributors",
+      "license": "MIT",
+      "expected_domains": [
+        "symbols"
+      ],
+      "license_evidence_files": [
+        {
+          "kind": "license",
+          "path": "fixtures/real-world/coverage/licenses/tree-sitter/LICENSE",
+          "sha256": "5f9cf9fb6acb1972b35ae29119ce563bb60ec097656bc4b69b9bac2d04c7a147",
+          "source_url": "https://github.com/tree-sitter/tree-sitter/blob/da6fe9beb4f7f67beb75914ca8e0d48ae48d6406/LICENSE"
+        },
+        {
+          "kind": "scope",
+          "path": "fixtures/real-world/coverage/licenses/controls/Cargo.toml",
+          "sha256": "8d47c922922d7366a78bf84cf8e7c9bcb304f586c425c1260a6b56f9faf65689",
+          "source_url": "https://github.com/anortham/julie-extractors/blob/f9a1b6cfbd6c51e9aecad39a19610695f210ad05/Cargo.toml"
+        }
+      ]
+    }
+  ]
+}

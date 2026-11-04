@@ -1,0 +1,209 @@
+==================
+Single-line Function lambda
+==================
+
+Module M
+    Sub Main()
+        Dim square = Function(x) x * x
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (lambda_expression
+            (lambda_parameter
+              (identifier))
+            (binary_expression
+              (identifier)
+              (identifier))))))))
+
+==================
+Single-line Sub lambda
+==================
+
+Module M
+    Sub Main()
+        Dim printer = Sub(msg) Console.WriteLine(msg)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (lambda_expression
+            (lambda_parameter
+              (identifier))
+            (invocation
+              (member_access
+                (identifier)
+                (identifier))
+              (argument_list
+                (argument
+                  (identifier))))))))))
+
+==================
+Lambda with typed parameters
+==================
+
+Module M
+    Sub Main()
+        Dim add = Function(a As Integer, b As Integer) a + b
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (lambda_expression
+            (lambda_parameter
+              (identifier)
+              (as_clause
+                (primitive_type)))
+            (lambda_parameter
+              (identifier)
+              (as_clause
+                (primitive_type)))
+            (binary_expression
+              (identifier)
+              (identifier))))))))
+
+==================
+Lambda with no parameters
+==================
+
+Module M
+    Sub Main()
+        Dim now = Function() DateTime.Now
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (lambda_expression
+            (member_access
+              (identifier)
+              (identifier))))))))
+
+==================
+Multi-line Function lambda
+==================
+
+Module M
+    Sub Main()
+        Dim classify = Function(n As Integer)
+                           If n > 0 Then
+                               Return "pos"
+                           Else
+                               Return "neg"
+                           End If
+                       End Function
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (lambda_expression
+            (lambda_parameter
+              (identifier)
+              (as_clause
+                (primitive_type)))
+            (if_statement
+              (binary_expression
+                (identifier)
+                (integer_literal))
+              (return_statement
+                (string_literal))
+              (else_clause
+                (return_statement
+                  (string_literal))))))))))
+
+==================
+Multi-line Sub lambda
+==================
+
+Module M
+    Sub Main()
+        Dim logger = Sub(msg As String)
+                         Console.WriteLine(msg)
+                         Count += 1
+                     End Sub
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (lambda_expression
+            (lambda_parameter
+              (identifier)
+              (as_clause
+                (primitive_type)))
+            (call_statement
+              (invocation
+                (member_access
+                  (identifier)
+                  (identifier))
+                (argument_list
+                  (argument
+                    (identifier)))))
+            (compound_assignment_statement
+              (left_hand_side
+                (identifier))
+              (integer_literal))))))))

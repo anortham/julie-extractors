@@ -259,7 +259,7 @@ pub(super) fn extract_trigger(
     };
 
     let mut symbol = base.create_symbol(&node, name, SymbolKind::Method, options);
-    body_spans::finalize_sql_callable_symbol(base, &mut symbol);
+    body_spans::finalize_sql_trigger_symbol(base, &mut symbol, node);
     Some(symbol)
 }
 
@@ -269,10 +269,8 @@ pub(super) fn extract_schema(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Implementation of schema extraction from error nodes
     let node_text = base.get_node_text(&node);
 
-    // Extract schemas from ERROR nodes
     if let Some(captures) = CREATE_SCHEMA_RE.captures(&node_text)
         && let Some(schema_name) = captures.get(1)
     {
@@ -280,11 +278,6 @@ pub(super) fn extract_schema(
 
         let mut metadata = HashMap::new();
         metadata.insert("isSchema".to_string(), serde_json::Value::Bool(true));
-        metadata.insert(
-            "extractedFromError".to_string(),
-            serde_json::Value::Bool(true),
-        );
-
         let options = SymbolOptions {
             signature: Some(format!("CREATE SCHEMA {}", name)),
             visibility: Some(crate::base::Visibility::Public),

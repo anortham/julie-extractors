@@ -191,6 +191,7 @@ impl JavaScriptExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         let mut symbols = qml_directives::import_symbols(&self.base);
         self.test_dsl_active = test_symbols::test_dsl_is_active(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);

@@ -1,6 +1,7 @@
 mod annotation_tests;
 mod anonymous_classes;
 mod argument_types;
+mod body_spans;
 
 mod class_tests;
 mod complexity;

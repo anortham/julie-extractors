@@ -14,13 +14,13 @@
       "end_byte": 145,
       "body_span": {
         "start_line": 1,
-        "start_column": 26,
+        "start_column": 32,
         "end_line": 6,
         "end_column": 1,
-        "start_byte": 26,
+        "start_byte": 32,
         "end_byte": 144
       },
-      "body_hash": "652a41bd04ec4f5b36a54b87ef0c6a2a",
+      "body_hash": "6a378abc2ffe78fb6106f2f951a7bbd3",
       "signature": null,
       "doc_comment": null,
       "visibility": null,

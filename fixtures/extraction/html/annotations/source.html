@@ -1,0 +1,15 @@
+<script type="text/javascript">
+class Ordinary {
+  plainField = 0;
+  ordinaryMethod() {}
+}
+</script>
+<script type="text/babel">
+@singleton
+class Registry {
+  @observable items = [];
+  @Input() name;
+  @action.bound add(item) {}
+}
+class Plain {}
+</script>

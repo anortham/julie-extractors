@@ -49,6 +49,7 @@ pub mod cross_file_pending;
 pub mod ddl;
 pub mod dml;
 pub mod doc_comments;
+mod identifier_access_coverage;
 pub mod identifier_extraction;
 pub mod indexes;
 pub mod object_references;

@@ -740,9 +740,11 @@ Item {
         count += seed
         let model = {}
         model.count = seed
+        consume(count)
         return model.count
     }
     Behavior on opacity {}
+    Rectangle { id: child }
 }
 "#;
         let identifiers = extract_identifiers(code);
@@ -785,6 +787,75 @@ Item {
                 IdentifierKind::MemberAccess
             ),
             Some("read")
+        );
+        assert!(
+            identifiers
+                .iter()
+                .any(|identifier| identifier.kind == IdentifierKind::Call)
+        );
+        assert!(
+            identifiers
+                .iter()
+                .filter(|identifier| identifier.kind == IdentifierKind::Call)
+                .all(|identifier| identifier
+                    .metadata
+                    .as_ref()
+                    .is_none_or(|metadata| !metadata.contains_key("access")))
+        );
+        assert!(
+            identifiers
+                .iter()
+                .any(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+        );
+        assert!(
+            identifiers
+                .iter()
+                .filter(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+                .all(|identifier| identifier
+                    .metadata
+                    .as_ref()
+                    .is_none_or(|metadata| !metadata.contains_key("access")))
+        );
+    }
+
+    #[test]
+    fn shadowed_property_access_keeps_exact_byte_occurrences() {
+        let code = r#"
+Item {
+    property int count: 1
+    function update(count) {
+        count += 1
+        return count
+    }
+    function read() { return count }
+}
+"#;
+        let identifiers = extract_identifiers(code);
+        let access_at = |start: usize| -> Option<String> {
+            identifiers
+                .iter()
+                .find(|identifier| {
+                    identifier.start_byte == start as u32
+                        && identifier.kind == IdentifierKind::VariableRef
+                })?
+                .metadata
+                .as_ref()?
+                .get("access")?
+                .as_str()
+                .map(str::to_owned)
+        };
+
+        assert_eq!(
+            access_at(code.find("count += 1").unwrap()),
+            Some("read_write".to_string())
+        );
+        assert_eq!(
+            access_at(code.find("return count").unwrap() + "return ".len()),
+            Some("read".to_string())
+        );
+        assert_eq!(
+            access_at(code.rfind("return count").unwrap() + "return ".len()),
+            Some("read".to_string())
         );
     }
 }

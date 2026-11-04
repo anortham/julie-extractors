@@ -4,7 +4,7 @@
 //! and arrow functions assigned to variables.
 
 use super::helpers;
-use crate::base::{Symbol, SymbolKind, SymbolOptions, normalize_annotations};
+use crate::base::{NormalizedSpan, Symbol, SymbolKind, SymbolOptions, normalize_annotations};
 use crate::javascript::test_symbols::apply_declared_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
@@ -231,7 +231,7 @@ pub(super) fn extract_member_function(
     metadata.insert("isStatic".to_string(), serde_json::json!(is_static));
     let doc_comment = extractor.base().find_doc_comment(&node);
 
-    let symbol = extractor.base_mut().create_symbol(
+    let mut symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Method,
@@ -244,8 +244,20 @@ pub(super) fn extract_member_function(
             annotations,
         },
     );
+    set_symbol_body_from_callable(extractor, &mut symbol, value);
     super::type_facts::record_return_type_fact(extractor.base_mut(), &symbol.id, value);
     Some(symbol)
+}
+
+pub(super) fn set_symbol_body_from_callable(
+    extractor: &TypeScriptExtractor,
+    symbol: &mut Symbol,
+    callable: Node,
+) {
+    let span = callable
+        .child_by_field_name("body")
+        .map(|body| NormalizedSpan::from_node(&body));
+    extractor.base().set_body_span(symbol, span);
 }
 
 /// Extract a method definition (inside a class)
@@ -302,7 +314,7 @@ pub(super) fn extract_method(
         &mut metadata,
     );
 
-    let symbol = extractor.base_mut().create_symbol(
+    let mut symbol = extractor.base_mut().create_symbol(
         &node,
         name.clone(),
         symbol_kind,
@@ -315,6 +327,7 @@ pub(super) fn extract_method(
             annotations,
         },
     );
+    set_symbol_body_from_callable(extractor, &mut symbol, node);
     super::type_facts::record_return_type_fact(extractor.base_mut(), &symbol.id, node);
 
     Some(symbol)
@@ -346,7 +359,7 @@ pub(super) fn extract_variable(
             ("isCommonJS".to_string(), serde_json::json!(true)),
         ]);
         let signature = extractor.base().get_node_text(&node);
-        return Some(extractor.base_mut().create_symbol(
+        let mut symbol = extractor.base_mut().create_symbol(
             &node,
             name,
             SymbolKind::Import,
@@ -357,10 +370,13 @@ pub(super) fn extract_variable(
                 doc_comment,
                 ..Default::default()
             },
-        ));
+        );
+        symbol.body_span = None;
+        symbol.body_hash = None;
+        return Some(symbol);
     }
 
-    let symbol = extractor.base_mut().create_symbol(
+    let mut symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Variable,
@@ -371,6 +387,8 @@ pub(super) fn extract_variable(
             ..Default::default()
         },
     );
+    symbol.body_span = None;
+    symbol.body_hash = None;
     super::type_facts::record_variable_type_facts(
         &mut extractor.base,
         &symbol.id,

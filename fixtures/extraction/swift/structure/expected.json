@@ -222,7 +222,7 @@
         "start_byte": 1730,
         "end_byte": 1777
       },
-      "body_hash": "601518724e05d9da86141f050aea1656",
+      "body_hash": "71393217be72579b0d754d348cf3559f",
       "signature": "extension Request: CustomStringConvertible",
       "doc_comment": null,
       "visibility": "Internal",
@@ -547,7 +547,7 @@
         "start_byte": 1760,
         "end_byte": 1775
       },
-      "body_hash": "c85dd99ff7699721a19a39a224fcad70",
+      "body_hash": "b65a9ea112ae4a493197b582e2c14408",
       "signature": "var description: String",
       "doc_comment": null,
       "visibility": "Internal",

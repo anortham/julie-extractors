@@ -1,5 +1,7 @@
 mod build_manifests;
 mod cardinality;
+mod complexity_metrics;
+mod identifier_access_coverage;
 mod identifiers;
 mod literals;
 mod parse_errors;

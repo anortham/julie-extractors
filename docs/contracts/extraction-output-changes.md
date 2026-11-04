@@ -116,6 +116,71 @@ declaration ownership. Registered C declarator, Go declaration/test and Swift
 declaration goldens record the corrected rows. Refresh existing artifacts
 before incremental use with this marker.
 
+`programming-parameter-body-v1`: symbols with metadata `role: "parameter"`
+have null body spans and hashes. A parameter's function type, object type,
+generic type arguments and decorator arguments are declaration syntax, not
+its own body. Callable declarations retain their bodies, and QML type-info
+descriptor objects retain their definition interiors. Registered Kotlin,
+Zig, TypeScript, TSX and Vue fixtures record the corrected parameter rows.
+Only body fields change; parameter symbols, annotations and type facts are
+preserved. Refresh existing artifacts before incremental use with this marker.
+
+`language-coverage-corrections-v1` records the integrated source-local audit
+corrections:
+
+- Vendored PowerShell, Erlang, VB.NET and T-SQL grammars parse the pinned
+  argument-mode paths, catch macro heads, adjacent parameter attributes and
+  routine/DDL forms without preprocessing or hidden project inputs. The vendor
+  directories retain pinned source, licenses and generated-parser provenance.
+- PowerShell retains adjacent variable references, comma-list arguments and
+  their parameter binding; computed module paths do not become static imports.
+  Erlang variable occurrence facts distinguish bindings, repeated reads and
+  clause/fun/comprehension scopes. SQL compound assignments emit read-write
+  access without treating parameter declarations as references.
+- SQL routines retain their declared names, parameters, return types and bodies;
+  optional `AS` does not replace a declared type. Temporal periods do not become
+  columns, bracketed constraints retain actual names, procedural blocks do not
+  become transactions and valid schemas are not labeled as parser recovery.
+- Body spans come from the construct that owns them. This includes the
+  ECMAScript import/value and TS/TSX signature corrections, Scala abstract
+  signatures, Kotlin constructor-property initializers, Lua optional statement
+  blocks and test callbacks, Razor method/delegate signatures, QML imports and
+  signals, and PowerShell non-callable initializers. Elixir pattern parameters,
+  GDScript signals, R imports/values and Erlang module/field declarations do not
+  gain bodies from adjacent delimiters. R class factories retain their actual
+  argument payloads; Erlang macros and type definitions retain their actual
+  replacement/RHS spans. Empty braced definitions and real callable/value
+  bodies remain valid.
+- XML emits full-level file and namespace-aware XSLT callable complexity rows.
+  VB.NET parameter attribute facts retain their exact declaration owners through
+  an indexed lookup. Swift literal text no longer creates false comment
+  regions; PowerShell literal wrapper/child regions are not duplicated.
+
+Corrected source spans can change the corresponding row identities, and added
+or removed facts change table multiplicities. The identity algorithm and epoch
+remain unchanged. Body-span corrections can also move complexity scope and
+covered-byte metadata from an invented body to the real declaration. The
+canonical validation matrix records each fixed defect and its exact fixture or
+regression assertions.
+
+`syntax-aware-body-hash-v1` records normalized hashing through one cached
+syntax index per source/grammar coordinate space. Code comments and formatting
+inside interpolation no longer alter hashes. F# line/block comments,
+PowerShell block comments, nested Rust block comments and Lua long-bracket
+comments are normalized through their actual syntax nodes. Rust label and
+lifetime apostrophes no longer shield subsequent code as quoted strings. Literal text,
+escapes, delimiters and format payloads remain significant, including nested
+format expressions and literal text around HTML, Vue and Razor code. Host
+bodies and embedded callable bodies use the same source context without
+reparsing each emitted row. Unaffected token framing is retained; corrected
+bodies receive new hashes.
+
+These markers do not change SQLite schema 8, report schema 3, extraction
+contract v4, identity epoch 10, or the package version. Refresh existing
+artifacts before incremental use. Consumers should accept corrected nullable
+body fields, new source-local fact rows and revised hash values; no consumer
+resolver or extra context input is introduced.
+
 ## Declared changes
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.

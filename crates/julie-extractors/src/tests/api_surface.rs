@@ -88,6 +88,9 @@ fn test_public_contract_version_marks_current_fact_families() {
         "variable-write-sites-v1",
         "html-external-script-body-v1",
         "declaration-body-ownership-v1",
+        "programming-parameter-body-v1",
+        "language-coverage-corrections-v1",
+        "syntax-aware-body-hash-v1",
     ] {
         assert!(
             version.contains(marker),

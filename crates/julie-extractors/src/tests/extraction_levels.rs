@@ -363,6 +363,178 @@ fn symbol_annotations_are_preserved_at_references_and_full_levels() {
     }
 }
 
+#[cfg(feature = "test-capability-matrix")]
+#[test]
+fn capability_matrix_preserves_annotations_at_every_extraction_level() {
+    use std::collections::BTreeSet;
+    use std::fs;
+
+    use serde_json::Value;
+
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let manifest: Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/extraction/capabilities.json"
+    ))
+    .expect("capability manifest should parse");
+    let rows = manifest["languages"]
+        .as_array()
+        .expect("capability manifest should list languages");
+    let annotation_languages = rows
+        .iter()
+        .filter(|row| {
+            row["kind_coverage"]["annotations"]["supported"]
+                .as_array()
+                .is_some_and(|units| !units.is_empty())
+        })
+        .map(|row| {
+            row["language"]
+                .as_str()
+                .expect("annotation claimant should have a language")
+        })
+        .collect::<Vec<_>>();
+    let annotation_owners = |expected: &Value,
+                             source_path: &str,
+                             source_count: usize|
+     -> BTreeSet<(String, String, u32, String)> {
+        let mut owners = BTreeSet::new();
+        for symbol in expected["symbols"]
+            .as_array()
+            .expect("expected fixture should list symbols")
+        {
+            match symbol["file_path"].as_str() {
+                Some(path) if path != source_path => continue,
+                Some(_) => {}
+                None if source_count == 1 => {}
+                None => panic!("multi-source golden symbols must identify their source"),
+            }
+            for annotation in symbol["annotations"]
+                .as_array()
+                .expect("expected symbol should list annotations")
+            {
+                owners.insert((
+                    symbol["name"]
+                        .as_str()
+                        .expect("annotated golden symbol should have a name")
+                        .to_owned(),
+                    symbol["kind"]
+                        .as_str()
+                        .expect("annotated golden symbol should have a kind")
+                        .to_owned(),
+                    symbol["start_byte"]
+                        .as_u64()
+                        .expect("annotated golden symbol should have a start byte")
+                        as u32,
+                    annotation["annotation_key"]
+                        .as_str()
+                        .expect("golden annotation should have a key")
+                        .to_owned(),
+                ));
+            }
+        }
+        owners
+    };
+
+    for language in annotation_languages {
+        let row = rows
+            .iter()
+            .find(|row| row["language"].as_str() == Some(language))
+            .unwrap_or_else(|| panic!("{language} is not registered in the capability manifest"));
+        let fixtures = row["fixtures"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{language} has no registered fixtures"));
+        let mut selected = None;
+        for fixture in fixtures {
+            let expected_path = fixture["expected"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{language} fixture has no expected path"));
+            let expected_json = fs::read_to_string(root.join(expected_path))
+                .unwrap_or_else(|error| panic!("failed to read {expected_path}: {error}"));
+            let expected: Value = serde_json::from_str(&expected_json)
+                .unwrap_or_else(|error| panic!("failed to parse {expected_path}: {error}"));
+            let source_paths = fixture["sources"]
+                .as_array()
+                .map(|sources| {
+                    sources
+                        .iter()
+                        .map(|source| {
+                            source
+                                .as_str()
+                                .expect("registered fixture source path should be a string")
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| {
+                    vec![
+                        fixture["source"]
+                            .as_str()
+                            .expect("registered fixture should have a source path"),
+                    ]
+                });
+            for source_path in &source_paths {
+                let owners = annotation_owners(&expected, source_path, source_paths.len());
+                if !owners.is_empty() {
+                    let source = fs::read_to_string(root.join(source_path))
+                        .unwrap_or_else(|error| panic!("failed to read {source_path}: {error}"));
+                    let full = extract_at(ExtractionLevel::Full, source_path, &source);
+                    if full.parse_diagnostics.is_empty() {
+                        selected = Some((expected_path, *source_path, owners, source));
+                        break;
+                    }
+                }
+            }
+            if selected.is_some() {
+                break;
+            }
+        }
+        let (expected_path, source_path, expected_owners, source) = selected.unwrap_or_else(|| {
+            panic!("{language} has no registered diagnostic-free positive annotation golden")
+        });
+
+        for level in [
+            ExtractionLevel::Symbols,
+            ExtractionLevel::Facts,
+            ExtractionLevel::References,
+            ExtractionLevel::Full,
+        ] {
+            let results = extract_at(level, source_path, &source);
+            assert!(
+                results.parse_diagnostics.is_empty(),
+                "{language} {source_path} at {level:?} must have no parse diagnostics"
+            );
+            let actual_owners = results
+                .symbols
+                .iter()
+                .flat_map(|symbol| {
+                    symbol.annotations.iter().map(move |annotation| {
+                        (
+                            symbol.name.clone(),
+                            serde_json::to_value(&symbol.kind)
+                                .expect("symbol kind should serialize")
+                                .as_str()
+                                .expect("symbol kind should serialize as text")
+                                .to_owned(),
+                            symbol.start_byte,
+                            annotation.annotation_key.clone(),
+                        )
+                    })
+                })
+                .collect::<BTreeSet<_>>();
+
+            if matches!(level, ExtractionLevel::References | ExtractionLevel::Full) {
+                assert_eq!(
+                    actual_owners, expected_owners,
+                    "{language} annotation owners must match {expected_path} at {level:?}"
+                );
+            } else {
+                assert!(
+                    actual_owners.is_empty(),
+                    "{language} annotations must be absent at {level:?}"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn full_level_fixtures_actually_carry_complexity_metrics_and_symbol_annotations() {
     let mut saw_complexity = false;

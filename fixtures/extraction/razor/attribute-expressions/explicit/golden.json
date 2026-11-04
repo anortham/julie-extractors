@@ -254,7 +254,7 @@
         "start_byte": 0,
         "end_byte": 1081
       },
-      "body_hash": "7de1ad0b990ddfd205a09b1a29dd3ef6",
+      "body_hash": "9b1f063338388dfd51d4ad0749e2c18b",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
@@ -2330,6 +2330,19 @@
       "end_column": 58,
       "start_byte": 225,
       "end_byte": 233,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
+      "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
+      "start_line": 7,
+      "start_column": 21,
+      "end_line": 7,
+      "end_column": 54,
+      "start_byte": 410,
+      "end_byte": 443,
       "metadata": null
     }
   ],

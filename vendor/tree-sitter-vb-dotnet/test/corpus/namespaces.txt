@@ -1,0 +1,352 @@
+==================
+Namespace block
+==================
+
+Namespace MyCompany.MyApp
+    Public Class C
+    End Class
+End Namespace
+
+---
+
+(source_file
+  (blank_line)
+  (namespace_block
+    (namespace_name
+      (identifier)
+      (identifier))
+    (type_declaration
+      (class_block
+        (modifiers
+          (modifier))
+        (identifier)))))
+
+==================
+Nested namespace blocks
+==================
+
+Namespace Outer
+    Namespace Inner
+        Public Class C
+        End Class
+    End Namespace
+End Namespace
+
+---
+
+(source_file
+  (blank_line)
+  (namespace_block
+    (namespace_name
+      (identifier))
+    (namespace_block
+      (namespace_name
+        (identifier))
+      (type_declaration
+        (class_block
+          (modifiers
+            (modifier))
+          (identifier))))))
+
+==================
+Imports statement
+==================
+Imports System
+
+Module M
+End Module
+
+---
+
+(source_file
+  (imports_statement
+    (namespace_name
+      (identifier)))
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Imports of qualified namespace
+==================
+Imports System.Collections.Generic
+
+Module M
+End Module
+
+---
+
+(source_file
+  (imports_statement
+    (namespace_name
+      (identifier)
+      (identifier)
+      (identifier)))
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Multiple Imports
+==================
+Imports System
+Imports System.IO
+Imports System.Text
+
+Module M
+End Module
+
+---
+
+(source_file
+  (imports_statement
+    (namespace_name
+      (identifier)))
+  (imports_statement
+    (namespace_name
+      (identifier)
+      (identifier)))
+  (imports_statement
+    (namespace_name
+      (identifier)
+      (identifier)))
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Option Explicit
+==================
+Option Explicit On
+
+Module M
+End Module
+
+---
+
+(source_file
+  (option_statements)
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Option Strict
+==================
+Option Strict On
+
+Module M
+End Module
+
+---
+
+(source_file
+  (option_statements)
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Option Infer
+==================
+Option Infer On
+
+Module M
+End Module
+
+---
+
+(source_file
+  (option_statements)
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Option Compare
+==================
+Option Compare Text
+
+Module M
+End Module
+
+---
+
+(source_file
+  (option_statements)
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+All options together
+==================
+Option Explicit On
+Option Strict On
+Option Infer On
+Option Compare Binary
+
+Module M
+End Module
+
+---
+
+(source_file
+  (option_statements)
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Imports with alias
+==================
+Imports DAL = Company.Data.Access
+
+Module M
+End Module
+
+---
+
+(source_file
+  (imports_statement
+    (identifier)
+    (namespace_name
+      (identifier)
+      (identifier)
+      (identifier)))
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Imports with multiple aliases
+==================
+Imports IO = System.IO
+Imports Text = System.Text
+
+Module M
+End Module
+
+---
+
+(source_file
+  (imports_statement
+    (identifier)
+    (namespace_name
+      (identifier)
+      (identifier)))
+  (imports_statement
+    (identifier)
+    (namespace_name
+      (identifier)
+      (identifier)))
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Imports mixed alias and namespace
+==================
+Imports System.Collections.Generic
+Imports Linq = System.Linq
+
+Module M
+End Module
+
+---
+
+(source_file
+  (imports_statement
+    (namespace_name
+      (identifier)
+      (identifier)
+      (identifier)))
+  (imports_statement
+    (identifier)
+    (namespace_name
+      (identifier)
+      (identifier)))
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Imports inside namespace
+==================
+
+Namespace MyApp
+    Imports System
+
+    Public Class C
+    End Class
+End Namespace
+
+---
+
+(source_file
+  (blank_line)
+  (namespace_block
+    (namespace_name
+      (identifier))
+    (imports_statement
+      (namespace_name
+        (identifier)))
+    (blank_line)
+    (type_declaration
+      (class_block
+        (modifiers
+          (modifier))
+        (identifier)))))
+
+==================
+Namespace Global
+==================
+
+Namespace Global
+    Class C
+    End Class
+End Namespace
+
+---
+
+(source_file
+  (blank_line)
+  (namespace_block
+    (namespace_name
+      (identifier))
+    (type_declaration
+      (class_block
+        (identifier)))))
+
+==================
+Namespace Global qualified
+==================
+
+Namespace Global.MyApp.Data
+    Class C
+    End Class
+End Namespace
+
+---
+
+(source_file
+  (blank_line)
+  (namespace_block
+    (namespace_name
+      (identifier)
+      (identifier)
+      (identifier))
+    (type_declaration
+      (class_block
+        (identifier)))))

@@ -159,6 +159,7 @@ fn arg_position_counts_full_argument_list() {
 function load() {
     return request(42, "/api/x");
 }
+
 </script>
 "#;
     let literals = capture(code);
@@ -170,4 +171,38 @@ function load() {
         lit.arg_position, 1,
         "string at second position must report arg_position 1"
     );
+}
+
+#[test]
+fn call_argument_literals_exclude_confusables_and_keep_utf8_span() {
+    let code = r#"
+<template>
+  <a href="/native-route">Route</a>
+</template>
+<script>
+function load(enabled, named) {
+    // request("comment")
+    const standalone = "loose";
+    return request(42, false, named, { payload: "nested" }, "café");
+}
+</script>
+"#;
+    let literals = capture(code);
+    assert_eq!(literals.len(), 2, "{literals:?}");
+    let literal = literals
+        .iter()
+        .find(|literal| literal.carrier.as_deref() == Some("request"))
+        .unwrap_or_else(|| panic!("expected a call argument literal, got {literals:?}"));
+    let source_token = "\"café\"";
+    let source_start = code.find(source_token).unwrap() as u32;
+    assert_eq!(literal.literal_text, "café");
+    assert_eq!(literal.arg_position, 4);
+    assert_eq!(literal.start_byte, source_start);
+    assert_eq!(literal.end_byte, source_start + source_token.len() as u32);
+    assert!(literals.iter().any(|literal| {
+        literal.literal_text == "/native-route" && literal.carrier.as_deref() == Some("a.href")
+    }));
+    assert!(literals.iter().all(|literal| {
+        !["loose", "nested", "comment"].contains(&literal.literal_text.as_str())
+    }));
 }

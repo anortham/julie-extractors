@@ -20,7 +20,7 @@
         "start_byte": 169,
         "end_byte": 266
       },
-      "body_hash": "6351372de8627530d780380dfce28494",
+      "body_hash": "0a87b2c6c1a862570e9d70790c7e5f42",
       "signature": "private Dictionary<string, object> Attrs",
       "doc_comment": null,
       "visibility": "Private",
@@ -147,7 +147,7 @@
         "start_byte": 0,
         "end_byte": 605
       },
-      "body_hash": "55bf8eeca09170a47080038a9363e0ec",
+      "body_hash": "1b7ae504f2926fc02d636babd7114ba9",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
@@ -1179,6 +1179,19 @@
       "end_column": 114,
       "start_byte": 221,
       "end_byte": 229,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/agent_usefulness/source.razor",
+      "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Attrs:4:4",
+      "start_line": 4,
+      "start_column": 118,
+      "end_line": 4,
+      "end_column": 149,
+      "start_byte": 233,
+      "end_byte": 264,
       "metadata": null
     },
     {

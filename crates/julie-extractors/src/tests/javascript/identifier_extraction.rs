@@ -620,6 +620,56 @@ function update(initial) {
 }
 
 #[test]
+fn shadowed_parameter_access_stays_at_its_byte_occurrences() {
+    let code = r#"
+let value = 1;
+function update(value) {
+    value += 1;
+    return value;
+}
+consume(value);
+"#;
+    let mut parser = init_test_parser();
+    let tree = parser.parse(code, None).unwrap();
+    assert!(!tree.root_node().has_error());
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = JavaScriptExtractor::new(
+        "javascript".to_string(),
+        "test.js".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+    let access_at = |start: usize| -> Option<String> {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.start_byte == start as u32
+                    && identifier.kind == IdentifierKind::VariableRef
+            })?
+            .metadata
+            .as_ref()?
+            .get("access")?
+            .as_str()
+            .map(str::to_owned)
+    };
+
+    assert_eq!(
+        access_at(code.find("value += 1").unwrap()),
+        Some("read_write".to_string())
+    );
+    assert_eq!(
+        access_at(code.find("return value").unwrap() + "return ".len()),
+        Some("read".to_string())
+    );
+    assert_eq!(
+        access_at(code.find("consume(value)").unwrap() + "consume(".len()),
+        Some("read".to_string())
+    );
+}
+
+#[test]
 fn assignment_pattern_defaults_and_computed_keys_are_reads() {
     let code = r#"
 ({ field: target = fallback, [selector]: picked } = objectSource);

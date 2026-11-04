@@ -1,0 +1,144 @@
+{
+  "format_version": 1,
+  "source_base_commit": "5afe96223c231548d107ad2194fac1c53a493c2c",
+  "source_state": "Reviewed implementation working tree before the integration commit; see the evidence ledger for command scope and subsequent source identity.",
+  "candidate_binary_sha256": "c236e36111785c9ac6bcab6220f07403ad7ad54d02b00590fbe27f6358e40dcc",
+  "artifacts": [
+    {
+      "gate": "default-rerun",
+      "source_log": "target/coverage-final-default-rerun.log",
+      "artifact": "default-rerun.log.gz",
+      "raw_bytes": 701036,
+      "raw_sha256": "4842f5798929674f00104a4c041a6f38865396358d3a8306085723944b11040f",
+      "gzip_sha256": "48792261e17ef7eea0a8a008a5461e9cd359d48e3d47cde64f4da3ab327c675e"
+    },
+    {
+      "gate": "contract-rerun",
+      "source_log": "target/coverage-final-contract-rerun.log",
+      "artifact": "contract-rerun.log.gz",
+      "raw_bytes": 82463,
+      "raw_sha256": "4817d3235825cd173ce51e6261fbbf109d15133c78c3b4340161459508a616bd",
+      "gzip_sha256": "0379541b7c2b3dd685c4027257cc86dddb2953b38f33b740a48fddb1a5864daa"
+    },
+    {
+      "gate": "xtask",
+      "source_log": "target/coverage-final-xtask.log",
+      "artifact": "xtask.log.gz",
+      "raw_bytes": 16929,
+      "raw_sha256": "1c06e389a46f61d7425ad506854accaf96f702d7c5955a467113cb25177b8507",
+      "gzip_sha256": "5f48e0569fe0d2214ea19d95fa0473a4765e03caa7a6cfbc6e7ed81696a5df72"
+    },
+    {
+      "gate": "fmt-all-clean",
+      "source_log": "target/coverage-final-fmt-all-clean.log",
+      "artifact": "fmt-all-clean.log.gz",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "gate": "clippy-exact-clean",
+      "source_log": "target/coverage-final-clippy-exact-clean.log",
+      "artifact": "clippy-exact-clean.log.gz",
+      "raw_bytes": 5230,
+      "raw_sha256": "9cc137455edc3f113dae0dd9486b378d413b6e86c2873f9ad266d59ebd6002f3",
+      "gzip_sha256": "08979daa4a049965d637230ff6cbd32511693f9ca2356f5a036446210a3129fe"
+    },
+    {
+      "gate": "deny",
+      "source_log": "target/coverage-final-deny.log",
+      "artifact": "deny.log.gz",
+      "raw_bytes": 10341,
+      "raw_sha256": "925bb346e2a1310f1a744b4ef3915a73b52fce94667539d56e9e90e9f40b51a6",
+      "gzip_sha256": "187675ea338b482c6f6359d6b108643287836e64f6e2f715bc63ad886fd89426"
+    },
+    {
+      "gate": "node-tests",
+      "source_log": "target/coverage-final-node-tests.log",
+      "artifact": "node-tests.log.gz",
+      "raw_bytes": 4455,
+      "raw_sha256": "2f5da4b2edf14cd484679ecd4b9e02c9a5db72b5e7f576629bd19130861ed261",
+      "gzip_sha256": "ba16f23af08eb0f222a56a562b799a96cd09b234ff5bbdfaa7204a70b06016e8"
+    },
+    {
+      "gate": "quality",
+      "source_log": "target/coverage-final-quality.log",
+      "artifact": "quality.log.gz",
+      "raw_bytes": 24195,
+      "raw_sha256": "97d2708b02c13b167d0528ddfc7caddf0f3daada1bb399cf7e3061e8248e9e3f",
+      "gzip_sha256": "23bef7053d0822d3f06d720f5c28942e40df904ef5bb17204172b30e6d708345"
+    },
+    {
+      "gate": "matrix",
+      "source_log": "target/coverage-final-matrix.log",
+      "artifact": "matrix.log.gz",
+      "raw_bytes": 42,
+      "raw_sha256": "2ee8bea3f67ab9ccee3701190bc5e908c62c647b526d28ac5e85189ab76031af",
+      "gzip_sha256": "fa76f4108ee4d84146f664b993238686f26380a62f4f82423818da3a480eb1aa"
+    },
+    {
+      "gate": "certification",
+      "source_log": "target/coverage-final-certification.log",
+      "artifact": "certification.log.gz",
+      "raw_bytes": 19559,
+      "raw_sha256": "9734e14192fd4da44c08ddcf5fabef4a6f437c9c3d1a541abb928fba199e8c08",
+      "gzip_sha256": "05fd58c50245f37561ae76823e0a509576ff0f4a8b173c5a51ed8e99b8f3f9b8"
+    },
+    {
+      "gate": "real-world-smoke",
+      "source_log": "target/coverage-final-real-world-smoke.log",
+      "artifact": "real-world-smoke.log.gz",
+      "raw_bytes": 5032,
+      "raw_sha256": "e3a55d6ac2ee3562d2e01f5207305b1c4f4d15074df96a93c54723aa8a998343",
+      "gzip_sha256": "71f6234756ecff5b84e2b3980e662004bf5f2559c058af380af929d5f760c95b"
+    },
+    {
+      "gate": "corpus",
+      "source_log": "target/coverage-final-corpus.log",
+      "artifact": "corpus.log.gz",
+      "raw_bytes": 7334,
+      "raw_sha256": "37e7e57eddb38877c755fca66194b3f80d075de903f7c5154991a7a1e8196817",
+      "gzip_sha256": "c36dd5fec74a00d805103d4bfc2781a50ed9d0e975d1084cb387fc5aa44754f9"
+    },
+    {
+      "gate": "rebind",
+      "source_log": "target/coverage-final-rebind.log",
+      "artifact": "rebind.log.gz",
+      "raw_bytes": 4846,
+      "raw_sha256": "4805ac19e72b0799d775861ceab51c442bc2f6bdf01ab89d6ea8800343664b58",
+      "gzip_sha256": "f99f6bd1b5fc6ea1dd4716c224286b69e606ff3e57079bf1165e3ece32989225"
+    },
+    {
+      "gate": "compat",
+      "source_log": "target/coverage-final-compat.log",
+      "artifact": "compat.log.gz",
+      "raw_bytes": 92053,
+      "raw_sha256": "c9ae6afc2cca538a7e37f2e8558289616843bfa7d247f0e6cefb60f381e2f136",
+      "gzip_sha256": "01a48f4d5bde3ddb8cd452afdcd776417b0a827dbd050e7dbae580a24cfddbd6"
+    },
+    {
+      "gate": "golden-update",
+      "source_log": "target/coverage-final-golden-update.log",
+      "artifact": "golden-update.log.gz",
+      "raw_bytes": 4751,
+      "raw_sha256": "8340b56fadee6d9145ac62b9f5e0ffe5cbd90c9f13cde8cdc2538a85a2ae20a4",
+      "gzip_sha256": "e5a2994eddf0ee5871868868207d7cef4dd2bb3d5612d7a5dcf99777b149e78d"
+    },
+    {
+      "gate": "erlang-corpus-after-update",
+      "source_log": "target/coverage-final-erlang-corpus-after-update.log",
+      "artifact": "erlang-corpus-after-update.log.gz",
+      "raw_bytes": 5163,
+      "raw_sha256": "09593bcc48b9ca4edf5a6cf935f56226e2cf236be0e5e2ba22e180cf256295fd",
+      "gzip_sha256": "d419fda4d34e23413eec067d23667b9c60bc75f6e589cd44a1e8042e9c23b155"
+    },
+    {
+      "gate": "real-world-release-after-update",
+      "source_log": "target/coverage-final-real-world-release-after-update.log",
+      "artifact": "real-world-release-after-update.log.gz",
+      "raw_bytes": 29434,
+      "raw_sha256": "4a6ca29f6ef2d13fc666771148024ed29cf587e90c2c8c874a99a28a1f55222d",
+      "gzip_sha256": "d0854bc904454c850a3fab10a295836a0ebdae4e66140e0f62ef84b75b91a4a1"
+    }
+  ]
+}

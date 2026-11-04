@@ -51,3 +51,49 @@ fn top_level_string_literal_carrier_is_bare_key() {
         .expect("name literal");
     assert_eq!(literal.carrier.as_deref(), Some("name"));
 }
+
+#[test]
+fn json_config_literals_keep_string_values_and_exclude_keys_and_comments() {
+    let json = r#"{
+  // "comment value" is not a JSON string value
+  "worker": {
+    "name": "fixture",
+    "api_url": "https://api.example.com/workers",
+    "config_path": "./config/worker.json",
+    "steps": [
+      { "name": "compile" },
+      { "uses": "actions/checkout@v4" }
+    ]
+  }
+}"#;
+    let literals = capture_literals(json);
+    let expected = [
+        ("fixture", "worker.name", "\"fixture\""),
+        (
+            "https://api.example.com/workers",
+            "worker.api_url",
+            "\"https://api.example.com/workers\"",
+        ),
+        (
+            "./config/worker.json",
+            "worker.config_path",
+            "\"./config/worker.json\"",
+        ),
+        ("compile", "worker.steps[0].name", "\"compile\""),
+        (
+            "actions/checkout@v4",
+            "worker.steps[1].uses",
+            "\"actions/checkout@v4\"",
+        ),
+    ];
+
+    assert_eq!(literals.len(), expected.len());
+    for (literal, (text, carrier, token)) in literals.iter().zip(expected) {
+        assert_eq!(literal.literal_text, text);
+        assert_eq!(literal.carrier.as_deref(), Some(carrier));
+        assert_eq!(
+            json.get(literal.start_byte as usize..literal.end_byte as usize),
+            Some(token)
+        );
+    }
+}

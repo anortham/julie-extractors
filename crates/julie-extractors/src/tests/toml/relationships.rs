@@ -151,4 +151,6 @@ key = "value"
         "no relationships should be emitted for arbitrary tables in non-Cargo/non-pyproject files; got: {:#?}",
         result.relationships
     );
+    assert!(result.pending_relationships.is_empty());
+    assert!(result.structured_pending_relationships.is_empty());
 }

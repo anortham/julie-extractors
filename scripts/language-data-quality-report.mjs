@@ -176,7 +176,6 @@ const DOMAIN_APPLICABILITY = {
     not_applicable: [
       "bash",
       "css",
-      "html",
       "json",
       "markdown",
       "r",

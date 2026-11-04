@@ -2,8 +2,103 @@ name: Performance Floor
 
 on:
   workflow_dispatch:
+    inputs:
+      run_comparison:
+        description: Run a pinned baseline/candidate extractor comparison
+        type: boolean
+        required: true
+        default: false
+      baseline_run_id:
+        description: Workflow run ID containing the pinned baseline binary artifact
+        type: string
+        required: false
+      baseline_artifact_name:
+        description: Exact baseline binary artifact name
+        type: string
+        required: false
+      baseline_sha256:
+        description: Expected SHA-256 for the baseline julie-extract binary
+        type: string
+        required: false
+      baseline_build_metadata_sha256:
+        description: Expected SHA-256 for the baseline binary build metadata sidecar
+        type: string
+        required: false
+      baseline_source_commit:
+        description: Full source commit recorded by the baseline build
+        type: string
+        required: false
+      baseline_source_tree_sha256:
+        description: Source tree SHA-256 recorded by the baseline build
+        type: string
+        required: false
+      baseline_dirty_state_sha256:
+        description: Required when the baseline source was dirty
+        type: string
+        required: false
+      candidate_run_id:
+        description: Workflow run ID containing the pinned candidate binary artifact
+        type: string
+        required: false
+      candidate_artifact_name:
+        description: Exact candidate binary artifact name
+        type: string
+        required: false
+      candidate_sha256:
+        description: Expected SHA-256 for the candidate julie-extract binary
+        type: string
+        required: false
+      candidate_build_metadata_sha256:
+        description: Expected SHA-256 for the candidate binary build metadata sidecar
+        type: string
+        required: false
+      candidate_source_commit:
+        description: Full source commit recorded by the candidate build
+        type: string
+        required: false
+      candidate_source_tree_sha256:
+        description: Source tree SHA-256 recorded by the candidate build
+        type: string
+        required: false
+      candidate_dirty_state_sha256:
+        description: Required when the candidate source was dirty
+        type: string
+        required: false
+      baseline_expectations_path:
+        description: Reviewed baseline semantic and diagnostic receipt path in the checkout
+        type: string
+        required: false
+      baseline_expectations_sha256:
+        description: Expected SHA-256 for the reviewed baseline expectation receipt
+        type: string
+        required: false
+      manifest_sha256:
+        description: Expected SHA-256 for fixtures/real-world/coverage-manifest.json
+        type: string
+        required: false
+      allowlist_path:
+        description: Optional exact-row allowlist JSON path in the checked-out revision
+        type: string
+        required: false
+      allowlist_sha256:
+        description: Expected SHA-256 for the optional exact-row allowlist
+        type: string
+        required: false
+      budget_approvals_path:
+        description: Optional owner-approved budget delta file path in the checkout
+        type: string
+        required: false
+      budget_approvals_sha256:
+        description: Expected SHA-256 for the optional owner-approved budget delta file
+        type: string
+        required: false
+      language:
+        description: Optional registered language to compare instead of all 42
+        type: string
+        required: false
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -23,3 +118,194 @@ jobs:
 
       - name: Run writer performance floor
         run: cargo xtask test perf
+
+  extractor-comparison:
+    name: Pinned Extractor Comparison
+    if: ${{ inputs.run_comparison }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Validate pinned comparison inputs
+        env:
+          BASELINE_RUN_ID: ${{ inputs.baseline_run_id }}
+          BASELINE_ARTIFACT_NAME: ${{ inputs.baseline_artifact_name }}
+          BASELINE_SHA256: ${{ inputs.baseline_sha256 }}
+          BASELINE_BUILD_METADATA_SHA256: ${{ inputs.baseline_build_metadata_sha256 }}
+          BASELINE_SOURCE_COMMIT: ${{ inputs.baseline_source_commit }}
+          BASELINE_SOURCE_TREE_SHA256: ${{ inputs.baseline_source_tree_sha256 }}
+          BASELINE_DIRTY_STATE_SHA256: ${{ inputs.baseline_dirty_state_sha256 }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CANDIDATE_ARTIFACT_NAME: ${{ inputs.candidate_artifact_name }}
+          CANDIDATE_SHA256: ${{ inputs.candidate_sha256 }}
+          CANDIDATE_BUILD_METADATA_SHA256: ${{ inputs.candidate_build_metadata_sha256 }}
+          CANDIDATE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          CANDIDATE_SOURCE_TREE_SHA256: ${{ inputs.candidate_source_tree_sha256 }}
+          CANDIDATE_DIRTY_STATE_SHA256: ${{ inputs.candidate_dirty_state_sha256 }}
+          MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+          BASELINE_EXPECTATIONS_PATH: ${{ inputs.baseline_expectations_path }}
+          BASELINE_EXPECTATIONS_SHA256: ${{ inputs.baseline_expectations_sha256 }}
+          ALLOWLIST_PATH: ${{ inputs.allowlist_path }}
+          ALLOWLIST_SHA256: ${{ inputs.allowlist_sha256 }}
+          BUDGET_APPROVALS_PATH: ${{ inputs.budget_approvals_path }}
+          BUDGET_APPROVALS_SHA256: ${{ inputs.budget_approvals_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$BASELINE_RUN_ID" =~ ^[0-9]+$ ]] || { printf 'baseline_run_id must be a workflow run ID\n' >&2; exit 2; }
+          [[ "$CANDIDATE_RUN_ID" =~ ^[0-9]+$ ]] || { printf 'candidate_run_id must be a workflow run ID\n' >&2; exit 2; }
+          [[ -n "$BASELINE_ARTIFACT_NAME" && -n "$CANDIDATE_ARTIFACT_NAME" ]] || { printf 'both artifact names are required\n' >&2; exit 2; }
+          [[ "$BASELINE_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'baseline_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          [[ "$BASELINE_BUILD_METADATA_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'baseline_build_metadata_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          [[ "$BASELINE_SOURCE_COMMIT" =~ ^[[:xdigit:]]{40}$ ]] || { printf 'baseline_source_commit must contain 40 hexadecimal digits\n' >&2; exit 2; }
+          [[ "$BASELINE_SOURCE_TREE_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'baseline_source_tree_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          [[ "$CANDIDATE_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'candidate_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          [[ "$CANDIDATE_BUILD_METADATA_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'candidate_build_metadata_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          [[ "$CANDIDATE_SOURCE_COMMIT" =~ ^[[:xdigit:]]{40}$ ]] || { printf 'candidate_source_commit must contain 40 hexadecimal digits\n' >&2; exit 2; }
+          [[ "$CANDIDATE_SOURCE_TREE_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'candidate_source_tree_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          [[ "$MANIFEST_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'manifest_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          [[ -n "$BASELINE_EXPECTATIONS_PATH" ]] || { printf 'baseline_expectations_path is required\n' >&2; exit 2; }
+          [[ "$BASELINE_EXPECTATIONS_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'baseline_expectations_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          actual_expectations="$(sha256sum -- "$BASELINE_EXPECTATIONS_PATH" | cut -d ' ' -f 1)"
+          [[ "${actual_expectations,,}" == "${BASELINE_EXPECTATIONS_SHA256,,}" ]] || { printf 'baseline expectation SHA-256 mismatch: expected %s, found %s\n' "$BASELINE_EXPECTATIONS_SHA256" "$actual_expectations" >&2; exit 2; }
+          if [[ -n "$ALLOWLIST_PATH" || -n "$ALLOWLIST_SHA256" ]]; then
+            [[ -n "$ALLOWLIST_PATH" ]] || { printf 'allowlist_path is required with allowlist_sha256\n' >&2; exit 2; }
+            [[ "$ALLOWLIST_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'allowlist_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+            actual_allowlist="$(sha256sum -- "$ALLOWLIST_PATH" | cut -d ' ' -f 1)"
+            [[ "${actual_allowlist,,}" == "${ALLOWLIST_SHA256,,}" ]] || { printf 'allowlist SHA-256 mismatch: expected %s, found %s\n' "$ALLOWLIST_SHA256" "$actual_allowlist" >&2; exit 2; }
+          fi
+          if [[ -n "$BUDGET_APPROVALS_PATH" || -n "$BUDGET_APPROVALS_SHA256" ]]; then
+            [[ -n "$BUDGET_APPROVALS_PATH" ]] || { printf 'budget_approvals_path is required with budget_approvals_sha256\n' >&2; exit 2; }
+            [[ "$BUDGET_APPROVALS_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'budget_approvals_sha256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+            actual_budget_approvals="$(sha256sum -- "$BUDGET_APPROVALS_PATH" | cut -d ' ' -f 1)"
+            [[ "${actual_budget_approvals,,}" == "${BUDGET_APPROVALS_SHA256,,}" ]] || { printf 'budget approval SHA-256 mismatch: expected %s, found %s\n' "$BUDGET_APPROVALS_SHA256" "$actual_budget_approvals" >&2; exit 2; }
+          fi
+
+      - name: Download pinned baseline binary
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.baseline_artifact_name }}
+          path: target/pinned-baseline
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.baseline_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Download pinned candidate binary
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.candidate_artifact_name }}
+          path: target/pinned-candidate
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.candidate_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Verify pinned binary and corpus hashes
+        env:
+          BASELINE_SHA256: ${{ inputs.baseline_sha256 }}
+          BASELINE_BUILD_METADATA_SHA256: ${{ inputs.baseline_build_metadata_sha256 }}
+          BASELINE_SOURCE_COMMIT: ${{ inputs.baseline_source_commit }}
+          BASELINE_SOURCE_TREE_SHA256: ${{ inputs.baseline_source_tree_sha256 }}
+          BASELINE_DIRTY_STATE_SHA256: ${{ inputs.baseline_dirty_state_sha256 }}
+          CANDIDATE_SHA256: ${{ inputs.candidate_sha256 }}
+          CANDIDATE_BUILD_METADATA_SHA256: ${{ inputs.candidate_build_metadata_sha256 }}
+          CANDIDATE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          CANDIDATE_SOURCE_TREE_SHA256: ${{ inputs.candidate_source_tree_sha256 }}
+          CANDIDATE_DIRTY_STATE_SHA256: ${{ inputs.candidate_dirty_state_sha256 }}
+          MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+          BASELINE_EXPECTATIONS_PATH: ${{ inputs.baseline_expectations_path }}
+          BASELINE_EXPECTATIONS_SHA256: ${{ inputs.baseline_expectations_sha256 }}
+        run: |
+          set -euo pipefail
+          verify_binary() {
+            local directory="$1"
+            local expected="$2"
+            local label="$3"
+            local metadata_sha256="$4"
+            local source_commit="$5"
+            local source_tree_sha256="$6"
+            local dirty_state_sha256="$7"
+            [[ "$expected" =~ ^[[:xdigit:]]{64}$ ]] || { printf '%s SHA-256 must contain 64 hexadecimal digits\n' "$label" >&2; exit 2; }
+            mapfile -t matches < <(find "$directory" -type f -name julie-extract -print)
+            [[ "${#matches[@]}" -eq 1 ]] || { printf '%s artifact must contain exactly one julie-extract binary\n' "$label" >&2; exit 2; }
+            chmod +x "${matches[0]}"
+            local actual
+            actual="$(sha256sum "${matches[0]}" | cut -d ' ' -f 1)"
+            [[ "${actual,,}" == "${expected,,}" ]] || { printf '%s SHA-256 mismatch: expected %s, found %s\n' "$label" "$expected" "$actual" >&2; exit 2; }
+            local metadata="${matches[0]}.build.json"
+            [[ -f "$metadata" ]] || { printf '%s build metadata sidecar is missing: %s\n' "$label" "$metadata" >&2; exit 2; }
+            local actual_metadata_sha256
+            actual_metadata_sha256="$(sha256sum -- "$metadata" | cut -d ' ' -f 1)"
+            [[ "${actual_metadata_sha256,,}" == "${metadata_sha256,,}" ]] || { printf '%s build metadata SHA-256 mismatch: expected %s, found %s\n' "$label" "$metadata_sha256" "$actual_metadata_sha256" >&2; exit 2; }
+            jq -e --arg binary_sha256 "$actual" --arg commit "$source_commit" --arg tree_sha256 "$source_tree_sha256" '
+              .format_version == 1 and
+              (.binary_sha256 | ascii_downcase) == ($binary_sha256 | ascii_downcase) and
+              (.source.commit | ascii_downcase) == ($commit | ascii_downcase) and
+              .source.tree_hash_algorithm == "git-ls-tree-r-v1-sha256" and
+              (.source.tree_sha256 | ascii_downcase) == ($tree_sha256 | ascii_downcase) and
+              .build.profile == "release"
+            ' "$metadata" >/dev/null || { printf '%s build metadata source/build identity mismatch\n' "$label" >&2; exit 2; }
+            local dirty
+            dirty="$(jq -r '.source.dirty' "$metadata")"
+            if [[ "$dirty" == "true" ]]; then
+              [[ "$dirty_state_sha256" =~ ^[[:xdigit:]]{64}$ ]] || { printf '%s dirty state SHA-256 is required\n' "$label" >&2; exit 2; }
+              jq -e --arg dirty_sha256 "$dirty_state_sha256" '(.source.dirty_state_sha256 | ascii_downcase) == ($dirty_sha256 | ascii_downcase)' "$metadata" >/dev/null || { printf '%s dirty-state SHA-256 mismatch\n' "$label" >&2; exit 2; }
+            else
+              [[ -z "$dirty_state_sha256" ]] || { printf '%s dirty-state SHA-256 was supplied for a clean build\n' "$label" >&2; exit 2; }
+              jq -e '.source.dirty == false and .source.dirty_state_sha256 == null' "$metadata" >/dev/null || { printf '%s clean-source identity is invalid\n' "$label" >&2; exit 2; }
+            fi
+            printf '%s=%s\n' "$label" "${matches[0]}" >> "$GITHUB_ENV"
+          }
+          verify_binary target/pinned-baseline "$BASELINE_SHA256" BASELINE_BINARY "$BASELINE_BUILD_METADATA_SHA256" "$BASELINE_SOURCE_COMMIT" "$BASELINE_SOURCE_TREE_SHA256" "$BASELINE_DIRTY_STATE_SHA256"
+          verify_binary target/pinned-candidate "$CANDIDATE_SHA256" CANDIDATE_BINARY "$CANDIDATE_BUILD_METADATA_SHA256" "$CANDIDATE_SOURCE_COMMIT" "$CANDIDATE_SOURCE_TREE_SHA256" "$CANDIDATE_DIRTY_STATE_SHA256"
+          [[ "$MANIFEST_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || { printf 'manifest SHA-256 must contain 64 hexadecimal digits\n' >&2; exit 2; }
+          actual_manifest="$(sha256sum fixtures/real-world/coverage-manifest.json | cut -d ' ' -f 1)"
+          [[ "${actual_manifest,,}" == "${MANIFEST_SHA256,,}" ]] || { printf 'coverage manifest SHA-256 mismatch: expected %s, found %s\n' "$MANIFEST_SHA256" "$actual_manifest" >&2; exit 2; }
+          baseline_metadata="${BASELINE_BINARY}.build.json"
+          jq -e --slurpfile metadata "$baseline_metadata" --arg binary_sha256 "$BASELINE_SHA256" --arg manifest_sha256 "$MANIFEST_SHA256" --arg commit "$BASELINE_SOURCE_COMMIT" --arg tree_sha256 "$BASELINE_SOURCE_TREE_SHA256" '
+            (.baseline_binary_sha256 | ascii_downcase) == ($binary_sha256 | ascii_downcase) and
+            (.manifest_sha256 | ascii_downcase) == ($manifest_sha256 | ascii_downcase) and
+            (.source.commit | ascii_downcase) == ($commit | ascii_downcase) and
+            (.source.tree_sha256 | ascii_downcase) == ($tree_sha256 | ascii_downcase) and
+            .source.tree_hash_algorithm == $metadata[0].source.tree_hash_algorithm and
+            .source.dirty == $metadata[0].source.dirty and
+            .source.dirty_state_sha256 == $metadata[0].source.dirty_state_sha256
+          ' "$BASELINE_EXPECTATIONS_PATH" >/dev/null || { printf 'baseline expectations do not match pinned binary, manifest, and source identity\n' >&2; exit 2; }
+
+      - name: Run pinned extractor comparison
+        env:
+          LANGUAGE: ${{ inputs.language }}
+          ALLOWLIST_PATH: ${{ inputs.allowlist_path }}
+          BASELINE_EXPECTATIONS_PATH: ${{ inputs.baseline_expectations_path }}
+          BASELINE_EXPECTATIONS_SHA256: ${{ inputs.baseline_expectations_sha256 }}
+          BASELINE_BUILD_METADATA_SHA256: ${{ inputs.baseline_build_metadata_sha256 }}
+          CANDIDATE_BUILD_METADATA_SHA256: ${{ inputs.candidate_build_metadata_sha256 }}
+          BUDGET_APPROVALS_PATH: ${{ inputs.budget_approvals_path }}
+          BUDGET_APPROVALS_SHA256: ${{ inputs.budget_approvals_sha256 }}
+        run: |
+          set -euo pipefail
+          args=(cargo xtask performance compare --baseline "$BASELINE_BINARY" --candidate "$CANDIDATE_BINARY" --baseline-expectations "$BASELINE_EXPECTATIONS_PATH" --baseline-expectations-sha256 "$BASELINE_EXPECTATIONS_SHA256" --baseline-build-metadata-sha256 "$BASELINE_BUILD_METADATA_SHA256" --candidate-build-metadata-sha256 "$CANDIDATE_BUILD_METADATA_SHA256" --manifest fixtures/real-world/coverage-manifest.json --profile release --out-dir target/performance-compare)
+          if [[ -n "$ALLOWLIST_PATH" ]]; then
+            args+=(--allowlist "$ALLOWLIST_PATH")
+          fi
+          if [[ -n "$BUDGET_APPROVALS_PATH" ]]; then
+            args+=(--budget-approvals "$BUDGET_APPROVALS_PATH" --budget-approvals-sha256 "$BUDGET_APPROVALS_SHA256")
+          fi
+          if [[ -n "$LANGUAGE" ]]; then
+            args+=(--language "$LANGUAGE")
+          fi
+          "${args[@]}"
+
+      - name: Upload comparison summaries
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-comparison-${{ github.run_id }}
+          path: target/performance-compare/comparison.json
+          if-no-files-found: warn

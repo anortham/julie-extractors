@@ -198,6 +198,7 @@ class Tail {
     );
     assert_eq!(controller.start_line, 27);
     assert!(symbol(&result, "Tail").parent_id.is_none());
+    assert!(symbol(&result, "Tail").annotations.is_empty());
 
     assert!(
         !result

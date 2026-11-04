@@ -1,0 +1,403 @@
+==================
+Auto-property
+==================
+
+Class C
+    Public Property Name As String
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (primitive_type))))))
+
+==================
+Auto-property with initializer
+==================
+
+Class C
+    Public Property Count As Integer = 0
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (primitive_type))
+        (integer_literal)))))
+
+==================
+Property with Get and Set
+==================
+
+Class C
+    Public Property Name() As String
+        Get
+            Return _name
+        End Get
+        Set(value As String)
+            _name = value
+        End Set
+    End Property
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (as_clause
+          (primitive_type))
+        (get_accessor
+          (return_statement
+            (identifier)))
+        (set_accessor
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (primitive_type))))
+          (assignment_statement
+            (left_hand_side
+              (identifier))
+            (identifier)))))))
+
+==================
+ReadOnly property
+==================
+
+Class C
+    Public ReadOnly Property IsEmpty As Boolean
+        Get
+            Return Count = 0
+        End Get
+    End Property
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (as_clause
+          (primitive_type))
+        (get_accessor
+          (return_statement
+            (binary_expression
+              (identifier)
+              (integer_literal))))))))
+
+==================
+WriteOnly property
+==================
+
+Class C
+    Public WriteOnly Property Password As String
+        Set(value As String)
+            _hash = Hash(value)
+        End Set
+    End Property
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (as_clause
+          (primitive_type))
+        (set_accessor
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (primitive_type))))
+          (assignment_statement
+            (left_hand_side
+              (identifier))
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (identifier))))))))))
+
+==================
+Indexed property
+==================
+
+Class C
+    Public Property Item(index As Integer) As String
+        Get
+            Return _items(index)
+        End Get
+        Set(value As String)
+            _items(index) = value
+        End Set
+    End Property
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (as_clause
+          (primitive_type))
+        (get_accessor
+          (return_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (identifier))))))
+        (set_accessor
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (primitive_type))))
+          (assignment_statement
+            (left_hand_side
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (identifier)))))
+            (identifier)))))))
+
+==================
+Default indexed property
+==================
+
+Class C
+    Default Public Property Item(key As String) As Object
+        Get
+            Return _map(key)
+        End Get
+        Set(value As Object)
+            _map(key) = value
+        End Set
+    End Property
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (as_clause
+          (primitive_type))
+        (get_accessor
+          (return_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (identifier))))))
+        (set_accessor
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (primitive_type))))
+          (assignment_statement
+            (left_hand_side
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (identifier)))))
+            (identifier)))))))
+
+==================
+Property with blank line between Get and Set
+==================
+
+Class C
+    Public Property Name() As String
+        Get
+            Return _name
+        End Get
+
+        Set(value As String)
+            _name = value
+        End Set
+    End Property
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (as_clause
+          (primitive_type))
+        (get_accessor
+          (return_statement
+            (identifier)))
+        (blank_line)
+        (set_accessor
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (primitive_type))))
+          (assignment_statement
+            (left_hand_side
+              (identifier))
+            (identifier)))))))
+
+==================
+Property with attribute on Get accessor
+==================
+
+Class C
+    Public ReadOnly Property Value As Integer
+        <DebuggerHidden()>
+        Get
+            Return _value
+        End Get
+    End Property
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (as_clause
+          (primitive_type))
+        (get_accessor
+          (attribute_block
+            (attribute
+              (identifier)
+              (argument_list)))
+          (return_statement
+            (identifier)))))))
+
+==================
+Property with attributes on both accessors
+==================
+
+Class C
+    Public Property Data As String
+        <DebuggerHidden()>
+        Get
+            Return _data
+        End Get
+        <DebuggerHidden()>
+        Set(value As String)
+            _data = value
+        End Set
+    End Property
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (primitive_type))
+        (get_accessor
+          (attribute_block
+            (attribute
+              (identifier)
+              (argument_list)))
+          (return_statement
+            (identifier)))
+        (set_accessor
+          (attribute_block
+            (attribute
+              (identifier)
+              (argument_list)))
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (primitive_type))))
+          (assignment_statement
+            (left_hand_side
+              (identifier))
+            (identifier)))))))

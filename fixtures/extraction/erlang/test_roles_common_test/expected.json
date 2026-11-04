@@ -468,15 +468,8 @@
       "end_column": 20,
       "start_byte": 766,
       "end_byte": 786,
-      "body_span": {
-        "start_line": 14,
-        "start_column": 7,
-        "end_line": 14,
-        "end_column": 19,
-        "start_byte": 773,
-        "end_byte": 785
-      },
-      "body_hash": "1e6a4d51c7027e75675dfd5ada8a1805",
+      "body_span": null,
+      "body_hash": null,
       "signature": "-module(bank_SUITE)",
       "doc_comment": "%% Common Test roles. A `*_SUITE` module is a test container; inside it the\n%% golden carries all three roles at once:\n%%   container - bank_SUITE                         test_container\n%%   lifecycle - init_per_suite/1, end_per_suite/1  is_test + test_lifecycle\n%%               init_per_testcase/2, end_per_testcase/2\n%%               init_per_group/2, end_per_group/2\n%%   case      - opens_account/1, closes_account/1  is_test, run as Case(Config)\n%% Negative controls in the same file: all/0 and groups/0 configure the suite\n%% rather than exercise it, and format_report/2 is an exported helper whose\n%% arity is not the Case(Config) shape Common Test invokes. None of the three\n%% may carry a test role, nor may group/1 and setup_account/1 (not listed).",
       "visibility": "Public",
@@ -964,6 +957,82 @@
     }
   ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:Config:variable_ref:33:4",
+      "name": "Config",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 33,
+      "start_column": 4,
+      "end_line": 33,
+      "end_column": 10,
+      "start_byte": 1219,
+      "end_byte": 1225,
+      "containing_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:init_per_suite:32:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:Config:variable_ref:39:4",
+      "name": "Config",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 39,
+      "start_column": 4,
+      "end_line": 39,
+      "end_column": 10,
+      "start_byte": 1303,
+      "end_byte": 1309,
+      "containing_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:init_per_testcase:38:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:Config:variable_ref:45:4",
+      "name": "Config",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 45,
+      "start_column": 4,
+      "end_line": 45,
+      "end_column": 10,
+      "start_byte": 1395,
+      "end_byte": 1401,
+      "containing_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:init_per_group:44:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:Config:variable_ref:63:4",
+      "name": "Config",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_common_test/source.erl",
+      "start_line": 63,
+      "start_column": 4,
+      "end_line": 63,
+      "end_column": 10,
+      "start_byte": 1615,
+      "end_byte": 1621,
+      "containing_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:setup_account:62:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
     {
       "key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:atom:type_usage:25:16",
       "name": "atom",

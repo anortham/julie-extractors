@@ -26,7 +26,7 @@ pub(super) fn extract_parameter_symbols(
                 "role".to_string(),
                 serde_json::Value::String("parameter".to_string()),
             )]);
-            let symbol = base.create_symbol(
+            let mut symbol = base.create_symbol(
                 &bind.pattern_node,
                 name,
                 SymbolKind::Variable,
@@ -37,6 +37,8 @@ pub(super) fn extract_parameter_symbols(
                     ..Default::default()
                 },
             );
+            symbol.body_span = None;
+            symbol.body_hash = None;
             if let Some(struct_name) = bind.declared_struct {
                 type_facts::record_type_fact(base, &symbol.id, &struct_name, false);
             }

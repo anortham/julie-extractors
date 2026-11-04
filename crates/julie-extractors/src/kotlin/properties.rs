@@ -261,7 +261,19 @@ pub(super) fn extract_constructor_parameters(
                 ]);
                 super::types::record_raw_name(&name, &raw_name, &mut metadata);
 
-                let property_symbol = base.create_symbol(
+                let default_initializer = {
+                    let children: Vec<Node> = child.children(&mut child.walk()).collect();
+                    children
+                        .iter()
+                        .position(|node| base.get_node_text(node) == "=")
+                        .and_then(|equals| {
+                            children[equals + 1..]
+                                .iter()
+                                .find(|node| node.is_named() && !node.kind().contains("comment"))
+                        })
+                        .copied()
+                };
+                let mut property_symbol = base.create_symbol(
                     &child,
                     name,
                     SymbolKind::Property,
@@ -273,6 +285,12 @@ pub(super) fn extract_constructor_parameters(
                         doc_comment,
                         annotations,
                     },
+                );
+                base.set_body_span(
+                    &mut property_symbol,
+                    default_initializer
+                        .as_ref()
+                        .map(crate::base::NormalizedSpan::from_node),
                 );
                 if let Some(type_node) = type_node {
                     type_facts::record_declared_type(base, &property_symbol.id, type_node);
@@ -337,8 +355,6 @@ pub(super) fn extract_accessor(
             .find(|child| !child.kind().contains("comment"))
     });
     symbol.body_span = body_node.map(|body| crate::base::NormalizedSpan::from_node(&body));
-    symbol.body_hash = symbol
-        .body_span
-        .and_then(|span| crate::base::body::body_hash(&base.content, span, &base.language));
+    symbol.body_hash = symbol.body_span.and_then(|span| base.hash_body(span));
     Some(symbol)
 }

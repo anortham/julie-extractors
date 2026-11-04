@@ -1397,15 +1397,8 @@
       "end_column": 36,
       "start_byte": 260,
       "end_byte": 283,
-      "body_span": {
-        "start_line": 13,
-        "start_column": 26,
-        "end_line": 13,
-        "end_column": 28,
-        "start_byte": 273,
-        "end_byte": 275
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "val onClick: () -> Unit",
       "doc_comment": null,
       "visibility": "Public",

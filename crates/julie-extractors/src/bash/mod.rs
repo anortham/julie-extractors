@@ -84,6 +84,7 @@ impl BashExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         let mut symbols = Vec::new();
 
         // Detect shebang line

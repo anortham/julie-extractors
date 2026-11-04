@@ -147,3 +147,23 @@ def load(client):
         "string at second position must report arg_position 1"
     );
 }
+
+#[test]
+fn call_argument_literals_exclude_confusables_and_keep_utf8_span() {
+    let code = r#"
+def load(enabled, named):
+    # request("comment")
+    standalone = "loose"
+    return request(42, False, named, {"payload": "nested"}, "café")
+"#;
+    let literals = capture(code);
+    assert_eq!(literals.len(), 1, "{literals:?}");
+    let literal = &literals[0];
+    let source_token = "\"café\"";
+    let source_start = code.find(source_token).unwrap() as u32;
+    assert_eq!(literal.literal_text, "café");
+    assert_eq!(literal.carrier.as_deref(), Some("request"));
+    assert_eq!(literal.arg_position, 4);
+    assert_eq!(literal.start_byte, source_start);
+    assert_eq!(literal.end_byte, source_start + source_token.len() as u32);
+}

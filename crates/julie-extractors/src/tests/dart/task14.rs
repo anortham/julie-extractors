@@ -22,6 +22,8 @@ class LegacyHandler {
 
 @deprecated
 typedef LegacyCallback = void Function(String value);
+
+class Plain {}
 "#;
 
     let mut parser = init_test_parser();
@@ -70,4 +72,10 @@ typedef LegacyCallback = void Function(String value);
         .map(|annotation| annotation.annotation_key.as_str())
         .collect();
     assert_eq!(typedef_keys, vec!["deprecated"]);
+
+    let plain = symbols
+        .iter()
+        .find(|symbol| symbol.name == "Plain")
+        .expect("plain class should be extracted");
+    assert!(plain.annotations.is_empty());
 }

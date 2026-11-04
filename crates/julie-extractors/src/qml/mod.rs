@@ -47,6 +47,7 @@ impl QmlExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         let root_node = tree.root_node();
         self.symbols.clear();
         self.annotations.clear();
@@ -370,9 +371,11 @@ impl QmlExtractor {
                         doc_comment: semantics::extract_qml_doc_comment(self, &node),
                         ..Default::default()
                     };
-                    let symbol = self
-                        .base
-                        .create_symbol(&node, name, SymbolKind::Event, options);
+                    let mut symbol =
+                        self.base
+                            .create_symbol(&node, name, SymbolKind::Event, options);
+                    symbol.body_span = None;
+                    symbol.body_hash = None;
                     self.symbols.push(symbol);
                 }
             }
@@ -594,9 +597,7 @@ impl QmlExtractor {
     /// Point a symbol's body at `body`, or clear it when there is none.
     fn set_body(&self, symbol: &mut Symbol, body: Option<tree_sitter::Node>) {
         symbol.body_span = body.map(|body| crate::base::NormalizedSpan::from_node(&body));
-        symbol.body_hash = symbol.body_span.and_then(|span| {
-            crate::base::body::body_hash(&self.base.content, span, &self.base.language)
-        });
+        symbol.body_hash = symbol.body_span.and_then(|span| self.base.hash_body(span));
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {

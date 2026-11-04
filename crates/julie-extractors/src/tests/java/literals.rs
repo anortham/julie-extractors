@@ -125,3 +125,26 @@ class C {
     );
     assert_eq!(lit.carrier.as_deref(), Some("helper.call"));
 }
+
+#[test]
+fn call_argument_confusables_are_excluded_and_utf8_span_is_preserved() {
+    let code = r#"
+class C {
+    void load(boolean enabled, Object named) {
+        // request("comment")
+        String standalone = "loose";
+        request(42, false, enabled, named, "café");
+    }
+}
+"#;
+    let literals = capture(code);
+    assert_eq!(literals.len(), 1, "{literals:?}");
+    let literal = &literals[0];
+    let source_token = "\"café\"";
+    let source_start = code.find(source_token).unwrap() as u32;
+    assert_eq!(literal.literal_text, "café");
+    assert_eq!(literal.carrier.as_deref(), Some("request"));
+    assert_eq!(literal.arg_position, 4);
+    assert_eq!(literal.start_byte, source_start);
+    assert_eq!(literal.end_byte, source_start + source_token.len() as u32);
+}

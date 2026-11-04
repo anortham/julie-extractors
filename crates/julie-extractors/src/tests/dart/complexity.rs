@@ -92,6 +92,7 @@ fn dart_complexity_metrics_emit_file_and_symbol_scopes() {
     assert_eq!(symbol_metric.max_nesting_depth, 3);
     assert_eq!(symbol_metric.parameter_count, Some(5));
     assert!(symbol_metric.end_byte > symbol_metric.start_byte);
+    assert_eq!(results.complexity_metrics.len(), 2);
 }
 
 #[test]

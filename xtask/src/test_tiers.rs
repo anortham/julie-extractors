@@ -245,6 +245,22 @@ fn default_plan() -> TestPlan {
             CommandSpec::new("cargo", ["test", "-p", "julie-extractors"]),
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact"]),
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-cli"]),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "xtask",
+                    "--test",
+                    "coverage_contract",
+                    "--test",
+                    "performance_comparison_contract",
+                    "--test",
+                    "integration_test_tiers",
+                    "--test",
+                    "test_tiers",
+                ],
+            ),
         ],
         report_wall_clock: true,
     }
@@ -638,6 +654,18 @@ fn real_world_release_plan() -> TestPlan {
                 "test-real-world",
                 "--lib",
                 "test_real_world_jsonl_memories_fixture",
+            ],
+        ),
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-real-world",
+                "--lib",
+                "real_world_telemetry_macro_catch_heads_keep_bodies_and_later_function_arities",
             ],
         ),
         CommandSpec::new(

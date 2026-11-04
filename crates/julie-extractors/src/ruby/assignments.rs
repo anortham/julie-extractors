@@ -78,7 +78,13 @@ pub(super) fn extract_assignment(
             || (kind == SymbolKind::Constant
                 && node.kind() == "assignment"
                 && type_facts::has_trailing_written_type(base, node)));
-    let symbol = base.create_symbol(
+    let clear_ruby_value_body = base.language == "ruby"
+        && matches!(
+            kind,
+            SymbolKind::Variable | SymbolKind::Field | SymbolKind::Constant
+        )
+        && !right_side.is_some_and(|value| is_callable_value(base, value));
+    let mut symbol = base.create_symbol(
         &node,
         name,
         kind,
@@ -91,6 +97,10 @@ pub(super) fn extract_assignment(
             annotations: Vec::new(),
         },
     );
+    if clear_ruby_value_body {
+        symbol.body_span = None;
+        symbol.body_hash = None;
+    }
     if !mixed_level_ivar
         && node.kind() == "assignment"
         && !type_facts::has_trailing_written_type(base, node)
@@ -117,6 +127,23 @@ pub(super) fn extract_assignment(
         );
     }
     Some(symbol)
+}
+
+fn is_callable_value(base: &BaseExtractor, value: Node) -> bool {
+    if value.kind() == "lambda" {
+        return true;
+    }
+    if value.kind() != "call" || value.child_by_field_name("block").is_none() {
+        return false;
+    }
+    let method = value
+        .child_by_field_name("method")
+        .map(|method| base.get_node_text(&method));
+    match (method.as_deref(), value.child_by_field_name("receiver")) {
+        (Some("proc" | "lambda"), None) => true,
+        (Some("new"), Some(receiver)) => base.get_node_text(&receiver) == "Proc",
+        _ => false,
+    }
 }
 
 /// Whether the target takes the right-hand value itself: `=` or `||=`, not

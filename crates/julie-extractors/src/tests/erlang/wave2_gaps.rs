@@ -265,21 +265,49 @@ fn record_field_and_spec_parameter_types_are_facts() {
 fn type_applications_record_their_arguments() {
     let result = extract(
         "src/targs.erl",
-        "-module(targs).\n-type result(T) :: {ok, T} | {error, term()}.\n-type user() :: map().\n-spec f() -> result(user()).\nf() -> ok.\n",
+        "-module(targs).\n-type result(A, B) :: {ok, A, B}.\n-type user() :: map().\n-spec f() -> result(integer(), list(user())).\nf() -> ok.\n",
     );
 
-    let usages: Vec<_> = result
-        .type_argument_usages
+    assert!(
+        result.parse_diagnostics.is_empty(),
+        "{:?}",
+        result.parse_diagnostics
+    );
+    let usages: Vec<_> = result.type_argument_usages.iter().collect();
+    assert_eq!(usages.len(), 1);
+    let usage = usages[0];
+    let generic = result
+        .identifiers
         .iter()
-        .filter_map(|usage| {
-            let generic = result
-                .identifiers
-                .iter()
-                .find(|i| i.id == usage.identifier_id)?;
-            Some((generic.name.clone(), usage.arguments[0].type_name.clone()))
-        })
-        .collect();
-    assert_eq!(usages, [pair("result", "user")]);
+        .find(|identifier| identifier.id == usage.identifier_id)
+        .expect("type application identifier");
+    assert_eq!(generic.kind, IdentifierKind::TypeUsage);
+    assert_eq!(generic.name, "result");
+    assert_eq!(usage.arguments.len(), 2);
+    assert_eq!(
+        (
+            usage.arguments[0].ordinal,
+            usage.arguments[0].type_name.as_str(),
+            usage.arguments[0].children.len(),
+        ),
+        (0, "integer", 0)
+    );
+    assert_eq!(
+        (
+            usage.arguments[1].ordinal,
+            usage.arguments[1].type_name.as_str(),
+        ),
+        (1, "list")
+    );
+    assert_eq!(usage.arguments[1].children.len(), 1);
+    assert_eq!(
+        (
+            usage.arguments[1].children[0].ordinal,
+            usage.arguments[1].children[0].type_name.as_str(),
+            usage.arguments[1].children[0].children.len(),
+        ),
+        (0, "user", 0)
+    );
 }
 
 #[test]

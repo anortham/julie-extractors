@@ -20,7 +20,7 @@
         "start_byte": 201,
         "end_byte": 247
       },
-      "body_hash": "6c8798fbcf33ee3deca3d899f3260511",
+      "body_hash": "aec0e87808bd47e25bb7fd5f776f784d",
       "signature": "public string AtDollar(string value)",
       "doc_comment": null,
       "visibility": "Public",
@@ -53,7 +53,7 @@
         "start_byte": 108,
         "end_byte": 154
       },
-      "body_hash": "638953523b96a74655fc3712d61a8e99",
+      "body_hash": "e2096925eb9a58dd32d3041ba8bb8cdc",
       "signature": "public string DollarAt(string value)",
       "doc_comment": null,
       "visibility": "Public",
@@ -86,7 +86,7 @@
         "start_byte": 61,
         "end_byte": 303
       },
-      "body_hash": "de3e77d8546348f4cd7cd546c53b5b02",
+      "body_hash": "6c97f7017e60e16e77b7718860d229c5",
       "signature": "public sealed class InterpolatedVerbatim",
       "doc_comment": null,
       "visibility": "Public",

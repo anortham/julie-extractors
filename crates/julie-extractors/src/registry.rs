@@ -1067,6 +1067,12 @@ pub fn extract_for_language_at(
                 file_path,
                 &results.symbols,
             ),
+            "xml" => crate::xml::complexity_metrics::collect_complexity_metrics(
+                tree,
+                content,
+                file_path,
+                &results.symbols,
+            ),
             _ => collect_complexity_metrics(language, tree, content, file_path, &results.symbols),
         };
     }

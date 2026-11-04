@@ -282,6 +282,7 @@ class B
     assert_eq!(symbol(&result, "f").end_line, 5);
     assert_eq!(symbol(&result, "g").end_line, 9);
     assert_eq!(symbol(&result, "A").end_line, 15);
+    assert!(symbol(&result, "x").doc_comment.is_none());
     let f_body = symbol(&result, "f").body_span.unwrap();
     assert_eq!(
         &source[f_body.start_byte as usize..f_body.end_byte as usize],

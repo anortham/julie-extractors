@@ -65,3 +65,25 @@ Item {
     assert_eq!(symbol_metric.parameter_count, Some(2));
     assert!(symbol_metric.end_byte > symbol_metric.start_byte);
 }
+
+#[test]
+fn qml_property_string_control_words_do_not_add_complexity() {
+    let source = r#"Item {
+    property string description: "if (ready) for (item of items)"
+}
+"#;
+    let results = extract("src/PropertyText.qml", source);
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "{:#?}",
+        results.parse_diagnostics
+    );
+    let metric = results
+        .complexity_metrics
+        .iter()
+        .find(|metric| metric.scope == "file")
+        .expect("expected file complexity metric");
+    assert_eq!(metric.decision_count, 0);
+    assert_eq!(metric.loop_count, 0);
+    assert_eq!(metric.max_nesting_depth, 0);
+}

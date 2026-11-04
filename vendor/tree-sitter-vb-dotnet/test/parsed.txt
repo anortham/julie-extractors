@@ -1,0 +1,106 @@
+(source_file [0, 0] - [23, 0]
+  (comment [0, 0] - [0, 41])
+  (blank_line [0, 41] - [1, 0])
+  (type_declaration [1, 0] - [10, 0]
+    (module_block [1, 0] - [10, 0]
+      name: (identifier [1, 7] - [1, 14])
+      (method_declaration [2, 4] - [5, 0]
+        name: (identifier [2, 8] - [2, 12])
+        parameters: (parameter_list [2, 12] - [2, 14])
+        (statement [3, 8] - [4, 0]
+          (call_statement [3, 8] - [4, 0]
+            (expression [3, 8] - [3, 50]
+              (invocation [3, 8] - [3, 50]
+                target: (member_access [3, 8] - [3, 25]
+                  object: (expression [3, 8] - [3, 15]
+                    (identifier [3, 8] - [3, 15]))
+                  member: (identifier [3, 16] - [3, 25]))
+                arguments: (argument_list [3, 25] - [3, 50]
+                  (argument [3, 26] - [3, 49]
+                    (expression [3, 26] - [3, 49]
+                      (literal [3, 26] - [3, 49]
+                        (string_literal [3, 26] - [3, 49]))))))))))
+      (blank_line [5, 0] - [6, 0])
+      (method_declaration [6, 4] - [9, 0]
+        name: (identifier [6, 13] - [6, 16])
+        parameters: (parameter_list [6, 16] - [6, 44]
+          (parameter [6, 17] - [6, 29]
+            name: (identifier [6, 17] - [6, 18])
+            (as_clause [6, 19] - [6, 29]
+              type: (type [6, 22] - [6, 29]
+                (primitive_type [6, 22] - [6, 29]))))
+          (parameter [6, 31] - [6, 43]
+            name: (identifier [6, 31] - [6, 32])
+            (as_clause [6, 33] - [6, 43]
+              type: (type [6, 36] - [6, 43]
+                (primitive_type [6, 36] - [6, 43])))))
+        return_type: (type [6, 48] - [6, 55]
+          (primitive_type [6, 48] - [6, 55]))
+        (statement [7, 8] - [8, 0]
+          (return_statement [7, 8] - [8, 0]
+            (expression [7, 15] - [7, 20]
+              (binary_expression [7, 15] - [7, 20]
+                left: (expression [7, 15] - [7, 16]
+                  (identifier [7, 15] - [7, 16]))
+                right: (expression [7, 19] - [7, 20]
+                  (identifier [7, 19] - [7, 20])))))))))
+  (blank_line [10, 0] - [11, 0])
+  (comment [11, 0] - [11, 39])
+  (blank_line [11, 39] - [12, 0])
+  (type_declaration [12, 0] - [23, 0]
+    (class_block [12, 0] - [23, 0]
+      modifiers: (modifiers [12, 0] - [12, 6]
+        (modifier [12, 0] - [12, 6]))
+      name: (identifier [12, 13] - [12, 23])
+      (field_declaration [13, 4] - [14, 0]
+        modifiers: (modifiers [13, 4] - [13, 11]
+          (modifier [13, 4] - [13, 11]))
+        (variable_declarator [13, 12] - [13, 34]
+          name: (identifier [13, 12] - [13, 19])
+          (as_clause [13, 20] - [13, 30]
+            type: (type [13, 23] - [13, 30]
+              (primitive_type [13, 23] - [13, 30])))
+          initializer: (expression [13, 33] - [13, 34]
+            (literal [13, 33] - [13, 34]
+              (integer_literal [13, 33] - [13, 34])))))
+      (blank_line [14, 0] - [15, 0])
+      (method_declaration [15, 4] - [18, 0]
+        modifiers: (modifiers [15, 4] - [15, 10]
+          (modifier [15, 4] - [15, 10]))
+        name: (identifier [15, 20] - [15, 28])
+        parameters: (parameter_list [15, 28] - [15, 54]
+          (parameter [15, 29] - [15, 40]
+            name: (identifier [15, 29] - [15, 30])
+            (as_clause [15, 31] - [15, 40]
+              type: (type [15, 34] - [15, 40]
+                (primitive_type [15, 34] - [15, 40]))))
+          (parameter [15, 42] - [15, 53]
+            name: (identifier [15, 42] - [15, 43])
+            (as_clause [15, 44] - [15, 53]
+              type: (type [15, 47] - [15, 53]
+                (primitive_type [15, 47] - [15, 53])))))
+        return_type: (type [15, 58] - [15, 64]
+          (primitive_type [15, 58] - [15, 64]))
+        (statement [16, 8] - [17, 0]
+          (return_statement [16, 8] - [17, 0]
+            (expression [16, 15] - [16, 20]
+              (binary_expression [16, 15] - [16, 20]
+                left: (expression [16, 15] - [16, 16]
+                  (identifier [16, 15] - [16, 16]))
+                right: (expression [16, 19] - [16, 20]
+                  (identifier [16, 19] - [16, 20])))))))
+      (blank_line [18, 0] - [19, 0])
+      (method_declaration [19, 4] - [22, 0]
+        modifiers: (modifiers [19, 4] - [19, 10]
+          (modifier [19, 4] - [19, 10]))
+        name: (identifier [19, 15] - [19, 20])
+        parameters: (parameter_list [19, 20] - [19, 22])
+        (statement [20, 8] - [21, 0]
+          (call_statement [20, 8] - [21, 0]
+            (expression [20, 8] - [20, 19]
+              (binary_expression [20, 8] - [20, 19]
+                left: (expression [20, 8] - [20, 15]
+                  (identifier [20, 8] - [20, 15]))
+                right: (expression [20, 18] - [20, 19]
+                  (literal [20, 18] - [20, 19]
+                    (integer_literal [20, 18] - [20, 19])))))))))))

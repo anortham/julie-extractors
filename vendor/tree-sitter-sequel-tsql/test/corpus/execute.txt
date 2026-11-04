@@ -1,0 +1,47 @@
+================================================================================
+EXEC with schema-qualified name
+================================================================================
+
+EXEC dbo.usp_GetOrders;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (execute_statement
+      (keyword_exec)
+      (object_reference
+        schema: (identifier)
+        name: (identifier)))))
+
+================================================================================
+EXECUTE with arguments
+================================================================================
+
+EXECUTE usp_Process 1, 2;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (execute_statement
+      (keyword_execute)
+      (object_reference
+        name: (identifier))
+      parameter: (literal)
+      parameter: (literal))))
+
+================================================================================
+EXEC simple
+================================================================================
+
+EXEC my_proc;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (execute_statement
+      (keyword_exec)
+      (object_reference
+        name: (identifier)))))

@@ -134,7 +134,7 @@ pub(super) fn extract_import_command(
     rows.into_iter()
         .filter(|(name, _, _)| !name.is_empty())
         .map(|(name, kind, metadata)| {
-            base.create_symbol(
+            let mut symbol = base.create_symbol(
                 &node,
                 name,
                 kind,
@@ -146,7 +146,10 @@ pub(super) fn extract_import_command(
                     doc_comment: doc_comment.clone(),
                     annotations: Vec::new(),
                 },
-            )
+            );
+            symbol.body_span = None;
+            symbol.body_hash = None;
+            symbol
         })
         .collect()
 }
@@ -231,7 +234,7 @@ pub(super) fn extract_requires_modules(
         .filter(|name| !name.is_empty())
         .map(|name| {
             let metadata = import_metadata(&name, "#Requires");
-            base.create_symbol(
+            let mut symbol = base.create_symbol(
                 &node,
                 name,
                 SymbolKind::Import,
@@ -243,7 +246,10 @@ pub(super) fn extract_requires_modules(
                     doc_comment: None,
                     annotations: Vec::new(),
                 },
-            )
+            );
+            symbol.body_span = None;
+            symbol.body_hash = None;
+            symbol
         })
         .collect()
 }

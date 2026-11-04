@@ -1,0 +1,9 @@
+{
+  "format_version": 1,
+  "path": "body-hash-probes.json.gz",
+  "sha256": "6b1d17ac4ae102bffcc5ccaa66dfe5cd42034e8acd37e0a8a8af2100cffbab2b",
+  "uncompressed_sha256": "d2ac0da4c48fd3021e88b4fd7c7826ff734001e6e75e0e5204cff19cfd1e134d",
+  "uncompressed_bytes": 435103,
+  "status": "diagnostic evidence; source freshness of diagnostic binaries unknown; current-source aggregate regression independently reproduces all19 failures",
+  "fresh_red_log": "target/coverage-tmp/body-hash-comments-red-aggregate.log"
+}

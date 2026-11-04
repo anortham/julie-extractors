@@ -170,15 +170,8 @@
       "end_column": 23,
       "start_byte": 162,
       "end_byte": 179,
-      "body_span": {
-        "start_line": 7,
-        "start_column": 16,
-        "end_line": 7,
-        "end_column": 23,
-        "start_byte": 172,
-        "end_byte": 179
-      },
-      "body_hash": "d07c4639488a39f34e4f2177a2096ba9",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var n = Number(value)",
       "doc_comment": null,
       "visibility": null,

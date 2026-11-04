@@ -4,7 +4,6 @@
 //! and type aliases. Split from types.rs for file size compliance.
 
 use super::helpers;
-use crate::base::body::body_hash;
 use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::test_detection::apply_callable_test_metadata;
 use serde_json::Value;
@@ -211,9 +210,7 @@ fn first_named_non_comment(node: Node) -> Option<Node> {
 
 fn apply_body_span(base: &BaseExtractor, body: Option<Node>, symbol: &mut Symbol) {
     symbol.body_span = body.map(|body| NormalizedSpan::from_node(&body));
-    symbol.body_hash = symbol
-        .body_span
-        .and_then(|span| body_hash(&base.content, span, &base.language));
+    symbol.body_hash = symbol.body_span.and_then(|span| base.hash_body(span));
 }
 
 /// Extract a Kotlin secondary constructor

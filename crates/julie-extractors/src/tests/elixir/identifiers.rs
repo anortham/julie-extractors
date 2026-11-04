@@ -237,11 +237,18 @@ defmodule Sample do
       captured -> captured
     end
     for generated <- [input], do: consume(generated)
+    shadow = fn output -> output = output + 1; output end
+    shadow.(output)
+    GraphTraversal.reach()
     consume(output)
   end
 end
 "#;
-    let (_, identifiers) = extract_all(code);
+    let (symbols, identifiers) = extract_all(code);
+    let update = symbols
+        .iter()
+        .find(|symbol| symbol.name == "update")
+        .expect("update function extracted");
 
     assert_eq!(
         variable_access_at(&identifiers, code.find("output = input").unwrap()),
@@ -305,4 +312,61 @@ end
         ),
         Some("read")
     );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("fn output ->").unwrap() + "fn ".len()
+        ),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(&identifiers, code.find("output = output + 1").unwrap()),
+        Some("write")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("output = output + 1").unwrap() + "output = ".len()
+        ),
+        Some("read")
+    );
+    assert_eq!(
+        variable_access_at(
+            &identifiers,
+            code.find("shadow.(output)").unwrap() + "shadow.(".len()
+        ),
+        Some("read")
+    );
+    for start in [
+        code.find("fn output ->").unwrap() + "fn ".len(),
+        code.find("output = output + 1").unwrap(),
+        code.find("output = output + 1").unwrap() + "output = ".len(),
+        code.find("shadow.(output)").unwrap() + "shadow.(".len(),
+    ] {
+        let identifier = identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte as usize == start
+            })
+            .expect("shadowed variable occurrence");
+        assert_eq!(
+            identifier.containing_symbol_id.as_deref(),
+            Some(update.id.as_str())
+        );
+    }
+    for kind in [IdentifierKind::Call, IdentifierKind::TypeUsage] {
+        let rows: Vec<_> = identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == kind)
+            .collect();
+        assert!(!rows.is_empty(), "expected {kind:?} rows");
+        assert!(
+            rows.iter().all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access"))),
+            "{kind:?} rows do not carry variable access"
+        );
+    }
 }

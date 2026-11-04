@@ -426,15 +426,8 @@
       "end_column": 103,
       "start_byte": 1140,
       "end_byte": 1243,
-      "body_span": {
-        "start_line": 46,
-        "start_column": 101,
-        "end_line": 46,
-        "end_column": 103,
-        "start_byte": 1241,
-        "end_byte": 1243
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "TRIGGER orders_touch",
       "doc_comment": null,
       "visibility": "Public",
@@ -1698,6 +1691,75 @@
         "query_family": "schema_structure",
         "table_name": "orders",
         "type_name": "bigint"
+      }
+    },
+    {
+      "pattern_id": "sql.constraint.v1",
+      "capture_name": "constraint",
+      "node_kind": "add_constraint",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/pg_dump/source.sql",
+      "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:orders_account_fkey:26:4",
+      "start_line": 26,
+      "start_column": 4,
+      "end_line": 26,
+      "end_column": 92,
+      "start_byte": 591,
+      "end_byte": 679,
+      "confidence": "1.000",
+      "metadata": {
+        "constraint_name": "orders_account_fkey",
+        "constraint_type": "foreign_key",
+        "pattern_version": 1,
+        "query_family": "schema_structure",
+        "table_name": "orders"
+      }
+    },
+    {
+      "pattern_id": "sql.constraint.v1",
+      "capture_name": "constraint",
+      "node_kind": "add_constraint",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/pg_dump/source.sql",
+      "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:orders_user_id_fkey:23:4",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 106,
+      "start_byte": 451,
+      "end_byte": 553,
+      "confidence": "1.000",
+      "metadata": {
+        "constraint_name": "orders_user_id_fkey",
+        "constraint_type": "foreign_key",
+        "pattern_version": 1,
+        "query_family": "schema_structure",
+        "table_name": "orders"
+      }
+    },
+    {
+      "pattern_id": "sql.constraint.v1",
+      "capture_name": "constraint",
+      "node_kind": "constraint",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/pg_dump/source.sql",
+      "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:events_user_fkey:19:4",
+      "start_line": 19,
+      "start_column": 4,
+      "end_line": 19,
+      "end_column": 84,
+      "start_byte": 331,
+      "end_byte": 411,
+      "confidence": "1.000",
+      "metadata": {
+        "column_names": [
+          "user_id"
+        ],
+        "constraint_name": "events_user_fkey",
+        "constraint_type": "foreign_key",
+        "pattern_version": 1,
+        "query_family": "schema_structure",
+        "table_name": "events"
       }
     },
     {

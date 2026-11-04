@@ -4,6 +4,7 @@
 
 mod anonymous_classes;
 mod argument_types;
+mod body_spans;
 mod complexity;
 mod cross_file_pending;
 mod task14;

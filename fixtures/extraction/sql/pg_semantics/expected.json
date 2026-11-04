@@ -306,15 +306,8 @@
       "end_column": 112,
       "start_byte": 1613,
       "end_byte": 1725,
-      "body_span": {
-        "start_line": 52,
-        "start_column": 110,
-        "end_line": 52,
-        "end_column": 112,
-        "start_byte": 1723,
-        "end_byte": 1725
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "TRIGGER orders_audit",
       "doc_comment": null,
       "visibility": "Public",
@@ -546,7 +539,6 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "extractedFromError": true,
         "isSchema": true,
         "test_container": true,
         "test_role": "test_container"
@@ -1829,6 +1821,30 @@
         "query_family": "schema_structure",
         "table_name": "orders",
         "type_name": "BIGINT"
+      }
+    },
+    {
+      "pattern_id": "sql.constraint.v1",
+      "capture_name": "constraint",
+      "node_kind": "constraint",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/pg_semantics/source.sql",
+      "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:orders:16:0",
+      "start_line": 21,
+      "start_column": 4,
+      "end_line": 21,
+      "end_column": 47,
+      "start_byte": 557,
+      "end_byte": 600,
+      "confidence": "1.000",
+      "metadata": {
+        "column_names": [
+          "user_id"
+        ],
+        "constraint_type": "foreign_key",
+        "pattern_version": 1,
+        "query_family": "schema_structure",
+        "table_name": "orders"
       }
     },
     {

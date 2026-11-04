@@ -1,4 +1,4 @@
-use super::support::{extract, find, find_kind};
+use super::support::{extract, extract_from, find, find_kind};
 use crate::base::SymbolKind;
 use serde_json::Value;
 
@@ -145,6 +145,52 @@ fn extracts_record_with_its_fields() {
 }
 
 #[test]
+fn module_and_record_fields_have_no_implementation_bodies() {
+    let symbols = extract(MODULE);
+
+    for name in ["bank", "id", "balance"] {
+        let symbol = find(&symbols, name);
+        assert_eq!(symbol.body_span, None, "{name}");
+        assert_eq!(symbol.body_hash, None, "{name}");
+    }
+}
+
+#[test]
+fn application_resource_module_body_spans_the_descriptor_and_contains_its_env_value() {
+    let code = include_str!("../../../../../fixtures/extraction/erlang/app_resource/kv.app.src");
+    let symbols = extract_from("src/kv.app.src", code);
+    let application = find(&symbols, "kv");
+    let application_body = application.body_span.expect("application descriptor body");
+    let application_start = code.find("{application, kv,").unwrap() as u32;
+    let application_end = code.rfind('.').unwrap() as u32;
+    let expected_application_body = "{application, kv,\n [{description, \"Key-value store\"},\n  {vsn, \"1.0.0\"},\n  {mod, {kv_app, []}},\n  {applications, [kernel, stdlib, cowboy]},\n  {included_applications, [kv_audit]},\n  {env, [{http_port, 8080},\n         {pool, [{size, 10}, {overflow, 5}]}]}]}";
+
+    assert_eq!(application.kind, SymbolKind::Module);
+    assert_eq!(application_body.start_byte, application_start);
+    assert_eq!(application_body.end_byte, application_end);
+    assert_eq!(
+        &code[application_start as usize..application_end as usize],
+        expected_application_body
+    );
+    assert_eq!(
+        application.body_hash.as_deref(),
+        Some("fc642927fad21bd4152e553463f744b7")
+    );
+
+    let port = find(&symbols, "http_port");
+    let port_body = port.body_span.expect("environment value body");
+    assert_eq!(port.parent_id.as_deref(), Some(application.id.as_str()));
+    assert_eq!(
+        &code[port_body.start_byte as usize..port_body.end_byte as usize],
+        "8080"
+    );
+    assert!(
+        port_body.start_byte >= application_body.start_byte
+            && port_body.end_byte <= application_body.end_byte
+    );
+}
+
+#[test]
 fn extracts_macros_with_and_without_arguments() {
     let symbols = extract(MODULE);
 
@@ -153,6 +199,21 @@ fn extracts_macros_with_and_without_arguments() {
     assert_eq!(
         constant.signature.as_deref(),
         Some("-define(MAX_BALANCE, 1000000)")
+    );
+    let constant_body = constant.body_span.expect("macro replacement body");
+    let constant_start = MODULE.find("1000000").unwrap() as u32;
+    assert_eq!(constant_body.start_byte, constant_start);
+    assert_eq!(
+        constant_body.end_byte,
+        constant_start + "1000000".len() as u32
+    );
+    assert_eq!(
+        &MODULE[constant_body.start_byte as usize..constant_body.end_byte as usize],
+        "1000000"
+    );
+    assert_eq!(
+        constant.body_hash.as_deref(),
+        Some("8155bc545f84d9652f1012ef2bdfb6eb")
     );
     assert!(
         !constant
@@ -164,6 +225,19 @@ fn extracts_macros_with_and_without_arguments() {
 
     let log = find(&symbols, "LOG");
     assert_eq!(log.kind, SymbolKind::Constant);
+    let log_body = log.body_span.expect("macro replacement body");
+    let replacement = "io:format(\"~p~n\", [Msg])";
+    let log_start = MODULE.find(replacement).unwrap() as u32;
+    assert_eq!(log_body.start_byte, log_start);
+    assert_eq!(log_body.end_byte, log_start + replacement.len() as u32);
+    assert_eq!(
+        &MODULE[log_body.start_byte as usize..log_body.end_byte as usize],
+        replacement
+    );
+    assert_eq!(
+        log.body_hash.as_deref(),
+        Some("06a13bc1eaf9677a1817e1506f24baf9")
+    );
     assert_eq!(
         log.metadata.as_ref().unwrap().get("macro_arity"),
         Some(&Value::from(1))

@@ -440,15 +440,8 @@
       "end_column": 43,
       "start_byte": 205,
       "end_byte": 244,
-      "body_span": {
-        "start_line": 15,
-        "start_column": 13,
-        "end_line": 15,
-        "end_column": 23,
-        "start_byte": 214,
-        "end_byte": 224
-      },
-      "body_hash": "a69c36e0c3899ee6be58ac1a7b4e8032",
+      "body_span": null,
+      "body_hash": null,
       "signature": "@Suppress(\"UNUSED\") private val id: Int",
       "doc_comment": null,
       "visibility": "Private",

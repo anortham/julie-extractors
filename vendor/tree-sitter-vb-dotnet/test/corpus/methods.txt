@@ -1,0 +1,862 @@
+==================
+Simple Sub
+==================
+
+Module M
+    Sub Hello()
+        Print("Hi")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))))))
+
+==================
+Simple Function with return type
+==================
+
+Module M
+    Function Add(a As Integer, b As Integer) As Integer
+        Return a + b
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (primitive_type)
+        (return_statement
+          (binary_expression
+            (identifier)
+            (identifier)))))))
+
+==================
+Function without return type
+==================
+
+Module M
+    Function F()
+        Return 42
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (return_statement
+          (integer_literal))))))
+
+==================
+Sub with ByVal parameters
+==================
+
+Module M
+    Sub Print(ByVal message As String)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))))))
+
+==================
+Sub with ByRef parameters
+==================
+
+Module M
+    Sub Swap(ByRef a As Integer, ByRef b As Integer)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))))))
+
+==================
+Sub with Optional ByVal parameter
+==================
+
+Module M
+    Sub Greet(Optional ByVal name As String = "world")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))
+            (string_literal)))))))
+
+==================
+Sub with ParamArray
+==================
+
+Module M
+    Sub Log(ParamArray args As Object())
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (array_type
+                (primitive_type)
+                (array_rank_specifier)))))))))
+
+==================
+Function with mixed parameters
+==================
+
+Module M
+    Function Compute(ByVal a As Integer, ByRef b As Integer, Optional ByVal c As Integer = 0) As Integer
+        Return a + b + c
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))
+            (integer_literal)))
+        (primitive_type)
+        (return_statement
+          (binary_expression
+            (binary_expression
+              (identifier)
+              (identifier))
+            (identifier)))))))
+
+==================
+Public Shared method
+==================
+
+Module M
+    Public Shared Function Square(n As Integer) As Integer
+        Return n * n
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (primitive_type)
+        (return_statement
+          (binary_expression
+            (identifier)
+            (identifier)))))))
+
+==================
+Constructor Sub New
+==================
+
+Class C
+    Sub New()
+        value = 0
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (constructor_declaration
+        (parameter_list)
+        (assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))))))
+
+==================
+Constructor with parameters
+==================
+
+Class C
+    Public Sub New(ByVal name As String, ByVal age As Integer)
+        _name = name
+        _age = age
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (constructor_declaration
+        (modifiers
+          (modifier))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (assignment_statement
+          (left_hand_side
+            (identifier))
+          (identifier))
+        (call_statement
+          (binary_expression
+            (identifier)
+            (identifier)))))))
+
+==================
+Method with Handles clause
+==================
+
+Class Form1
+    Private Sub Button_Click(sender As Object, e As EventArgs) Handles Button.Click
+        HandleClick()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier)))))
+        (handles_clause
+          (namespace_name
+            (identifier)
+            (identifier)))
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))))))
+
+==================
+Method with multiple Handles
+==================
+
+Class Form1
+    Private Sub Button_Click(sender As Object, e As EventArgs) Handles Button1.Click, Button2.Click
+        HandleClick()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier)))))
+        (handles_clause
+          (namespace_name
+            (identifier)
+            (identifier))
+          (namespace_name
+            (identifier)
+            (identifier)))
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))))))
+
+==================
+Method with Implements clause
+==================
+
+Class C
+    Implements IDisposable
+
+    Public Sub Dispose() Implements IDisposable.Dispose
+        Cleanup()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (implements_clause
+        (namespace_name
+          (identifier)))
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (implements_clause
+          (namespace_name
+            (identifier)
+            (identifier)))
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))))))
+
+==================
+Async Function
+==================
+
+Class C
+    Async Function FetchAsync() As Task(Of String)
+        Return Await DownloadAsync()
+    End Function
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (generic_type
+          (namespace_name
+            (identifier))
+          (type_argument_list
+            (primitive_type)))
+        (return_statement
+          (unary_expression
+            (invocation
+              (identifier)
+              (argument_list))))))))
+
+==================
+Iterator Function
+==================
+
+Class C
+    Iterator Function Numbers() As IEnumerable(Of Integer)
+        Yield 1
+        Yield 2
+    End Function
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (generic_type
+          (namespace_name
+            (identifier))
+          (type_argument_list
+            (primitive_type)))
+        (yield_statement
+          (integer_literal))
+        (yield_statement
+          (integer_literal))))))
+
+==================
+MustOverride method
+==================
+
+MustInherit Class Shape
+    MustOverride Function Area() As Double
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (abstract_method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (primitive_type)))))
+
+==================
+Generic method
+==================
+
+Module M
+    Function Max(Of T)(a As T, b As T) As T
+        Return a
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (type_parameters
+          (type_parameter
+            (identifier)))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier))))
+          (parameter
+            (identifier)
+            (as_clause
+              (namespace_name
+                (identifier)))))
+        (namespace_name
+          (identifier))
+        (return_statement
+          (identifier))))))
+
+==================
+Function with array return type
+==================
+
+Module M
+    Function GetNames() As String()
+        Return Nothing
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (array_type
+          (primitive_type)
+          (array_rank_specifier))
+        (return_statement)))))
+
+==================
+Function with qualified array return type
+==================
+
+Class C
+    Public Function GetRows() As Data.DataRow()
+        Return Nothing
+    End Function
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (array_type
+          (namespace_name
+            (identifier)
+            (identifier))
+          (array_rank_specifier))
+        (return_statement)))))
+
+==================
+Function with attribute on return type
+==================
+
+Class C
+    Public Function GetValue() As <XmlElementAttribute("Result")> String
+        Return "x"
+    End Function
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))
+        (primitive_type)
+        (return_statement
+          (string_literal))))))
+
+==================
+Method with multiple consecutive attribute blocks
+==================
+
+Class C
+    <Serializable()>
+    <Obsolete("use NewThing instead")>
+    Public Sub Save()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list)))
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)))))
+
+==================
+Method with multiple attribute blocks and line continuation
+==================
+
+Class C
+    <DebuggerNonUserCode()> _
+    <CompilerGenerated()> _
+    Public Sub Internal()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list)))
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list)))
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)))))
+
+==================
+Declare Function P/Invoke
+==================
+
+Module M
+    Private Declare Function PlaySound Lib "winmm.dll" (ByVal filName As String, ByVal flags As Integer) As Boolean
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (declare_statement
+        (modifiers
+          (modifier))
+        (identifier)
+        (string_literal)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (primitive_type)))))
+
+==================
+Declare Function with Alias and charset
+==================
+
+Module M
+    Public Declare Ansi Function PlaySound Lib "CoreDll.dll" Alias "PlaySoundA" (ByVal szSound As String, ByVal flags As Integer) As Integer
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (declare_statement
+        (modifiers
+          (modifier))
+        (identifier)
+        (string_literal)
+        (string_literal)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (primitive_type)))))
+
+==================
+Declare Sub P/Invoke
+==================
+
+Module M
+    Public Declare Sub Beep Lib "kernel32.dll" (ByVal freq As Integer, ByVal duration As Integer)
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (declare_statement
+        (modifiers
+          (modifier))
+        (identifier)
+        (string_literal)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type)))
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))))))
+
+==================
+Shared constructor
+==================
+
+Class C
+    Shared Sub New()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (constructor_declaration
+        (modifiers
+          (modifier))
+        (parameter_list)))))
+
+==================
+Partial method declaration
+==================
+
+Partial Class C
+    Partial Private Sub OnLoad()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (parameter_list)))))

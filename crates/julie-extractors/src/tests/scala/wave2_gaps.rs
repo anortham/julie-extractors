@@ -327,6 +327,7 @@ class Holder {
     assert_eq!(annotations("Legacy"), vec!["deprecated"]);
     assert_eq!(annotations("flag"), vec!["volatile"]);
     assert_eq!(annotations("start"), vec!["throws"]);
+    assert!(annotations("Holder").is_empty());
     assert!(
         result.symbols.iter().all(|symbol| !symbol
             .signature

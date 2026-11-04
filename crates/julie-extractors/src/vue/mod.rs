@@ -5,13 +5,15 @@
 // coordinates; the component owns template bindings and top-level calls.
 
 use crate::base::relationship_resolution::StructuredPendingRelationship;
+use crate::base::syntax_body_hash::{HashString, HashSyntax};
 use crate::base::{
     BaseExtractor, ExtractionResults, Identifier, ParseDiagnostic, Relationship, SourceRegion,
     Symbol, SymbolKind,
 };
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use tree_sitter::Tree;
+use std::ops::Range;
+use tree_sitter::{Node, Tree};
 
 mod component;
 mod identifiers;
@@ -56,11 +58,18 @@ impl VueExtractor {
         }
     }
 
-    pub fn extract_symbols(&mut self, _tree: Option<&Tree>) -> Vec<Symbol> {
+    pub fn extract_symbols(&mut self, tree: Option<&Tree>) -> Vec<Symbol> {
         self.embedded.clear();
         self.script_blocks.clear();
         self.script_symbol_ids.clear();
         self.component_rows = None;
+        let host_tree = self.parsed_sfc.host_tree(tree, &self.base.content);
+        self.base
+            .init_body_hash_syntax(Self::collect_vue_hash_syntax(
+                &self.parsed_sfc,
+                &self.base.content,
+                host_tree.as_ref(),
+            ));
         let mut symbols = Vec::new();
 
         for (idx, section) in self.parsed_sfc.sections.iter().enumerate() {
@@ -83,8 +92,11 @@ impl VueExtractor {
                     symbols.extend(template::extract_template_symbols(&self.base, section));
                 }
                 "style" => {
+                    let Some(tree) = self.parsed_sfc.style_tree(idx) else {
+                        continue;
+                    };
                     if let Some((section_symbols, results)) =
-                        script::extract_style(&self.base, section)
+                        script::extract_style(&self.base, section, tree)
                     {
                         symbols.extend(section_symbols);
                         self.embedded.push(results);
@@ -207,6 +219,138 @@ impl VueExtractor {
             .collect();
         pending.append(&mut self.component_rows(symbols).pending);
         pending
+    }
+
+    fn collect_vue_hash_syntax(
+        parsed_sfc: &ParsedVueSfc,
+        content: &str,
+        host_tree: Option<&Tree>,
+    ) -> HashSyntax {
+        let mut syntax = HashSyntax::default();
+
+        if let Some(tree) = host_tree {
+            Self::collect_markup_syntax(
+                tree.root_node(),
+                content,
+                &parsed_sfc.sections,
+                &mut syntax,
+            );
+        }
+
+        for (index, section) in parsed_sfc.sections.iter().enumerate() {
+            match section.section_type.as_str() {
+                "script" => {
+                    let Some(tree) = parsed_sfc.script_tree(index) else {
+                        continue;
+                    };
+                    let section_syntax = crate::base::body_hash_syntax::collect_hash_syntax(
+                        tree.root_node(),
+                        &section.content,
+                        parsing::script_language(section.lang.as_deref()),
+                    );
+                    Self::append_shifted_hash_syntax(
+                        &mut syntax,
+                        section_syntax,
+                        section.content_start,
+                    );
+                }
+                "style" => {
+                    let Some(tree) = parsed_sfc.style_tree(index) else {
+                        continue;
+                    };
+                    Self::collect_css_comments(
+                        tree.root_node(),
+                        section.content_start,
+                        &mut syntax.comments,
+                    );
+                }
+                _ => {}
+            }
+        }
+
+        syntax
+    }
+
+    fn append_shifted_hash_syntax(target: &mut HashSyntax, source: HashSyntax, offset: usize) {
+        target.comments.extend(
+            source
+                .comments
+                .into_iter()
+                .map(|range| Self::shift_range(range, offset)),
+        );
+        target
+            .strings
+            .extend(source.strings.into_iter().map(|string| {
+                HashString {
+                    range: Self::shift_range(string.range, offset),
+                    token_start: string.token_start + offset,
+                    interpolated: string.interpolated,
+                    code: string
+                        .code
+                        .into_iter()
+                        .map(|range| Self::shift_range(range, offset))
+                        .collect(),
+                }
+            }));
+    }
+
+    fn shift_range(range: Range<usize>, offset: usize) -> Range<usize> {
+        range.start + offset..range.end + offset
+    }
+
+    fn collect_markup_syntax(
+        root: Node<'_>,
+        content: &str,
+        sections: &[parsing::VueSection],
+        syntax: &mut HashSyntax,
+    ) {
+        let mut stack = vec![root];
+        while let Some(node) = stack.pop() {
+            let range = node.byte_range();
+            if node.kind() == "comment" {
+                let belongs_to_code_section = sections.iter().any(|section| {
+                    section.section_type != "template"
+                        && range.start >= section.content_start
+                        && range.end <= section.content_start + section.content.len()
+                });
+                if !belongs_to_code_section && content.get(range.clone()).is_some() {
+                    syntax.comments.push(range);
+                }
+                continue;
+            }
+            if node.kind() == "text"
+                && sections.iter().any(|section| {
+                    section.section_type == "template"
+                        && range.start >= section.content_start
+                        && range.end <= section.content_start + section.content.len()
+                })
+                && content.get(range.clone()).is_some()
+            {
+                syntax.strings.push(HashString {
+                    token_start: range.start,
+                    range,
+                    interpolated: false,
+                    code: Vec::new(),
+                });
+                continue;
+            }
+
+            let mut cursor = node.walk();
+            stack.extend(node.children(&mut cursor));
+        }
+    }
+
+    fn collect_css_comments(root: Node<'_>, offset: usize, comments: &mut Vec<Range<usize>>) {
+        let mut stack = vec![root];
+        while let Some(node) = stack.pop() {
+            if node.kind() == "comment" {
+                comments.push(Self::shift_range(node.byte_range(), offset));
+                continue;
+            }
+
+            let mut cursor = node.walk();
+            stack.extend(node.children(&mut cursor));
+        }
     }
 
     /// Declared types come from the script blocks; component, template, and

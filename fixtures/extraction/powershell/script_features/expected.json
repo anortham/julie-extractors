@@ -1880,17 +1880,7 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": [
-    {
-      "kind": "Missing",
-      "start_line": 73,
-      "start_column": 26,
-      "end_line": 73,
-      "end_column": 26,
-      "start_byte": 1761,
-      "end_byte": 1761
-    }
-  ],
+  "parse_diagnostics": [],
   "structural_facts": [
     {
       "pattern_id": "http.client_request.v1",
@@ -2392,22 +2382,6 @@
   ],
   "literals": [
     {
-      "literal_text": ",Package",
-      "kind": "other",
-      "carrier": "task",
-      "arg_position": 3,
-      "language": "powershell",
-      "file_path": "fixtures/extraction/powershell/script_features/source.ps1",
-      "start_line": 73,
-      "start_column": 26,
-      "end_line": 73,
-      "end_column": 34,
-      "start_byte": 1761,
-      "end_byte": 1769,
-      "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:default:73:0",
-      "confidence": "1.000"
-    },
-    {
       "literal_text": ".",
       "kind": "other",
       "carrier": "dotnet",
@@ -2517,6 +2491,22 @@
       "start_byte": 1775,
       "end_byte": 1782,
       "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:Package:74:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "Package",
+      "kind": "other",
+      "carrier": "task",
+      "arg_position": 4,
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/script_features/source.ps1",
+      "start_line": 73,
+      "start_column": 27,
+      "end_line": 73,
+      "end_column": 34,
+      "start_byte": 1762,
+      "end_byte": 1769,
+      "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:default:73:0",
       "confidence": "1.000"
     },
     {
@@ -2931,19 +2921,6 @@
       "language": "powershell",
       "file_path": "fixtures/extraction/powershell/script_features/source.ps1",
       "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:Send-Invoice:47:0",
-      "start_line": 49,
-      "start_column": 6,
-      "end_line": 49,
-      "end_column": 33,
-      "start_byte": 958,
-      "end_byte": 985,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "powershell",
-      "file_path": "fixtures/extraction/powershell/script_features/source.ps1",
-      "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:Send-Invoice:47:0",
       "start_line": 50,
       "start_column": 40,
       "end_line": 50,
@@ -2989,19 +2966,6 @@
       "end_column": 77,
       "start_byte": 1191,
       "end_byte": 1220,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "powershell",
-      "file_path": "fixtures/extraction/powershell/script_features/source.ps1",
-      "containing_key": "fixtures/extraction/powershell/script_features/source.ps1:Send-Invoice:47:0",
-      "start_line": 54,
-      "start_column": 15,
-      "end_line": 54,
-      "end_column": 20,
-      "start_byte": 1298,
-      "end_byte": 1303,
       "metadata": null
     },
     {

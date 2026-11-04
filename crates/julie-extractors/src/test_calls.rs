@@ -10,7 +10,6 @@
 //! languages. The JS/TS path ([`extract_test_call`] + [`is_test_runner_call`]) is
 //! built on that core; Dart, Lua, R, and C/C++ adapters reuse the same builder.
 
-use crate::base::body::body_hash;
 use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, TestRole};
 use crate::test_detection::apply_test_role;
 use std::collections::HashMap;
@@ -157,7 +156,7 @@ pub fn build_test_call_symbol_with_block(
     let mut symbol = base.create_symbol_from_span(node, span, name, SymbolKind::Function, options);
     let body = NormalizedSpan::from_node(block);
     symbol.body_span = Some(body);
-    symbol.body_hash = body_hash(&base.content, body, &base.language);
+    symbol.body_hash = base.hash_body(body);
     symbol
 }
 

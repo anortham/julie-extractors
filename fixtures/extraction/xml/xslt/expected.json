@@ -198,7 +198,58 @@
       }
     }
   ],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/xslt/orders.xslt",
+      "covered_lines": 17,
+      "covered_bytes": 561,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 561,
+      "metadata": {
+        "decision_signal_kinds": "if,when",
+        "loop_signal_kinds": "for-each,for-each-group,iterate",
+        "metric_version": 1,
+        "nesting_signal_kinds": "if,when,for-each,for-each-group,iterate"
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/xml/xslt/orders.xslt:header:13:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/xslt/orders.xslt",
+      "covered_lines": 3,
+      "covered_bytes": 77,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 13,
+      "start_column": 2,
+      "end_line": 15,
+      "end_column": 17,
+      "start_byte": 465,
+      "end_byte": 542,
+      "metadata": {
+        "decision_signal_kinds": "if,when",
+        "loop_signal_kinds": "for-each,for-each-group,iterate",
+        "metric_version": 1,
+        "nesting_signal_kinds": "if,when,for-each,for-each-group,iterate"
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "'Orders'",

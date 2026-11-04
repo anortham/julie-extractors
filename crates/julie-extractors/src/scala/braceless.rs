@@ -4,7 +4,6 @@
 //! no preceding comment sibling. These helpers end a symbol at its last real
 //! token and find the doc comment at the tail of the previous definition.
 
-use crate::base::body::body_hash;
 use crate::base::{BaseExtractor, Symbol};
 use tree_sitter::Node;
 
@@ -70,7 +69,7 @@ pub(super) fn apply(base: &mut BaseExtractor, node: &Node, symbol: &mut Symbol) 
         body.end_line = symbol.end_line;
         body.end_column = symbol.end_column;
         body.end_byte = end_byte;
-        symbol.body_hash = body_hash(&base.content, *body, &base.language);
+        symbol.body_hash = base.hash_body(*body);
     }
 
     let span = crate::base::NormalizedSpan {

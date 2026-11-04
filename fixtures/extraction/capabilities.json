@@ -170,6 +170,8 @@
         },
         "body_spans": {
           "supported": [
+            "enum",
+            "enum_member",
             "function",
             "interface",
             "method",
@@ -571,6 +573,8 @@
             "constant",
             "constructor",
             "destructor",
+            "enum",
+            "enum_member",
             "event",
             "field",
             "function",
@@ -610,8 +614,13 @@
           "supported": [
             "class",
             "constructor",
+            "destructor",
+            "enum",
             "function",
-            "method"
+            "method",
+            "namespace",
+            "operator",
+            "struct"
           ],
           "not_applicable": [
             "event",
@@ -1641,15 +1650,16 @@
             "enum",
             "export",
             "function",
-            "import",
             "interface",
             "method",
             "namespace",
+            "type"
+          ],
+          "not_applicable": [
+            "import",
             "property",
-            "type",
             "variable"
           ],
-          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -1884,6 +1894,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "instantiates"
           ],
           "not_applicable": [],
@@ -1905,15 +1916,15 @@
             "constructor",
             "export",
             "function",
-            "import",
             "interface",
             "method",
             "namespace",
-            "type",
-            "variable"
+            "type"
           ],
           "not_applicable": [
-            "property"
+            "import",
+            "property",
+            "variable"
           ],
           "open_gaps": []
         },
@@ -2179,12 +2190,13 @@
             "constructor",
             "export",
             "function",
+            "method"
+          ],
+          "not_applicable": [
             "import",
-            "method",
             "property",
             "variable"
           ],
-          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -2390,6 +2402,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "instantiates"
           ],
           "not_applicable": [],
@@ -2410,12 +2423,13 @@
             "constructor",
             "export",
             "function",
+            "method"
+          ],
+          "not_applicable": [
             "import",
-            "method",
             "property",
             "variable"
           ],
-          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -2549,6 +2563,11 @@
           "name": "external_script_body",
           "source": "fixtures/extraction/html/external_script_body/source.html",
           "expected": "fixtures/extraction/html/external_script_body/expected.json"
+        },
+        {
+          "name": "annotations",
+          "source": "fixtures/extraction/html/annotations/source.html",
+          "expected": "fixtures/extraction/html/annotations/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2566,7 +2585,10 @@
             "field",
             "function",
             "import",
-            "namespace"
+            "method",
+            "namespace",
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2574,6 +2596,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "imports",
             "references",
             "uses"
@@ -2595,7 +2618,10 @@
             "class",
             "field",
             "function",
-            "namespace"
+            "method",
+            "namespace",
+            "property",
+            "variable"
           ],
           "not_applicable": [
             "import"
@@ -2644,10 +2670,12 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
-          "not_applicable": [
+          "supported": [
             "class",
             "field",
+            "method"
+          ],
+          "not_applicable": [
             "function",
             "import",
             "namespace"
@@ -3005,18 +3033,19 @@
           "supported": [
             "class",
             "enum",
-            "event",
             "export",
             "function",
-            "import",
             "interface",
             "method",
             "namespace",
             "property",
-            "type",
+            "type"
+          ],
+          "not_applicable": [
+            "event",
+            "import",
             "variable"
           ],
-          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -3240,7 +3269,9 @@
           "supported": [
             "class",
             "constructor",
+            "enum",
             "function",
+            "interface",
             "method",
             "property"
           ],
@@ -3446,8 +3477,10 @@
           "supported": [
             "class",
             "constructor",
+            "enum",
             "interface",
-            "method"
+            "method",
+            "namespace"
           ],
           "not_applicable": [
             "import",
@@ -3650,6 +3683,7 @@
             "import",
             "interface",
             "method",
+            "module",
             "namespace",
             "property",
             "struct",
@@ -3663,7 +3697,9 @@
             "calls",
             "extends",
             "implements",
-            "instantiates"
+            "instantiates",
+            "references",
+            "uses"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3776,7 +3812,7 @@
       "extensions": [
         "vb"
       ],
-      "dependency_status": "git_pinned",
+      "dependency_status": "vendored",
       "capabilities": {
         "symbols": true,
         "relationships": true,
@@ -3819,6 +3855,11 @@
           "name": "call_initializers",
           "source": "fixtures/extraction/vbnet/call_initializers/source.vb",
           "expected": "fixtures/extraction/vbnet/call_initializers/expected.json"
+        },
+        {
+          "name": "parameter_attributes",
+          "source": "fixtures/extraction/vbnet/parameter_attributes/source.vb",
+          "expected": "fixtures/extraction/vbnet/parameter_attributes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3854,7 +3895,8 @@
             "calls",
             "extends",
             "implements",
-            "instantiates"
+            "instantiates",
+            "uses"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3877,7 +3919,8 @@
             "method",
             "namespace",
             "operator",
-            "property"
+            "property",
+            "struct"
           ],
           "not_applicable": [
             "import"
@@ -4313,6 +4356,7 @@
             "function",
             "import",
             "method",
+            "module",
             "namespace",
             "property",
             "variable"
@@ -4324,6 +4368,7 @@
           "supported": [
             "calls",
             "extends",
+            "implements",
             "references"
           ],
           "not_applicable": [],
@@ -4345,6 +4390,7 @@
             "constructor",
             "function",
             "method",
+            "module",
             "namespace"
           ],
           "not_applicable": [
@@ -4516,6 +4562,11 @@
           "name": "variable_access",
           "source": "fixtures/extraction/swift/variable_access/source.swift",
           "expected": "fixtures/extraction/swift/variable_access/expected.json"
+        },
+        {
+          "name": "source_regions",
+          "source": "fixtures/extraction/swift/source_regions/source.swift",
+          "expected": "fixtures/extraction/swift/source_regions/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4830,9 +4881,11 @@
             "class",
             "constructor",
             "enum",
+            "enum_member",
             "function",
             "interface",
             "method",
+            "operator",
             "property",
             "type",
             "variable"
@@ -5426,11 +5479,15 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "class",
             "constant",
+            "delegate",
             "field",
             "function",
             "import",
+            "interface",
             "module",
+            "namespace",
             "struct",
             "type",
             "variable"
@@ -5441,7 +5498,8 @@
         "relationships": {
           "supported": [
             "calls",
-            "implements"
+            "implements",
+            "uses"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5458,8 +5516,11 @@
         },
         "body_spans": {
           "supported": [
+            "class",
             "function",
+            "interface",
             "module",
+            "namespace",
             "struct",
             "type"
           ],
@@ -5777,7 +5838,7 @@
         "hrl",
         "escript"
       ],
-      "dependency_status": "current",
+      "dependency_status": "vendored",
       "capabilities": {
         "symbols": true,
         "relationships": true,
@@ -5860,6 +5921,11 @@
           "name": "escript",
           "source": "fixtures/extraction/erlang/escript/tool.escript",
           "expected": "fixtures/extraction/erlang/escript/expected.json"
+        },
+        {
+          "name": "macro_catch_head",
+          "source": "fixtures/extraction/erlang/macro_catch_head/source.erl",
+          "expected": "fixtures/extraction/erlang/macro_catch_head/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5908,14 +5974,15 @@
         "body_spans": {
           "supported": [
             "constant",
-            "field",
             "function",
             "module",
             "property",
             "struct",
             "type"
           ],
-          "not_applicable": [],
+          "not_applicable": [
+            "field"
+          ],
           "open_gaps": []
         },
         "structural_facts": {
@@ -6060,7 +6127,8 @@
         "relationships": {
           "supported": [
             "calls",
-            "extends"
+            "extends",
+            "imports"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -6290,10 +6358,15 @@
         "body_spans": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
             "event",
             "field",
             "function",
-            "property"
+            "method",
+            "module",
+            "property",
+            "variable"
           ],
           "not_applicable": [
             "import"
@@ -6649,7 +6722,9 @@
         "relationships": {
           "supported": [
             "calls",
-            "extends"
+            "extends",
+            "imports",
+            "uses"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -6665,12 +6740,15 @@
         },
         "body_spans": {
           "supported": [
+            "class",
             "function",
-            "import",
             "method",
+            "property"
+          ],
+          "not_applicable": [
+            "import",
             "variable"
           ],
-          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -6817,7 +6895,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "imports"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -6825,6 +6904,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "variable_ref"
           ],
           "not_applicable": [],
@@ -6832,6 +6912,7 @@
         },
         "body_spans": {
           "supported": [
+            "constant",
             "function",
             "variable"
           ],
@@ -6920,7 +7001,7 @@
         "psm1",
         "psd1"
       ],
-      "dependency_status": "git_pinned",
+      "dependency_status": "vendored",
       "capabilities": {
         "symbols": true,
         "relationships": true,
@@ -6968,6 +7049,11 @@
           "name": "reference_targets",
           "source": "fixtures/extraction/powershell/reference_targets/source.ps1",
           "expected": "fixtures/extraction/powershell/reference_targets/expected.json"
+        },
+        {
+          "name": "variable_path_arguments",
+          "source": "fixtures/extraction/powershell/variable_path_arguments/source.ps1",
+          "expected": "fixtures/extraction/powershell/variable_path_arguments/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6996,7 +7082,8 @@
         "relationships": {
           "supported": [
             "calls",
-            "extends"
+            "extends",
+            "implements"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -7014,13 +7101,14 @@
         "body_spans": {
           "supported": [
             "class",
+            "constructor",
             "function",
-            "method"
+            "method",
+            "variable"
           ],
           "not_applicable": [
             "import",
-            "property",
-            "variable"
+            "property"
           ],
           "open_gaps": []
         },
@@ -7168,6 +7256,7 @@
             "event",
             "field",
             "function",
+            "import",
             "method",
             "variable"
           ],
@@ -7197,11 +7286,11 @@
             "class",
             "constructor",
             "enum",
-            "event",
             "function",
             "method"
           ],
           "not_applicable": [
+            "event",
             "field"
           ],
           "open_gaps": []
@@ -7459,6 +7548,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],
@@ -7468,11 +7558,17 @@
         "body_spans": {
           "supported": [
             "class",
+            "constructor",
+            "enum",
+            "field",
+            "interface",
             "method",
             "property",
+            "struct",
             "variable"
           ],
           "not_applicable": [
+            "delegate",
             "import"
           ],
           "open_gaps": []
@@ -7563,7 +7659,7 @@
       "extensions": [
         "sql"
       ],
-      "dependency_status": "git_pinned",
+      "dependency_status": "vendored",
       "capabilities": {
         "symbols": true,
         "relationships": true,
@@ -7626,6 +7722,11 @@
           "name": "tsql_semantics",
           "source": "fixtures/extraction/sql/tsql_semantics/source.sql",
           "expected": "fixtures/extraction/sql/tsql_semantics/expected.json"
+        },
+        {
+          "name": "tsql_coverage_regressions",
+          "source": "fixtures/extraction/sql/tsql_coverage_regressions/source.sql",
+          "expected": "fixtures/extraction/sql/tsql_coverage_regressions/expected.json"
         }
       ],
       "target_capabilities": {
@@ -7641,8 +7742,12 @@
           "supported": [
             "class",
             "field",
+            "function",
             "interface",
-            "method"
+            "method",
+            "namespace",
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -7668,8 +7773,10 @@
         "body_spans": {
           "supported": [
             "class",
+            "function",
             "interface",
-            "method"
+            "method",
+            "property"
           ],
           "not_applicable": [
             "field"
@@ -7837,7 +7944,9 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "function",
+            "method",
             "variable"
           ],
           "not_applicable": [],
@@ -7863,6 +7972,7 @@
         "body_spans": {
           "supported": [
             "function",
+            "method",
             "variable"
           ],
           "not_applicable": [
@@ -8904,6 +9014,11 @@
           "name": "msbuild_hooks",
           "source": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
           "expected": "fixtures/extraction/xml/msbuild_hooks/expected.json"
+        },
+        {
+          "name": "complexity",
+          "source": "fixtures/extraction/xml/complexity/source.xslt",
+          "expected": "fixtures/extraction/xml/complexity/expected.json"
         }
       ],
       "target_capabilities": {
@@ -9015,11 +9130,11 @@
           "open_gaps": []
         },
         "complexity_metrics": {
-          "supported": [],
-          "not_applicable": [
+          "supported": [
             "file",
             "symbol"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "annotations": {

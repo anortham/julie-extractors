@@ -25,11 +25,15 @@ balance(_Acct) ->
 #[test]
 fn attaches_edoc_comment_block_to_the_function_below_it() {
     let symbols = extract(DOCUMENTED);
+    let plain = extract(
+        "-module(plain).\n%% Ordinary comment without an @doc directive.\nplain() -> ok.\n",
+    );
 
     assert_eq!(
         find(&symbols, "open").doc_comment.as_deref(),
         Some("%% @doc Open a new account.")
     );
+    assert_eq!(find(&plain, "plain").doc_comment, None);
 }
 
 #[test]

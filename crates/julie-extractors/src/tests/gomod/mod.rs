@@ -6,6 +6,8 @@ use crate::base::{
 use crate::extract_canonical;
 use crate::tests::helpers::{facts_with_pattern, metadata_str};
 
+mod coverage_boundaries;
+
 fn extract(source: &str) -> ExtractionResults {
     extract_canonical("/repo/app/go.mod", source, Path::new("/repo")).unwrap()
 }

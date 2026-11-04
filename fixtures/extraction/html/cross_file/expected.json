@@ -47,7 +47,7 @@
         "start_byte": 434,
         "end_byte": 587
       },
-      "body_hash": "01fc63aaa00e1e2602a3cc53b1fa8a1b",
+      "body_hash": "e308a274e70b28bbe740fa28d0f2a06b",
       "signature": "<body>",
       "doc_comment": null,
       "visibility": "Public",
@@ -151,7 +151,7 @@
         "start_byte": 330,
         "end_byte": 595
       },
-      "body_hash": "783222f7912b990e26cd2a1275897bb2",
+      "body_hash": "5cd551837c7a553f9a78b94643089c66",
       "signature": "<html>",
       "doc_comment": null,
       "visibility": "Public",

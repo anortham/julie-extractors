@@ -37,7 +37,6 @@ on an unreleased upstream branch is not accepted.
 | Dependency | Owned remote | Project-maintained behavior |
 | --- | --- | --- |
 | `tree-sitter-c-sharp` | [`anortham/tree-sitter-c-sharp`](https://github.com/anortham/tree-sitter-c-sharp) | C# 14 and .NET file-based application syntax, plus `@$`/`$@` interpolated-verbatim strings with doubled quotes around interpolations, not available in the published crate. |
-| `tree-sitter-sequel-tsql` | [`anortham/tree-sitter-sql`](https://github.com/anortham/tree-sitter-sql) | Certified T-SQL identifier, DDL, batch, trigger, routine, and `MERGE` syntax. |
 | `tree-sitter-razor` | [`anortham/tree-sitter-razor`](https://github.com/anortham/tree-sitter-razor) | Parser fixes required by the certified Razor and Blazor fixtures. |
 | `tree-sitter-gomod` | [`anortham/tree-sitter-go-mod`](https://github.com/anortham/tree-sitter-go-mod) | Fork of `camdencheek/tree-sitter-go-mod` (MIT). Adds the `godebug` directive, accepts absolute and one-character file paths, and accepts a last line with no final newline. The crates.io release (1.0.1) depends on tree-sitter 0.20 and cannot link with runtime 0.26.11. |
 | `tree-sitter-gosum` | [`anortham/tree-sitter-go-sum`](https://github.com/anortham/tree-sitter-go-sum) | Fork of `amaanq/tree-sitter-go-sum` (MIT). Accepts an empty `go.sum` file and any semver pre-release identifier, such as `v0.1.1-deprecated`. |
@@ -66,6 +65,21 @@ must not require a parser generator.
 `vendor/tree-sitter-regex` is based on upstream 0.25.0 and adds conditional
 and atomic groups as `0.25.0-julie.1`. Its provenance and extraction fixtures record
 the correction. Reassess the patch when upstream supplies equivalent syntax.
+
+The language-coverage corrections also use these licensed local packages:
+
+| Package | Local version | Base and correction |
+| --- | --- | --- |
+| `tree-sitter-powershell` | `0.26.6-julie.1` | Published 0.26.6, plus argument-mode paths with adjacent variable segments. |
+| `tree-sitter-erlang` | `0.21.0-julie.1` | Published 0.21.0, plus opaque macro catch heads with source-local bodies. |
+| `tree-sitter-vb-dotnet` | `0.1.0-julie.1` | Previously pinned LuisCarreras fork, plus repeated parameter attribute blocks. |
+| `tree-sitter-sequel-tsql` | `0.4.2-julie.1` | Previously pinned anortham fork, plus the T-SQL routine, temporal table and statement forms exercised by the coverage fixtures. |
+
+Each package retains its upstream license and records its source and generation
+provenance beside the grammar. Erlang's actual upstream license is Apache-2.0;
+the vendored manifest corrects the published crate's conflicting MIT metadata.
+The other three packages retain MIT licensing. Consumer builds compile the
+checked-in parser inputs without invoking Tree-sitter CLI.
 
 ## Generation Records
 

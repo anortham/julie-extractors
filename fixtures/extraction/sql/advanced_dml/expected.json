@@ -543,26 +543,7 @@
       }
     }
   ],
-  "parse_diagnostics": [
-    {
-      "kind": "Error",
-      "start_line": 15,
-      "start_column": 20,
-      "end_line": 15,
-      "end_column": 21,
-      "start_byte": 319,
-      "end_byte": 320
-    },
-    {
-      "kind": "Error",
-      "start_line": 5,
-      "start_column": 4,
-      "end_line": 5,
-      "end_column": 11,
-      "start_byte": 144,
-      "end_byte": 151
-    }
-  ],
+  "parse_diagnostics": [],
   "structural_facts": [
     {
       "pattern_id": "sql.delete_statement.v1",

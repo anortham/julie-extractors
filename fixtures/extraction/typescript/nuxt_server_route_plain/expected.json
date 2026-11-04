@@ -12,15 +12,8 @@
       "end_column": 3,
       "start_byte": 0,
       "end_byte": 74,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 40,
-        "end_line": 3,
-        "end_column": 1,
-        "start_byte": 40,
-        "end_byte": 72
-      },
-      "body_hash": "73277f978e78b77240ebcb2d8218f65e",
+      "body_span": null,
+      "body_hash": null,
       "signature": null,
       "doc_comment": null,
       "visibility": null,

@@ -24,39 +24,10 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tempfile::TempDir;
 
-/// Every `.erl`/`.hrl` file the corpus contributes, with the exact symbol and
-/// parse-diagnostic row counts the pinned `tree-sitter-erlang` extractor produces.
-///
-/// The two nonzero diagnostic counts are both the same construct: `?WITH_STACKTRACE(...)`,
-/// a macro whose body is a partial `catch` clause head (`Class:Reason:Stacktrace ->`).
-/// tree-sitter has no preprocessor, so the fragment cannot parse before macro expansion.
-/// `telemetry.hrl` reports one diagnostic per `-define` body (lines 7 and 9); `telemetry.erl`
-/// reports 45 across the two call sites (lines 169 and 344) and the statements they swallow.
-/// Every other corpus file parses clean.
-///
-/// Diagnostics are unchanged by declaration recovery and always will be: recovery
-/// reads extra declarations out of re-parses, it does not repair the primary parse
-/// the diagnostics are reported from. What it changes is reach — `telemetry.erl`
-/// went from 16 symbols to 24 when recovery landed, restoring the four exports
-/// declared after the first broken macro (`span/3`, `execute/2`, `list_handlers/1`,
-/// `report_cb/1`) plus the four private helpers between them (`assert_event_names/1`,
-/// `assert_event_prefix/1`, `assert_event_name/1`, `merge_ctx/2`). Its 24 = 1 module
-/// + 11 `-type` + 12 functions.
-///
-/// Receiver-type facts add one `variable` symbol per distinct parameter name under
-/// each function (metadata role `parameter`, no visibility), so `telemetry.erl` now
-/// carries 52 rows: those 24 plus 28 parameters.
-///
-/// A comment between two clauses of one function no longer splits its clause run
-/// (3.4.0), so the `gc_1` clauses after `%% Handle control` in
-/// `unicode_util_compat.erl` add their parameters `CP` and `R1`: 206 rows became 208.
-///
-/// `{ok, X} = Value` binds `X` as a body local, so `certifi_pt.erl` adds `Binary`
-/// from `{ok, Binary} = file:read_file(cert_file())`: 14 rows became 15.
 const BASELINE: &[FileBaseline] = &[
     FileBaseline::new("certifi-2.15.0/src/certifi.erl", 5, 0),
     FileBaseline::new("certifi-2.15.0/src/certifi_pt.erl", 15, 0),
-    FileBaseline::new("telemetry-1.3.0/src/telemetry.erl", 52, 45),
+    FileBaseline::new("telemetry-1.3.0/src/telemetry.erl", 60, 0),
     FileBaseline::new("telemetry-1.3.0/src/telemetry.hrl", 13, 2),
     FileBaseline::new("telemetry-1.3.0/src/telemetry_app.erl", 6, 0),
     FileBaseline::new("telemetry-1.3.0/src/telemetry_handler_table.erl", 40, 0),
@@ -150,9 +121,6 @@ fn erlang_corpus_scans_every_file_against_the_committed_baseline() {
     }
 }
 
-/// `telemetry.erl`'s eight exports, as `-export([...])` declares them. Four are
-/// declared after the first `?WITH_STACKTRACE` macro and reach the artifact only
-/// through declaration recovery, so this list is the gate on that recovery.
 const TELEMETRY_EXPORTS: &[(&str, u32)] = &[
     ("attach", 4),
     ("attach_many", 4),

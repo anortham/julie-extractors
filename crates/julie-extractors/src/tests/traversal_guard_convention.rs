@@ -74,6 +74,90 @@ fn production_tree_walkers_bound_themselves_with_the_traversal_budget() {
     );
 }
 
+#[test]
+fn test_only_associated_constructors_do_not_hide_genuine_traversal_cycles() {
+    let path = Path::new("csharp_body_hash.rs");
+    let test_only = functions_from_source(&source_with_constructor("#[cfg(test)]"), path);
+    let walker = test_only
+        .iter()
+        .position(|function| function.name == "interpolation_code_ranges")
+        .unwrap_or_else(|| {
+            panic!(
+                "interpolation collector missing from {:?}",
+                test_only
+                    .iter()
+                    .map(|function| function.name.as_str())
+                    .collect::<Vec<_>>()
+            )
+        });
+    assert!(test_only[walker].iterates_children);
+    assert!(test_only[walker].calls.iter().any(|call| call == "new"));
+    assert!(!test_only.iter().any(|function| function.name == "new"));
+    assert!(
+        CallGraph::build(&test_only)
+            .recursion_cycle(walker)
+            .is_empty()
+    );
+
+    for attribute in ["#[cfg(not(test))]", "#[cfg(any(test, feature = \"x\"))]"] {
+        let functions = functions_from_source(&source_with_constructor(attribute), path);
+        let walker = functions
+            .iter()
+            .position(|function| function.name == "interpolation_code_ranges")
+            .expect("interpolation collector");
+        assert!(functions.iter().any(|function| function.name == "new"));
+        assert!(
+            !CallGraph::build(&functions)
+                .recursion_cycle(walker)
+                .is_empty()
+        );
+    }
+
+    let functions = functions_from_source(
+        "fn walk_a() { walk_b(); } fn walk_b() { walk_a(); }",
+        Path::new("walkers.rs"),
+    );
+    let walk_a = functions
+        .iter()
+        .position(|function| function.name == "walk_a")
+        .expect("first walker");
+    assert_eq!(
+        CallGraph::build(&functions).recursion_cycle(walk_a).len(),
+        2
+    );
+}
+
+fn source_with_constructor(attribute: &str) -> String {
+    format!(
+        "fn interpolation_code_ranges() {{\
+             let _ = node.children(&mut cursor); let _ = Vec::new();\
+         }}\
+         fn collect_csharp_hash_syntax_with_work() {{\
+             interpolation_code_ranges();\
+         }}\
+         {attribute}\
+         impl CSharpBodyHashIndex {{\
+             fn new() {{ collect_csharp_hash_syntax_with_work(); }}\
+         }}"
+    )
+}
+
+fn functions_from_source(source: &str, path: &Path) -> Vec<WalkerFn> {
+    let mut parser = Parser::new();
+    parser
+        .set_language(
+            &crate::language::get_tree_sitter_language("rust")
+                .expect("the crate extracts rust, so its own grammar must load"),
+        )
+        .expect("rust grammar should configure a parser");
+    let tree = parser
+        .parse(source, None)
+        .expect("Rust snippet should parse");
+    let mut functions = Vec::new();
+    collect_functions(tree.root_node(), source, path, &mut functions);
+    functions
+}
+
 fn describe(functions: &[WalkerFn], index: usize, cycle: &BTreeSet<usize>) -> String {
     let function = &functions[index];
     let members: Vec<&str> = cycle
@@ -215,6 +299,9 @@ fn production_sources(root: &Path) -> Vec<PathBuf> {
 }
 
 fn collect_functions(node: Node<'_>, source: &str, path: &Path, functions: &mut Vec<WalkerFn>) {
+    if has_test_cfg_attribute(node, source) {
+        return;
+    }
     if node.kind() == "function_item"
         && let Some(function) = walker_fn(node, source, path)
     {
@@ -228,6 +315,34 @@ fn collect_functions(node: Node<'_>, source: &str, path: &Path, functions: &mut 
     for child in node.named_children(&mut cursor) {
         collect_functions(child, source, path, functions);
     }
+}
+
+fn has_test_cfg_attribute(node: Node<'_>, source: &str) -> bool {
+    let mut previous = node.prev_named_sibling();
+    while let Some(sibling) = previous {
+        if is_test_cfg_attribute(sibling, source) {
+            return true;
+        }
+        if !matches!(
+            sibling.kind(),
+            "attribute_item" | "block_comment" | "line_comment"
+        ) {
+            break;
+        }
+        previous = sibling.prev_named_sibling();
+    }
+    false
+}
+
+fn is_test_cfg_attribute(node: Node<'_>, source: &str) -> bool {
+    node.kind() == "attribute_item"
+        && node_text(source, node).is_some_and(|attribute| {
+            attribute
+                .chars()
+                .filter(|character| !character.is_whitespace())
+                .collect::<String>()
+                == "#[cfg(test)]"
+        })
 }
 
 fn is_test_module(node: Node<'_>, source: &str) -> bool {

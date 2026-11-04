@@ -113,6 +113,18 @@ fn sql_table_column_and_foreign_key_metadata_are_correct() {
         Some(1)
     );
 
+    let unnamed_foreign_constraint = facts_with_pattern(&results, "sql.constraint.v1")
+        .into_iter()
+        .find(|fact| {
+            metadata_str(fact, "table_name") == Some("jobs")
+                && metadata_str(fact, "constraint_type") == Some("foreign_key")
+        })
+        .expect("unnamed jobs foreign key constraint fact");
+    assert_eq!(
+        metadata_str(unnamed_foreign_constraint, "constraint_name"),
+        None
+    );
+
     let check_constraint = facts_with_pattern(&results, "sql.constraint.v1")
         .into_iter()
         .find(|fact| metadata_str(fact, "constraint_name") == Some("chk_worker_id_positive"))
@@ -524,5 +536,307 @@ SELECT id FROM workers WINDOW w AS (PARTITION BY name ORDER BY id);
                 && metadata_str(fact, "window_name") == Some("w")
         }),
         "expected named WINDOW clause fact: {windows:#?}"
+    );
+}
+
+#[test]
+fn sql_tsql_temporal_and_bracketed_table_facts_count_source_declarations() {
+    let source =
+        include_str!("../../../../../fixtures/extraction/sql/tsql_coverage_regressions/source.sql");
+    let results = extract(source);
+    let tables = facts_with_pattern(&results, "sql.table_definition.v1");
+    let temporal = tables
+        .iter()
+        .copied()
+        .find(|fact| metadata_str(fact, "table_name") == Some("T"))
+        .expect("temporal T table fact");
+    let cities = tables
+        .iter()
+        .copied()
+        .find(|fact| metadata_str(fact, "table_name") == Some("Cities"))
+        .expect("Cities table fact");
+
+    assert_eq!(metadata_str(temporal, "schema_name"), Some("dbo"));
+    assert_eq!(metadata_u64(temporal, "column_count"), Some(3));
+    assert_eq!(metadata_u64(temporal, "constraint_count"), Some(0));
+
+    let temporal_symbol = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "T" && symbol.kind == crate::base::SymbolKind::Class)
+        .expect("temporal T table symbol");
+    let mut temporal_field_symbols = results
+        .symbols
+        .iter()
+        .filter(|symbol| {
+            symbol.parent_id.as_deref() == Some(temporal_symbol.id.as_str())
+                && symbol.kind == crate::base::SymbolKind::Field
+        })
+        .collect::<Vec<_>>();
+    temporal_field_symbols.sort_by_key(|symbol| symbol.start_byte);
+    assert_eq!(
+        temporal_field_symbols
+            .iter()
+            .map(|symbol| (symbol.name.as_str(), symbol.signature.as_deref()))
+            .collect::<Vec<_>>(),
+        [
+            ("Id", Some("int NOT NULL")),
+            ("ValidFrom", Some("datetime2 NOT NULL")),
+            ("ValidTo", Some("datetime2 NOT NULL")),
+        ]
+    );
+    let mut temporal_columns = facts_with_pattern(&results, "sql.column_definition.v1")
+        .into_iter()
+        .filter(|fact| metadata_str(fact, "table_name") == Some("T"))
+        .collect::<Vec<_>>();
+    temporal_columns.sort_by_key(|fact| fact.start_byte);
+    assert_eq!(
+        temporal_columns
+            .iter()
+            .map(|fact| {
+                (
+                    metadata_str(fact, "column_name"),
+                    metadata_str(fact, "type_name"),
+                )
+            })
+            .collect::<Vec<_>>(),
+        [
+            (Some("Id"), Some("int")),
+            (Some("ValidFrom"), Some("datetime2")),
+            (Some("ValidTo"), Some("datetime2")),
+        ]
+    );
+    for fact in &temporal_columns {
+        let name = metadata_str(fact, "column_name").expect("temporal column name");
+        let column_symbol = results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == name && symbol.kind == crate::base::SymbolKind::Field)
+            .expect("temporal column symbol");
+        assert_eq!(
+            column_symbol.parent_id.as_deref(),
+            Some(temporal_symbol.id.as_str())
+        );
+        assert_eq!(
+            fact.containing_symbol_id.as_deref(),
+            Some(column_symbol.id.as_str())
+        );
+        assert_eq!(fact.start_byte, column_symbol.start_byte);
+        assert_eq!(fact.end_byte, column_symbol.end_byte);
+        assert!(source[fact.start_byte as usize..fact.end_byte as usize].contains(name));
+    }
+
+    assert_eq!(metadata_str(cities, "schema_name"), Some("Application"));
+    assert_eq!(metadata_u64(cities, "column_count"), Some(2));
+    assert_eq!(metadata_u64(cities, "constraint_count"), Some(2));
+}
+
+#[test]
+fn sql_tsql_bracketed_composite_constraints_emit_named_facts() {
+    let source =
+        include_str!("../../../../../fixtures/extraction/sql/tsql_coverage_regressions/source.sql");
+    let results = extract(source);
+    let constraints = facts_with_pattern(&results, "sql.constraint.v1")
+        .into_iter()
+        .filter(|fact| metadata_str(fact, "table_name") == Some("Cities"))
+        .collect::<Vec<_>>();
+    assert_eq!(constraints.len(), 2);
+
+    let primary_key = constraints
+        .iter()
+        .copied()
+        .find(|fact| metadata_str(fact, "constraint_type") == Some("primary_key"))
+        .expect("Cities primary key fact");
+    assert_eq!(
+        metadata_str(primary_key, "constraint_name"),
+        Some("PK_Cities")
+    );
+    assert_eq!(
+        metadata_string_array(primary_key, "column_names"),
+        Some(vec!["CityID".to_string(), "StateProvinceID".to_string()])
+    );
+    assert!(
+        source[primary_key.start_byte as usize..primary_key.end_byte as usize]
+            .contains("[PK_Cities]")
+    );
+
+    let foreign_key_constraint = constraints
+        .iter()
+        .copied()
+        .find(|fact| metadata_str(fact, "constraint_type") == Some("foreign_key"))
+        .expect("Cities foreign key constraint fact");
+    assert_eq!(
+        metadata_str(foreign_key_constraint, "constraint_name"),
+        Some("FK_Cities_StateProvince")
+    );
+    assert_eq!(
+        metadata_string_array(foreign_key_constraint, "column_names"),
+        Some(vec!["StateProvinceID".to_string()])
+    );
+
+    let foreign_keys = facts_with_pattern(&results, "sql.foreign_key.v1");
+    assert_eq!(foreign_keys.len(), 1);
+    let foreign_key = foreign_keys[0];
+    assert_eq!(
+        metadata_string_array(foreign_key, "column_names"),
+        Some(vec!["StateProvinceID".to_string()])
+    );
+
+    assert_eq!(metadata_str(foreign_key, "table_name"), Some("Cities"));
+    assert_eq!(
+        metadata_str(foreign_key, "referenced_schema"),
+        Some("Dimension")
+    );
+    assert_eq!(metadata_str(foreign_key, "referenced_table"), Some("City"));
+
+    let constraint_symbols = results
+        .symbols
+        .iter()
+        .filter(|symbol| {
+            matches!(
+                symbol.name.as_str(),
+                "PK_Cities" | "FK_Cities_StateProvince"
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(constraint_symbols.len(), 2);
+    assert!(constraint_symbols.iter().all(|symbol| {
+        symbol.kind == crate::base::SymbolKind::Interface
+            && symbol.parent_id.is_some()
+            && symbol
+                .signature
+                .as_deref()
+                .is_some_and(|signature| signature.starts_with("CONSTRAINT "))
+    }));
+}
+
+#[test]
+fn sql_alter_foreign_key_constraint_fact_keeps_its_declared_name() {
+    let source = "CREATE TABLE dbo.Parent (Id int); CREATE TABLE dbo.Child (ParentId int); ALTER TABLE dbo.Child ADD CONSTRAINT FK_Child_Parent FOREIGN KEY (ParentId) REFERENCES dbo.Parent (Id);";
+    let results = extract(source);
+    let constraint = facts_with_pattern(&results, "sql.constraint.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "constraint_type") == Some("foreign_key"))
+        .expect("ALTER foreign key constraint fact");
+
+    assert_eq!(
+        metadata_str(constraint, "constraint_name"),
+        Some("FK_Child_Parent")
+    );
+    assert_eq!(metadata_str(constraint, "table_name"), Some("Child"));
+    assert!(
+        source[constraint.start_byte as usize..constraint.end_byte as usize]
+            .contains("FK_Child_Parent")
+    );
+}
+
+#[test]
+fn sql_tsql_procedure_and_inline_tvfs_emit_definition_and_body_facts() {
+    let source =
+        include_str!("../../../../../fixtures/extraction/sql/tsql_coverage_regressions/source.sql");
+    let results = extract(source);
+
+    let procedure = facts_with_pattern(&results, "sql.procedure_definition.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "routine_name") == Some("p"))
+        .expect("procedure p fact");
+    assert_eq!(metadata_u64(procedure, "parameter_count"), Some(1));
+    assert_eq!(procedure.node_kind, "create_procedure");
+    assert!(
+        source[procedure.start_byte as usize..procedure.end_byte as usize]
+            .contains("WITH EXECUTE AS OWNER")
+    );
+
+    let functions = facts_with_pattern(&results, "sql.function_definition.v1");
+    for name in [
+        "GenerateDateDimensionColumns",
+        "DetermineCustomerAccess",
+        "GetAreaCode",
+    ] {
+        let function = functions
+            .iter()
+            .copied()
+            .find(|fact| metadata_str(fact, "routine_name") == Some(name))
+            .unwrap_or_else(|| panic!("{name} function fact"));
+        assert_eq!(metadata_u64(function, "parameter_count"), Some(1));
+        assert_eq!(function.node_kind, "create_function");
+    }
+
+    let selects = facts_with_pattern(&results, "sql.select_query.v1");
+    assert!(
+        selects.iter().any(|fact| {
+            source[fact.start_byte as usize..fact.end_byte as usize].contains("CASE")
+        })
+    );
+    assert!(selects.iter().any(|fact| {
+        source[fact.start_byte as usize..fact.end_byte as usize].contains("AccessResult")
+    }));
+}
+
+#[test]
+fn sql_tsql_transaction_facts_cover_begin_commit_and_rollback_without_blocks() {
+    let source =
+        include_str!("../../../../../fixtures/extraction/sql/tsql_coverage_regressions/source.sql");
+    let results = extract(source);
+    let mut transactions = facts_with_pattern(&results, "sql.transaction.v1");
+    transactions.sort_by_key(|fact| fact.start_byte);
+
+    assert_eq!(
+        transactions
+            .iter()
+            .map(|fact| metadata_str(fact, "transaction_kind"))
+            .collect::<Vec<_>>(),
+        [
+            Some("begin"),
+            Some("commit"),
+            Some("begin"),
+            Some("rollback")
+        ]
+    );
+    assert!(
+        transactions
+            .iter()
+            .all(|fact| fact.end_byte > fact.start_byte)
+    );
+
+    let ordinary_block = extract("CREATE PROCEDURE dbo.p AS BEGIN SELECT 1; END;");
+    assert!(facts_with_pattern(&ordinary_block, "sql.transaction.v1").is_empty());
+}
+
+#[test]
+fn sql_tsql_try_catch_procedure_counts_bare_parameters_and_transaction_actions() {
+    let source = r#"CREATE PROCEDURE dbo.p
+@Input int
+WITH EXECUTE AS OWNER
+AS
+BEGIN
+    DECLARE @Rows AS TABLE (Id int PRIMARY KEY);
+    BEGIN TRY
+        BEGIN TRAN;
+        SELECT @Input;
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0 ROLLBACK;
+        PRINT N'failed';
+        THROW;
+        RETURN -1;
+    END CATCH;
+END;"#;
+    let results = extract(source);
+    let procedure = facts_with_pattern(&results, "sql.procedure_definition.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "routine_name") == Some("p"))
+        .expect("procedure definition fact");
+    assert_eq!(metadata_u64(procedure, "parameter_count"), Some(1));
+
+    let mut transactions = facts_with_pattern(&results, "sql.transaction.v1");
+    transactions.sort_by_key(|fact| fact.start_byte);
+    assert_eq!(
+        transactions
+            .iter()
+            .map(|fact| metadata_str(fact, "transaction_kind"))
+            .collect::<Vec<_>>(),
+        [Some("begin"), Some("commit"), Some("rollback")]
     );
 }

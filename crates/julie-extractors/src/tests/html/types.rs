@@ -1,55 +1,48 @@
-// Tests for HTML type extraction through the factory
+use crate::base::ExtractionResults;
+use crate::extract_canonical;
+use std::path::Path;
 
-#[cfg(test)]
-mod tests {
-    use crate::factory::extract_symbols_and_relationships;
-    use std::path::PathBuf;
-    use tree_sitter::Parser;
+fn extract(source: &str) -> ExtractionResults {
+    extract_canonical("source.html", source, Path::new("/repo")).expect("HTML extraction")
+}
 
-    #[test]
-    fn test_factory_extracts_html_types() {
-        let code = r#"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Test Page</title>
-</head>
-<body>
-    <input type="text" name="username" id="user-input" />
-    <input type="email" name="email" />
-    <button type="submit" onclick="handleSubmit()">Submit</button>
-</body>
-</html>
-"#;
+#[test]
+fn test_factory_extracts_html_types() {
+    let source = concat!(
+        "<!doctype html>\n",
+        "<html><head><title>Workers</title></head><body>\n",
+        "<input id=\"login\" type=\"email\" name=\"username\">\n",
+        "<button type=\"submit\" aria-label=\"save\">Save</button>\n",
+        "<div id=\"note\" data-type=\"note\"></div>\n",
+        "</body></html>\n",
+    );
+    let results = extract(source);
 
-        let mut parser = Parser::new();
-        parser
-            .set_language(&tree_sitter_html::LANGUAGE.into())
-            .expect("Error loading HTML grammar");
-        let tree = parser.parse(code, None).expect("Error parsing code");
+    assert!(results.parse_diagnostics.is_empty());
 
-        let workspace_root = PathBuf::from("/tmp/test");
-        let results =
-            extract_symbols_and_relationships(&tree, "test.html", code, "html", &workspace_root)
-                .expect("Extraction failed");
+    for name in ["html", "body", "input", "button", "div"] {
+        let symbol = results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == name)
+            .unwrap_or_else(|| panic!("missing HTML element symbol {name}"));
+        let type_info = results
+            .types
+            .get(&symbol.id)
+            .unwrap_or_else(|| panic!("missing type for HTML element {name}"));
 
-        assert!(
-            !results.types.is_empty(),
-            "HTML type extraction returned EMPTY types HashMap!"
-        );
-
-        println!("Extracted {} types from HTML code", results.types.len());
-        for (symbol_id, type_info) in &results.types {
-            println!(
-                "  {} -> {} (inferred: {})",
-                symbol_id, type_info.resolved_type, type_info.is_inferred
-            );
-        }
-
-        assert!(!results.types.is_empty());
-        for type_info in results.types.values() {
-            assert_eq!(type_info.language, "html");
-            assert!(type_info.is_inferred);
-        }
+        assert_eq!(type_info.resolved_type, "html-element");
+        assert_eq!(type_info.language, "html");
+        assert!(type_info.is_inferred);
     }
+
+    assert!(results.symbols.iter().all(|symbol| {
+        !["login", "email", "username", "submit", "save", "note"].contains(&symbol.name.as_str())
+    }));
+    assert!(
+        results
+            .types
+            .keys()
+            .all(|symbol_id| results.symbols.iter().any(|symbol| &symbol.id == symbol_id))
+    );
 }

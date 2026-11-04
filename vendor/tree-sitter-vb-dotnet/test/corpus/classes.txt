@@ -1,0 +1,645 @@
+==================
+Empty class
+==================
+
+Class Empty
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier))))
+
+==================
+Class with Inherits
+==================
+
+Class Derived
+    Inherits Base
+
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (inherits_clause
+        (namespace_name
+          (identifier)))
+      (blank_line))))
+
+==================
+Class with Implements
+==================
+
+Class C
+    Implements IDisposable
+
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (implements_clause
+        (namespace_name
+          (identifier)))
+      (blank_line))))
+
+==================
+Class with Inherits and Implements
+==================
+
+Class C
+    Inherits Base
+    Implements IDisposable, ICloneable
+
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (inherits_clause
+        (namespace_name
+          (identifier)))
+      (implements_clause
+        (namespace_name
+          (identifier))
+        (namespace_name
+          (identifier)))
+      (blank_line))))
+
+==================
+Public class with modifier
+==================
+
+Public Class C
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier))))
+
+==================
+Partial class
+==================
+
+Partial Public Class C
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier)
+        (modifier))
+      (identifier))))
+
+==================
+MustInherit class
+==================
+
+MustInherit Class Shape
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier))))
+
+==================
+NotInheritable class
+==================
+
+NotInheritable Class Sealed
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier))))
+
+==================
+Generic class
+==================
+
+Class Box(Of T)
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier))))))
+
+==================
+Generic class with multiple type parameters
+==================
+
+Class Pair(Of K, V)
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier))
+        (type_parameter
+          (identifier))))))
+
+==================
+Generic class with constraint
+==================
+
+Class Container(Of T As New)
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier)
+          (type_constraint))))))
+
+==================
+Generic class with type constraint
+==================
+
+Class Store(Of T As IDisposable)
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier)
+          (type_constraint
+            (namespace_name
+              (identifier))))))))
+
+==================
+Nested class
+==================
+
+Class Outer
+    Class Inner
+    End Class
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (type_declaration
+        (class_block
+          (identifier))))))
+
+==================
+Empty module
+==================
+
+Module M
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Structure declaration
+==================
+
+Structure Point
+    Public X As Integer
+    Public Y As Integer
+End Structure
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (structure_block
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (primitive_type))))
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Structure implementing interface
+==================
+
+Structure Point
+    Implements IEquatable(Of Point)
+
+End Structure
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (structure_block
+      (identifier)
+      (implements_clause
+        (generic_type
+          (namespace_name
+            (identifier))
+          (type_argument_list
+            (namespace_name
+              (identifier)))))
+      (blank_line))))
+
+==================
+Interface declaration
+==================
+
+Interface IShape
+    Function Area() As Double
+    Sub Draw()
+End Interface
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (interface_block
+      (identifier)
+      (abstract_method_declaration
+        (identifier)
+        (parameter_list)
+        (primitive_type))
+      (abstract_method_declaration
+        (identifier)
+        (parameter_list)))))
+
+==================
+Interface with inherits
+==================
+
+Interface IMyList
+    Inherits IEnumerable, ICloneable
+
+End Interface
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (interface_block
+      (identifier)
+      (inherits_clause
+        (namespace_name
+          (identifier))
+        (namespace_name
+          (identifier)))
+      (blank_line))))
+
+==================
+Generic interface
+==================
+
+Interface IRepository(Of T)
+    Function GetById(id As Integer) As T
+End Interface
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (interface_block
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier)))
+      (abstract_method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (primitive_type))))
+        (namespace_name
+          (identifier))))))
+
+==================
+Enum declaration
+==================
+
+Enum Color
+    Red
+    Green
+    Blue
+End Enum
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (enum_block
+      (identifier)
+      (enum_member
+        (identifier))
+      (enum_member
+        (identifier))
+      (enum_member
+        (identifier)))))
+
+==================
+Enum with values
+==================
+
+Enum Level
+    Low = 1
+    Medium = 5
+    High = 10
+End Enum
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (enum_block
+      (identifier)
+      (enum_member
+        (identifier)
+        (integer_literal))
+      (enum_member
+        (identifier)
+        (integer_literal))
+      (enum_member
+        (identifier)
+        (integer_literal)))))
+
+==================
+Delegate Sub
+==================
+
+Delegate Sub EventHandler(sender As Object, e As EventArgs)
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (delegate_declaration
+      (identifier)
+      (parameter_list
+        (parameter
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (parameter
+          (identifier)
+          (as_clause
+            (namespace_name
+              (identifier))))))))
+
+==================
+Delegate Function
+==================
+
+Delegate Function Comparer(Of T)(a As T, b As T) As Integer
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (delegate_declaration
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier)))
+      (parameter_list
+        (parameter
+          (identifier)
+          (as_clause
+            (namespace_name
+              (identifier))))
+        (parameter
+          (identifier)
+          (as_clause
+            (namespace_name
+              (identifier)))))
+      (primitive_type))))
+
+==================
+Enum with blank lines between members
+==================
+
+Enum Level
+
+    Low
+
+    Medium
+
+    High
+End Enum
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (enum_block
+      (identifier)
+      (blank_line)
+      (enum_member
+        (identifier))
+      (blank_line)
+      (enum_member
+        (identifier))
+      (blank_line)
+      (enum_member
+        (identifier)))))
+
+==================
+Enum with comment line and blank lines
+==================
+
+Enum Role
+    ' administrative roles
+    Admin = 1
+    SuperAdmin = 2
+
+    ' user roles
+    User = 10
+    Guest = 11
+End Enum
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (enum_block
+      (identifier)
+      (comment)
+      (blank_line)
+      (enum_member
+        (identifier)
+        (integer_literal))
+      (enum_member
+        (identifier)
+        (integer_literal))
+      (blank_line)
+      (comment)
+      (blank_line)
+      (enum_member
+        (identifier)
+        (integer_literal))
+      (enum_member
+        (identifier)
+        (integer_literal)))))
+
+==================
+Enum with underlying type
+==================
+
+Enum Color As Byte
+    Red = 1
+    Green = 2
+    Blue = 3
+End Enum
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (enum_block
+      (identifier)
+      (primitive_type)
+      (enum_member
+        (identifier)
+        (integer_literal))
+      (enum_member
+        (identifier)
+        (integer_literal))
+      (enum_member
+        (identifier)
+        (integer_literal)))))
+
+==================
+Private Protected method
+==================
+
+Class C
+    Private Protected Sub F()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (parameter_list)))))
+
+==================
+Generic class with multi-constraint braces
+==================
+
+Class Repo(Of T As {New, IComparable(Of T), Class})
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier)
+          (type_constraint
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (namespace_name
+                  (identifier))))))))))

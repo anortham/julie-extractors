@@ -1201,15 +1201,8 @@
       "end_column": 16,
       "start_byte": 31,
       "end_byte": 45,
-      "body_span": {
-        "start_line": 4,
-        "start_column": 9,
-        "end_line": 4,
-        "end_column": 11,
-        "start_byte": 38,
-        "end_byte": 40
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "def run(): Int",
       "doc_comment": null,
       "visibility": "Public",

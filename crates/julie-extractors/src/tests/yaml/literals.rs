@@ -40,3 +40,50 @@ worker:
         .expect("worker.database.host literal");
     assert_eq!(host.carrier.as_deref(), Some("worker.database.host"));
 }
+
+#[test]
+fn yaml_config_literals_keep_mapping_scalars_and_exclude_keys_and_comments() {
+    let yaml = r#"# "comment value" is not a YAML mapping value
+worker:
+  name: fixture
+  api_url: https://api.example.com/workers
+  config_path: ./config/worker.yaml
+  retry_count: 3
+  enabled: true
+  steps:
+    - name: compile
+    - uses: actions/checkout@v4
+"#;
+    let literals = capture_literals(yaml);
+    let expected = [
+        ("fixture", "worker.name", "fixture"),
+        (
+            "https://api.example.com/workers",
+            "worker.api_url",
+            "https://api.example.com/workers",
+        ),
+        (
+            "./config/worker.yaml",
+            "worker.config_path",
+            "./config/worker.yaml",
+        ),
+        ("3", "worker.retry_count", "3"),
+        ("true", "worker.enabled", "true"),
+        ("compile", "worker.steps[0].name", "compile"),
+        (
+            "actions/checkout@v4",
+            "worker.steps[1].uses",
+            "actions/checkout@v4",
+        ),
+    ];
+
+    assert_eq!(literals.len(), expected.len());
+    for (literal, (text, carrier, token)) in literals.iter().zip(expected) {
+        assert_eq!(literal.literal_text, text);
+        assert_eq!(literal.carrier.as_deref(), Some(carrier));
+        assert_eq!(
+            yaml.get(literal.start_byte as usize..literal.end_byte as usize),
+            Some(token)
+        );
+    }
+}

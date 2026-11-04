@@ -1,0 +1,610 @@
+==================
+Primitive types
+==================
+
+Module M
+    Sub Main()
+        Dim a As Boolean
+        Dim b As Byte
+        Dim c As Integer
+        Dim d As Long
+        Dim e As Single
+        Dim f As Double
+        Dim g As Decimal
+        Dim h As Char
+        Dim i As String
+        Dim j As Object
+        Dim k As Date
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Unsigned and signed primitive types
+==================
+
+Module M
+    Sub Main()
+        Dim a As SByte
+        Dim b As UShort
+        Dim c As UInteger
+        Dim d As ULong
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Nullable primitive type
+==================
+
+Module M
+    Sub Main()
+        Dim a As Integer?
+        Dim b As Date?
+        Dim c As Double?
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (nullable_type
+              (primitive_type))))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (nullable_type
+              (primitive_type))))
+        (dim_statement
+          (identifier)
+          (as_clause
+            (nullable_type
+              (primitive_type))))))))
+
+==================
+Generic type with single parameter
+==================
+
+Module M
+    Sub Main()
+        Dim xs As List(Of String)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (primitive_type)))))))))
+
+==================
+Generic type with multiple parameters
+==================
+
+Module M
+    Sub Main()
+        Dim map As Dictionary(Of String, Integer)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (primitive_type)
+                (primitive_type)))))))))
+
+==================
+Nested generic type
+==================
+
+Module M
+    Sub Main()
+        Dim xs As List(Of List(Of Integer))
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (generic_type
+                  (namespace_name
+                    (identifier))
+                  (type_argument_list
+                    (primitive_type)))))))))))
+
+==================
+Qualified namespace type
+==================
+
+Module M
+    Sub Main()
+        Dim xs As System.Collections.Generic.List(Of Integer)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (generic_type
+              (namespace_name
+                (identifier)
+                (identifier)
+                (identifier)
+                (identifier))
+              (type_argument_list
+                (primitive_type)))))))))
+
+==================
+Array rank specifier one dimension
+==================
+
+Module M
+    Sub Main()
+        Dim xs() As String
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_rank_specifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Array rank specifier with size
+==================
+
+Module M
+    Sub Main()
+        Dim xs(5) As Integer
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_rank_specifier
+            (integer_literal))
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Multi-dimensional array
+==================
+
+Module M
+    Sub Main()
+        Dim grid(,) As String
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_rank_specifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Nullable generic type
+==================
+
+Module M
+    Sub Main()
+        Dim x As List(Of Integer)?
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (nullable_type
+              (generic_type
+                (namespace_name
+                  (identifier))
+                (type_argument_list
+                  (primitive_type))))))))))
+
+==================
+Jagged array type
+==================
+
+Class C
+  Dim x As Integer()()
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (array_type
+              (array_type
+                (primitive_type)
+                (array_rank_specifier))
+              (array_rank_specifier))))))))
+
+==================
+Array of generic type
+==================
+
+Class C
+  Dim x As List(Of Integer)()
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (array_type
+              (generic_type
+                (namespace_name
+                  (identifier))
+                (type_argument_list
+                  (primitive_type)))
+              (array_rank_specifier))))))))
+
+==================
+Generic of array type
+==================
+
+Class C
+  Dim x As List(Of Integer())
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (array_type
+                  (primitive_type)
+                  (array_rank_specifier))))))))))
+
+==================
+Two-dimensional array type
+==================
+
+Class C
+  Dim x As Integer(,)
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (array_type
+              (primitive_type)
+              (array_rank_specifier))))))))
+
+==================
+Array type in method parameter
+==================
+
+Class C
+  Sub F(ByVal args As String())
+  End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (array_type
+                (primitive_type)
+                (array_rank_specifier)))))))))
+
+===
+Tuple type with two elements
+===
+
+Class C
+    Dim x As (Integer, String)
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (tuple_type
+              (primitive_type)
+              (primitive_type))))))))
+
+===
+Tuple type with named elements
+===
+
+Class C
+    Dim x As (Name As String, Age As Integer)
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (tuple_type
+              (identifier)
+              (primitive_type)
+              (identifier)
+              (primitive_type))))))))
+
+===
+Tuple type with three elements
+===
+
+Class C
+    Function F() As (Integer, String, Boolean)
+    End Function
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (tuple_type
+          (primitive_type)
+          (primitive_type)
+          (primitive_type))))))
+
+===
+Tuple type nested
+===
+
+Class C
+    Dim x As (Integer, (String, Boolean))
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (tuple_type
+              (primitive_type)
+              (tuple_type
+                (primitive_type)
+                (primitive_type)))))))))

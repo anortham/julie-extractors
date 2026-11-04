@@ -50,6 +50,7 @@ impl PythonExtractor {
 
     /// Extract all symbols from Python source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         self.same_file_class_names = types::collect_class_names(self, tree.root_node());
         self.return_types = type_facts::ReturnTypeIndex::build(
             &self.base,

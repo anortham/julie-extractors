@@ -2080,10 +2080,9 @@ fn observed_kind_coverage(root: &Path, row: &CapabilityRow) -> ObservedKindCover
                 &source_paths,
                 item,
                 &mut source_cache,
-            ) {
-                if let Some(kind) = item.get("kind").and_then(Value::as_str) {
-                    observed.body_spans.insert(kind.to_string());
-                }
+            ) && let Some(kind) = item.get("kind").and_then(Value::as_str)
+            {
+                observed.body_spans.insert(kind.to_string());
             }
         }
         collect_kinds(
@@ -2108,12 +2107,284 @@ fn observed_kind_coverage(root: &Path, row: &CapabilityRow) -> ObservedKindCover
     observed
 }
 
+#[test]
+fn capability_matrix_body_hash_proof_uses_dotnet_syntax_context() {
+    for (path, source) in [
+        (
+            "Sample.cs",
+            "class Sample { string Render(string name) { return $\"{ /* comment */ name}\"; } }",
+        ),
+        (
+            "Sample.razor",
+            "@code { string Render(string name) { return $\"{ /* comment */ name}\"; } }",
+        ),
+    ] {
+        assert_body_hash_evidence_matches_source(path, source);
+    }
+}
+
+#[test]
+fn capability_matrix_body_hash_proof_uses_native_and_embedded_syntax_context() {
+    for (path, source) in [
+        (
+            "Sample.js",
+            "function render(value) { return `value ${value /* comment */}`; }",
+        ),
+        (
+            "Sample.kt",
+            r#"fun render(value: String): String { return "value ${value /* comment */}" }"#,
+        ),
+        (
+            "Sample.fs",
+            "let render value =\n    let result = value + \"!\"\n    (* comment *)\n    result\n",
+        ),
+        (
+            "Sample.lua",
+            "function render(value)\n--[=[ comment\nsecond line ]=]\nreturn value\nend\n",
+        ),
+        (
+            "Sample.rs",
+            "fn render(value: i32) -> i32 { /* outer /* inner */ tail */ value }",
+        ),
+        (
+            "Sample.vue",
+            "<script>export function render(value) { return `value ${value /* comment */}`; }</script><script setup lang=\"ts\">function other(value: string) { return `other ${value /* comment */}`; }</script>",
+        ),
+        (
+            "Sample.html",
+            "<div id=\"native\">native text</div><script>function render(value) { return `value ${value /* comment */}`; }</script>",
+        ),
+    ] {
+        assert_body_hash_evidence_matches_source(path, source);
+    }
+}
+
+fn assert_body_hash_evidence_matches_source(path: &str, source: &str) {
+    let workspace = tempfile::tempdir().expect("temporary source root");
+    let root = workspace.path();
+    fs::write(root.join(path), source).expect("source file");
+    let canonical_root = root.canonicalize().expect("canonical source root");
+    let results = extract_canonical(path, source, root).expect("canonical extraction");
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "{path}: {:?}",
+        results.parse_diagnostics
+    );
+    let symbols: Vec<_> = results
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.body_span.is_some())
+        .collect();
+    assert!(!symbols.is_empty(), "{path}");
+    if path.ends_with(".html") {
+        assert!(symbols.iter().any(|symbol| symbol.language == "html"));
+        assert!(symbols.iter().any(|symbol| symbol.language == "javascript"));
+    }
+    if path.ends_with(".vue") {
+        for name in ["render", "other"] {
+            assert!(symbols.iter().any(|symbol| symbol.name == name));
+        }
+    }
+    let mut cache = HashMap::new();
+    let mut shifted_range_checks = 0;
+    for symbol in symbols {
+        let item = serde_json::to_value(symbol).expect("serialized symbol");
+        assert!(
+            body_span_hash_matches_source(root, Some(&canonical_root), &[path], &item, &mut cache),
+            "{path}: {item}"
+        );
+        let mut wrong_hash = item.clone();
+        wrong_hash["body_hash"] = Value::String("0".repeat(32));
+        assert!(!body_span_hash_matches_source(
+            root,
+            Some(&canonical_root),
+            &[path],
+            &wrong_hash,
+            &mut cache
+        ));
+        let mut wrong_language = item.clone();
+        wrong_language["language"] = Value::String("unregistered_language".to_string());
+        assert!(!body_span_hash_matches_source(
+            root,
+            Some(&canonical_root),
+            &[path],
+            &wrong_language,
+            &mut cache
+        ));
+        let body = symbol.body_span.expect("body span");
+        let narrowed_declaration = NormalizedSpan::from_content_range(
+            source,
+            body.start_byte as usize + 1,
+            symbol.end_byte as usize,
+        )
+        .expect("narrowed declaration");
+        let mut wrong_declaration = item.clone();
+        for (key, value) in serde_json::to_value(narrowed_declaration)
+            .expect("declaration span")
+            .as_object()
+            .expect("span object")
+        {
+            wrong_declaration[key] = value.clone();
+        }
+        assert!(!body_span_hash_matches_source(
+            root,
+            Some(&canonical_root),
+            &[path],
+            &wrong_declaration,
+            &mut cache
+        ));
+        if matches!(
+            Path::new(path).extension().and_then(|value| value.to_str()),
+            Some("html" | "vue")
+        ) && body.start_byte > symbol.start_byte
+            && source.as_bytes()[body.start_byte as usize - 1].is_ascii_whitespace()
+        {
+            shifted_range_checks += 1;
+            let shifted_body = NormalizedSpan::from_content_range(
+                source,
+                body.start_byte as usize - 1,
+                body.end_byte as usize,
+            )
+            .expect("shifted body");
+            let mut wrong_range = item.clone();
+            wrong_range["body_span"] = serde_json::to_value(shifted_body).expect("body span");
+            assert!(!body_span_hash_matches_source(
+                root,
+                Some(&canonical_root),
+                &[path],
+                &wrong_range,
+                &mut cache
+            ));
+        }
+    }
+    assert_eq!(cache.len(), 1, "{path}");
+    if matches!(
+        Path::new(path).extension().and_then(|value| value.to_str()),
+        Some("html" | "vue")
+    ) {
+        assert!(shifted_range_checks > 0, "{path}");
+    }
+}
+
+struct BodyEvidenceSource {
+    content: std::sync::Arc<str>,
+    hashes: BodyHashEvidence,
+}
+
+enum BodyHashEvidence {
+    Lexical {
+        language: String,
+    },
+    Syntax {
+        language: String,
+        index: crate::base::syntax_body_hash::SyntaxBodyHashIndex,
+    },
+    Embedded {
+        hashes: HashMap<(String, u32, u32), String>,
+    },
+    Unavailable,
+}
+
+impl BodyHashEvidence {
+    fn hash(&self, source: &str, language: &str, span: NormalizedSpan) -> Option<String> {
+        match self {
+            Self::Lexical { language: expected } if language == expected => {
+                body_hash(source, span, language)
+            }
+            Self::Syntax {
+                language: expected,
+                index,
+            } if language == expected => index.hash(span),
+            Self::Embedded { hashes } => hashes
+                .get(&(language.to_string(), span.start_byte, span.end_byte))
+                .cloned(),
+            _ => None,
+        }
+    }
+}
+
+fn load_body_evidence_source(root: &Path, file_path: &str, path: &Path) -> BodyEvidenceSource {
+    let content: std::sync::Arc<str> = fs::read_to_string(path).unwrap_or_default().into();
+    let hashes = load_body_hash_evidence(root, file_path, content.clone());
+    BodyEvidenceSource { content, hashes }
+}
+
+fn load_body_hash_evidence(
+    root: &Path,
+    file_path: &str,
+    content: std::sync::Arc<str>,
+) -> BodyHashEvidence {
+    let Some((language, parsed_tree)) =
+        crate::language::detect_language_with_tree(Path::new(file_path), content.as_ref())
+    else {
+        return BodyHashEvidence::Unavailable;
+    };
+    if matches!(language, "html" | "vue") {
+        return published_body_hashes(root, file_path, content.as_ref())
+            .map(|hashes| BodyHashEvidence::Embedded { hashes })
+            .unwrap_or(BodyHashEvidence::Unavailable);
+    }
+    if !matches!(language, "csharp" | "razor") && !crate::base::body_hash_syntax::supports(language)
+    {
+        return BodyHashEvidence::Lexical {
+            language: language.to_string(),
+        };
+    }
+    let tree = parsed_tree.or_else(|| {
+        crate::pipeline::configured_parser_for_language(language)
+            .ok()?
+            .parse(content.as_ref(), None)
+    });
+    let Some(tree) = tree else {
+        return BodyHashEvidence::Unavailable;
+    };
+    let syntax = if matches!(language, "csharp" | "razor") {
+        crate::base::csharp_body_hash::collect_csharp_hash_syntax(
+            tree.root_node(),
+            content.as_ref(),
+            language == "razor",
+        )
+    } else {
+        crate::base::body_hash_syntax::collect_hash_syntax(
+            tree.root_node(),
+            content.as_ref(),
+            language,
+        )
+    };
+    BodyHashEvidence::Syntax {
+        language: language.to_string(),
+        index: crate::base::syntax_body_hash::SyntaxBodyHashIndex::new(content, syntax),
+    }
+}
+
+fn published_body_hashes(
+    root: &Path,
+    file_path: &str,
+    content: &str,
+) -> Option<HashMap<(String, u32, u32), String>> {
+    let results = extract_canonical(file_path, content, root).ok()?;
+    let mut hashes = HashMap::new();
+    for symbol in results.symbols {
+        let Some(span) = symbol.body_span else {
+            continue;
+        };
+        let hash = symbol.body_hash.filter(|value| !value.trim().is_empty())?;
+        let key = (symbol.language, span.start_byte, span.end_byte);
+        if let Some(previous) = hashes.insert(key, hash.clone())
+            && previous != hash
+        {
+            return None;
+        }
+    }
+    Some(hashes)
+}
+
 fn body_span_hash_matches_source(
     root: &Path,
     canonical_root: Option<&Path>,
     registered_source_paths: &[&str],
     item: &Value,
-    source_cache: &mut HashMap<String, String>,
+    source_cache: &mut HashMap<String, BodyEvidenceSource>,
 ) -> bool {
     let Some(canonical_root) = canonical_root else {
         return false;
@@ -2130,9 +2401,13 @@ fn body_span_hash_matches_source(
     if !canonical_source_path.starts_with(canonical_root) {
         return false;
     }
-    let source = source_cache
+    let Some(language) = item.get("language").and_then(Value::as_str) else {
+        return false;
+    };
+    let evidence = source_cache
         .entry(file_path.to_string())
-        .or_insert_with(|| fs::read_to_string(canonical_source_path).unwrap_or_default());
+        .or_insert_with(|| load_body_evidence_source(root, file_path, &canonical_source_path));
+    let source = evidence.content.as_ref();
     let Ok(span) = serde_json::from_value::<NormalizedSpan>(item["body_span"].clone()) else {
         return false;
     };
@@ -2161,9 +2436,6 @@ fn body_span_hash_matches_source(
     {
         return false;
     }
-    let Some(language) = item.get("language").and_then(Value::as_str) else {
-        return false;
-    };
     let Some(expected_hash) = item
         .get("body_hash")
         .and_then(Value::as_str)
@@ -2172,7 +2444,8 @@ fn body_span_hash_matches_source(
         return false;
     };
 
-    body_hash(source, span, language).as_deref() == Some(expected_hash)
+    let actual_hash = evidence.hashes.hash(source, language, span);
+    actual_hash.as_deref() == Some(expected_hash)
 }
 
 fn observed_structural_fact_patterns(root: &Path, row: &Value) -> BTreeSet<String> {

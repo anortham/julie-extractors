@@ -379,7 +379,7 @@ fn options_api_walks_only_the_component_options_object() {
 
 #[test]
 fn hosted_variable_access_facts_survive_host_mapping() {
-    let source = "<script setup lang=\"ts\">\nlet total = 0\ntotal += delta\nfunction save(value: number) { return value }\nsave(total)\n</script>";
+    let source = "<script setup lang=\"ts\">\ntype Payload = { value: number }\nlet payload: Payload = { value: 0 }\nlet total = 0\ntotal += delta\nfunction save(value: Payload) { return value }\nsave(total)\n</script>";
     let results = extract("src/Counter.vue", source);
     let access_values = |name: &str| {
         let mut values: Vec<_> = results
@@ -400,6 +400,15 @@ fn hosted_variable_access_facts_survive_host_mapping() {
 
     assert_eq!(access_values("total"), ["read", "read_write"]);
     assert_eq!(access_values("delta"), ["read"]);
+    assert!(
+        results
+            .identifiers
+            .iter()
+            .any(|identifier| identifier.kind == IdentifierKind::Call)
+    );
+    assert!(results.identifiers.iter().any(|identifier| {
+        identifier.kind == IdentifierKind::TypeUsage && identifier.name == "Payload"
+    }));
     assert!(
         results
             .identifiers
@@ -467,5 +476,38 @@ fn implicit_event_handlers_are_calls_without_access_and_keep_receiver_reads() {
             .and_then(|metadata| metadata.get("access"))
             .and_then(serde_json::Value::as_str),
         Some("read")
+    );
+}
+
+#[test]
+fn shadowed_script_setup_parameter_access_keeps_host_byte_occurrences() {
+    let source = "<script setup lang=\"ts\">\nlet value = 1\nfunction update(value: number) {\n    value += 1\n    return value\n}\nsave(value)\n</script>";
+    let result = extract("src/Counter.vue", source);
+    let access_at = |start: usize| -> Option<String> {
+        result
+            .identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.start_byte == start as u32
+                    && identifier.kind == IdentifierKind::VariableRef
+            })?
+            .metadata
+            .as_ref()?
+            .get("access")?
+            .as_str()
+            .map(str::to_owned)
+    };
+
+    assert_eq!(
+        access_at(source.find("value += 1").unwrap()),
+        Some("read_write".to_string())
+    );
+    assert_eq!(
+        access_at(source.find("return value").unwrap() + "return ".len()),
+        Some("read".to_string())
+    );
+    assert_eq!(
+        access_at(source.find("save(value)").unwrap() + "save(".len()),
+        Some("read".to_string())
     );
 }

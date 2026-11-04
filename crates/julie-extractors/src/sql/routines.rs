@@ -113,50 +113,20 @@ struct BareParameter {
 /// Parameters of a T-SQL routine declared without parentheses: the text
 /// between the name and the body, split on top-level commas.
 fn bare_tsql_parameters(base: &BaseExtractor, routine_node: &Node) -> Vec<BareParameter> {
-    let Some(reference) = base.find_child_by_type(routine_node, "object_reference") else {
+    let Some(declarations) = base.find_child_by_type(routine_node, "tsql_parameter_declarations")
+    else {
         return Vec::new();
     };
-    let Some(body) = base.find_child_by_type(routine_node, "function_body") else {
-        return Vec::new();
-    };
-    let reference_text = base.get_node_text(&reference);
-    let name_len = reference_text
-        .find(char::is_whitespace)
-        .unwrap_or(reference_text.len());
-    let header_start = reference.start_byte() + name_len;
-    let Some(header) = base.content.get(header_start..body.start_byte()) else {
-        return Vec::new();
-    };
-    if !header.trim_start().starts_with('@') {
-        return Vec::new();
-    }
-
-    let mut depth = 0i32;
-    let mut piece_start = 0;
-    let mut pieces = Vec::new();
-    for (index, ch) in header.char_indices() {
-        match ch {
-            '(' => depth += 1,
-            ')' => depth -= 1,
-            ',' if depth == 0 => {
-                pieces.push((piece_start, index));
-                piece_start = index + 1;
-            }
-            _ => {}
-        }
-    }
-    pieces.push((piece_start, header.len()));
-
-    pieces
+    base.find_children_by_type(&declarations, "tsql_parameter")
         .into_iter()
-        .filter_map(|(start, end)| {
-            let piece = &header[start..end];
-            let text = piece.trim();
-            let name = text.split_whitespace().next()?;
-            name.starts_with('@').then(|| BareParameter {
-                start: header_start + start + (piece.len() - piece.trim_start().len()),
-                text: text.to_string(),
-                name: name.to_string(),
+        .filter_map(|parameter| {
+            let name = parameter
+                .child_by_field_name("name")
+                .map(|name| base.get_node_text(&name))?;
+            Some(BareParameter {
+                start: parameter.start_byte(),
+                text: base.get_node_text(&parameter).trim().to_string(),
+                name,
             })
         })
         .collect()
@@ -224,6 +194,7 @@ pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> 
     // For functions, try to extract the RETURNS clause and LANGUAGE
     let mut return_clause = String::new();
     let mut language_clause = String::new();
+    let mut declaration_option_clause = String::new();
     if is_function {
         if let Some(return_type) = super::types::routine_return_type(base, node) {
             return_clause = format!(" RETURNS {}", return_type);
@@ -236,14 +207,27 @@ pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> 
         }
     }
 
+    let mut declaration_options = base
+        .find_nodes_by_type(node, "function_execute_as")
+        .into_iter()
+        .chain(base.find_nodes_by_type(node, "function_schema_binding"))
+        .chain(base.find_nodes_by_type(node, "function_native_compilation"))
+        .collect::<Vec<_>>();
+    declaration_options.sort_by_key(|option| option.start_byte());
+    for option in declaration_options {
+        declaration_option_clause.push(' ');
+        declaration_option_clause.push_str(base.get_node_text(&option).trim());
+    }
+
     Some(format!(
-        "{} {} {}({}){}{}",
+        "{} {} {}({}){}{}{}",
         verb,
         keyword,
         name,
         params.join(", "),
         return_clause,
-        language_clause
+        language_clause,
+        declaration_option_clause,
     ))
 }
 

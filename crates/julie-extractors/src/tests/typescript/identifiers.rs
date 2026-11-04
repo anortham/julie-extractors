@@ -931,10 +931,72 @@ function update(initial: number) {
         })
         .expect("WidgetShape type usage");
     assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.kind == IdentifierKind::Call)
+    );
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+    );
+    assert!(
         widget_type
             .metadata
             .as_ref()
             .is_none_or(|metadata| !metadata.contains_key("access"))
+    );
+}
+
+#[test]
+fn shadowed_parameter_access_stays_at_its_byte_occurrences() {
+    let code = r#"
+let value = 1;
+function update(value: number) {
+    value += 1;
+    return value;
+}
+consume(value);
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "test.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+    let access_at = |start: usize| -> Option<String> {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.start_byte == start as u32
+                    && identifier.kind == IdentifierKind::VariableRef
+            })?
+            .metadata
+            .as_ref()?
+            .get("access")?
+            .as_str()
+            .map(str::to_owned)
+    };
+
+    assert_eq!(
+        access_at(code.find("value += 1").unwrap()),
+        Some("read_write".to_string())
+    );
+    assert_eq!(
+        access_at(code.find("return value").unwrap() + "return ".len()),
+        Some("read".to_string())
+    );
+    assert_eq!(
+        access_at(code.find("consume(value)").unwrap() + "consume(".len()),
+        Some("read".to_string())
     );
 }
 

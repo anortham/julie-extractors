@@ -102,6 +102,25 @@ fn fact_with<'a>(facts: &[&'a StructuralFact], key: &str, value: &str) -> &'a St
 }
 
 #[test]
+fn razor_xml_documentation_does_not_promote_plain_comments() {
+    let source = r#"@code {
+    /// Validates requests.
+    public void Validate() { }
+    // An ordinary comment above a property.
+    public string Note { get; set; }
+}
+"#;
+    let result = extract("Pages/DocBoundary.razor", source);
+    assert!(
+        only(&result, "Validate")
+            .doc_comment
+            .as_deref()
+            .is_some_and(|doc| doc.contains("Validates requests."))
+    );
+    assert_eq!(only(&result, "Note").doc_comment, None);
+}
+
+#[test]
 fn each_directive_emits_one_row() {
     let result = order_page();
     for name in ["@page", "@namespace", "@inherits", "@implements"] {
@@ -681,4 +700,54 @@ fn hosted_variable_access_facts_survive_host_mapping() {
             identifier.name
         );
     }
+}
+
+#[test]
+fn shadowed_embedded_parameter_access_keeps_host_byte_occurrences() {
+    let source = "@code {\n    private int value = 1;\n    void Update(int value) {\n        value += 1;\n        Save(value);\n    }\n    void Read() { Save(this.value); }\n}";
+    let result = extract("Components/Counter.razor", source);
+    let access_at = |start: usize, kind: IdentifierKind| -> Option<String> {
+        result
+            .identifiers
+            .iter()
+            .find(|identifier| identifier.start_byte == start as u32 && identifier.kind == kind)?
+            .metadata
+            .as_ref()?
+            .get("access")?
+            .as_str()
+            .map(str::to_owned)
+    };
+
+    assert_eq!(
+        access_at(
+            source.find("value += 1").unwrap(),
+            IdentifierKind::VariableRef
+        ),
+        Some("read_write".to_string())
+    );
+    assert_eq!(
+        access_at(
+            source.find("Save(value)").unwrap() + "Save(".len(),
+            IdentifierKind::VariableRef
+        ),
+        Some("read".to_string())
+    );
+    let member_start = source.find("this.value").unwrap() + "this.".len();
+    let member = result
+        .identifiers
+        .iter()
+        .find(|identifier| {
+            identifier.start_byte == member_start as u32
+                && identifier.kind == IdentifierKind::MemberAccess
+        })
+        .expect("this.value member access");
+    assert_eq!(member.name, "value");
+    assert_eq!(
+        source.get(member.start_byte as usize..member.end_byte as usize),
+        Some("value")
+    );
+    assert_eq!(
+        access_at(member_start, IdentifierKind::MemberAccess),
+        Some("read".to_string())
+    );
 }

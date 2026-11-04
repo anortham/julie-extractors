@@ -1020,6 +1020,30 @@
       }
     },
     {
+      "pattern_id": "sql.constraint.v1",
+      "capture_name": "constraint",
+      "node_kind": "constraint",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/basic/source.sql",
+      "containing_key": "fixtures/extraction/sql/basic/source.sql:jobs:6:0",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 50,
+      "start_byte": 187,
+      "end_byte": 233,
+      "confidence": "1.000",
+      "metadata": {
+        "column_names": [
+          "worker_id"
+        ],
+        "constraint_type": "foreign_key",
+        "pattern_version": 1,
+        "query_family": "schema_structure",
+        "table_name": "jobs"
+      }
+    },
+    {
       "pattern_id": "sql.cte.v1",
       "capture_name": "cte",
       "node_kind": "cte",

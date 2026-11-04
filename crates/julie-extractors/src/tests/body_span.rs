@@ -3,6 +3,64 @@ use crate::base::{BaseExtractor, NormalizedSpan, SymbolKind, SymbolOptions};
 use tree_sitter::Parser;
 
 #[test]
+fn programming_parameters_do_not_own_type_or_decorator_bodies() {
+    for (path, source) in [
+        (
+            "sample.ts",
+            "function keep(callback: () => void, input: { quantity: number }) { callback(); } class Worker { constructor(@Inject() public readonly store: Logger) {} }",
+        ),
+        (
+            "sample.tsx",
+            "function keep(callback: () => void, input: { quantity: number }) { callback(); } class Worker { constructor(@Inject() public readonly store: Logger) {} }",
+        ),
+        (
+            "sample.kt",
+            "fun keep(predicate: (Int) -> Boolean): Boolean { return predicate(1) }",
+        ),
+        (
+            "sample.zig",
+            "fn keep(server: *httpz.Server(void)) void { _ = server; }",
+        ),
+    ] {
+        let result =
+            crate::pipeline::extract_canonical(path, source, std::path::Path::new("/repo"))
+                .expect(path);
+        assert!(
+            result.parse_diagnostics.is_empty(),
+            "{path}: {:?}",
+            result.parse_diagnostics
+        );
+        let parameters: Vec<_> = result
+            .symbols
+            .iter()
+            .filter(|symbol| {
+                symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("role"))
+                    .and_then(serde_json::Value::as_str)
+                    == Some("parameter")
+            })
+            .collect();
+        assert!(!parameters.is_empty(), "{path}");
+        for parameter in parameters {
+            assert!(parameter.body_span.is_none(), "{path}: {parameter:?}");
+            assert!(parameter.body_hash.is_none(), "{path}: {parameter:?}");
+        }
+        let callable = result
+            .symbols
+            .iter()
+            .find(|symbol| {
+                symbol.name == "keep"
+                    && matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            })
+            .expect(path);
+        assert!(callable.body_span.is_some(), "{path}");
+        assert!(callable.body_hash.is_some(), "{path}");
+    }
+}
+
+#[test]
 fn create_symbol_records_body_span_for_tree_sitter_body_node() {
     let content = "fn hello() {\n    let value = 1;\n}\n";
     let mut extractor = rust_extractor(content);
@@ -27,6 +85,32 @@ fn create_symbol_records_body_span_for_tree_sitter_body_node() {
         "{\n    let value = 1;\n}"
     );
     assert!(symbol.body_hash.is_some(), "body span requires body hash");
+}
+
+#[test]
+fn csharp_interpolation_comments_do_not_change_method_body_hashes() {
+    let hashes: Vec<_> = ["", "/* short */", "/* a much longer comment */"]
+        .into_iter()
+        .map(|comment| {
+            let source = format!(
+                "class Sample {{ string Format(string name) {{ return $\"value {{{comment}name}}\"; }} }}"
+            );
+            let result = crate::pipeline::extract_canonical(
+                "Sample.cs",
+                &source,
+                std::path::Path::new("/repo"),
+            )
+            .expect("C# extraction");
+            assert!(result.parse_diagnostics.is_empty(), "{:?}", result.parse_diagnostics);
+            result.symbols.into_iter().find(|symbol| symbol.name == "Format"
+                && symbol.kind == SymbolKind::Method).expect("Format method")
+                .body_hash.expect("method hash")
+        })
+        .collect();
+    assert!(
+        hashes.windows(2).all(|pair| pair[0] == pair[1]),
+        "{hashes:?}"
+    );
 }
 
 #[test]

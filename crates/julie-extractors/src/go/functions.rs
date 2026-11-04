@@ -281,7 +281,7 @@ impl super::GoExtractor {
         };
         let signature = format!("{name}{}", self.callable_signature_tail(node));
         let doc_comment = self.go_doc_comment(&node);
-        let symbol = self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Method,
@@ -294,6 +294,8 @@ impl super::GoExtractor {
                 annotations: Vec::new(),
             },
         );
+        symbol.body_span = None;
+        symbol.body_hash = None;
         super::type_facts::record_return_type(&mut self.base, &symbol.id, node);
         Some(super::helpers::finalize_function_symbol(
             symbol,

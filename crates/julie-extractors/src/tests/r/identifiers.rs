@@ -194,6 +194,27 @@ get_info <- function(person) {
     }
 
     #[test]
+    fn dollar_member_labels_are_not_variable_references() {
+        let identifiers = extract_identifiers("read_name <- function(person) { person$name }\n");
+
+        assert_eq!(
+            identifiers
+                .iter()
+                .filter(|identifier| {
+                    identifier.name == "name" && identifier.kind == IdentifierKind::MemberAccess
+                })
+                .count(),
+            1
+        );
+        assert!(!identifiers.iter().any(|identifier| {
+            identifier.name == "name" && identifier.kind == IdentifierKind::VariableRef
+        }));
+        assert!(identifiers.iter().any(|identifier| {
+            identifier.name == "person" && identifier.kind == IdentifierKind::VariableRef
+        }));
+    }
+
+    #[test]
     fn test_extract_base_function_identifiers() {
         let r_code = r#"
 stats <- function(values) {

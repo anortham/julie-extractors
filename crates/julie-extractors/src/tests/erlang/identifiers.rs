@@ -23,7 +23,7 @@ g(X) -> X.
 
 #[test]
 fn remote_call_emits_a_module_type_usage_and_a_call() {
-    let (_, identifiers) = extract_with_identifiers(
+    let (symbols, identifiers) = extract_with_identifiers(
         r#"-module(m).
 
 f(X) -> lists:reverse(X).
@@ -34,11 +34,34 @@ f(X) -> lists:reverse(X).
     assert_eq!(module.kind, IdentifierKind::TypeUsage);
     let call = only(&identifiers, "reverse");
     assert_eq!(call.kind, IdentifierKind::Call);
+    let function = find(&symbols, "f");
+    assert_eq!(
+        module.containing_symbol_id.as_deref(),
+        Some(function.id.as_str())
+    );
+    assert_eq!(
+        call.containing_symbol_id.as_deref(),
+        Some(function.id.as_str())
+    );
     assert!(
         module.start_column < call.start_column,
         "module qualifier must be anchored on the module atom: {}",
         identifier_inventory(&identifiers)
     );
+    for kind in [IdentifierKind::Call, IdentifierKind::TypeUsage] {
+        let rows: Vec<_> = identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == kind)
+            .collect();
+        assert!(!rows.is_empty(), "expected {kind:?} rows");
+        assert!(
+            rows.iter().all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access"))),
+            "{kind:?} rows do not carry variable access"
+        );
+    }
 }
 
 #[test]
@@ -304,8 +327,7 @@ fn record_pattern_field_labels_are_not_writes() {
 
 #[test]
 fn type_signatures_do_not_emit_call_identifiers() {
-    let (_, identifiers) = extract_with_identifiers(
-        r#"-module(m).
+    let source = r#"-module(m).
 -record(account, {id :: integer()}).
 -type acct() :: #account{}.
 -opaque token() :: binary().
@@ -313,15 +335,41 @@ fn type_signatures_do_not_emit_call_identifiers() {
 -spec f(#account{}) -> list().
 
 f(Acct) -> Acct.
-"#,
-    );
+"#;
+    let (_, identifiers) = extract_with_identifiers(source);
+    let function_body_start = source.find("f(Acct) ->").unwrap();
+    let body_variable_start = source.rfind("Acct.").unwrap();
+    let type_identifiers: Vec<_> = identifiers
+        .iter()
+        .filter(|identifier| (identifier.start_byte as usize) < function_body_start)
+        .collect();
+    let variable_references: Vec<_> = identifiers
+        .iter()
+        .filter(|identifier| identifier.kind == IdentifierKind::VariableRef)
+        .collect();
 
+    assert!(!type_identifiers.is_empty());
+    assert!(
+        type_identifiers
+            .iter()
+            .all(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+    );
     assert!(
         identifiers
             .iter()
-            .all(|identifier| identifier.kind == IdentifierKind::TypeUsage),
-        "type signatures must emit only type usages, never executable identifiers: {}",
-        identifier_inventory(&identifiers)
+            .all(|identifier| identifier.kind != IdentifierKind::Call)
+    );
+    assert_eq!(variable_references.len(), 1);
+    let body_variable = variable_references[0];
+    assert_eq!(body_variable.start_byte as usize, body_variable_start);
+    assert_eq!(body_variable.name, "Acct");
+    assert_eq!(
+        body_variable
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str),
+        Some("read")
     );
 }
 
@@ -353,7 +401,7 @@ nonzero(N) -> N.
 }
 
 #[test]
-fn dynamic_call_through_a_variable_emits_no_identifier() {
+fn dynamic_call_through_a_variable_emits_variable_reads_without_a_static_call() {
     let (_, identifiers) = extract_with_identifiers(
         r#"-module(m).
 
@@ -361,10 +409,31 @@ f(Fun, X) -> Fun(X).
 "#,
     );
 
+    let variables: Vec<_> = identifiers
+        .iter()
+        .filter(|identifier| identifier.kind == IdentifierKind::VariableRef)
+        .collect();
     assert!(
-        identifiers.is_empty(),
+        variables
+            .iter()
+            .map(|identifier| identifier.name.as_str())
+            .collect::<Vec<_>>()
+            == ["Fun", "X"],
         "{}",
         identifier_inventory(&identifiers)
+    );
+    assert!(variables.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+            == Some("read")
+    }));
+    assert!(
+        identifiers.iter().all(|identifier| {
+            identifier.name != "Fun" || identifier.kind != IdentifierKind::Call
+        })
     );
 }
 

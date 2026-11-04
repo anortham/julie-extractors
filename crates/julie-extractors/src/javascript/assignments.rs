@@ -213,7 +213,7 @@ impl super::JavaScriptExtractor {
             .trim_end()
             .to_string();
         let doc_comment = self.base.find_doc_comment(&node);
-        Some(self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Property,
@@ -225,7 +225,10 @@ impl super::JavaScriptExtractor {
                 doc_comment,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        symbol.body_span = None;
+        symbol.body_hash = None;
+        Some(symbol)
     }
 
     /// `this.name = value` inside a class constructor declares an instance
@@ -253,7 +256,7 @@ impl super::JavaScriptExtractor {
         }
         let class_id = class_symbol.id.clone();
         let metadata = HashMap::from([("isConstructorAssigned".to_string(), json!(true))]);
-        let property = self.base.create_symbol(
+        let mut property = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Property,
@@ -265,6 +268,8 @@ impl super::JavaScriptExtractor {
                 ..Default::default()
             },
         );
+        property.body_span = None;
+        property.body_hash = None;
         super::type_facts::record_new_expression_fact(
             &mut self.base,
             &property.id,

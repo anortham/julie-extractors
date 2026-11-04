@@ -233,6 +233,8 @@ Public Class TopDoc
     Public Function Add(a As Integer, b As Integer) As Integer
         Return a + b
     End Function
+    Public Sub NoDoc()
+    End Sub
 End Class
 Namespace N
     ''' <summary>Enum doc.</summary>
@@ -262,6 +264,21 @@ End Namespace
             .as_deref(),
         Some("''' <summary>Enum doc.</summary>")
     );
+    assert!(
+        symbol(&results, "NoDoc", SymbolKind::Method)
+            .doc_comment
+            .is_none()
+    );
+}
+
+#[test]
+fn unannotated_types_have_no_annotation_rows() {
+    let results =
+        extract("<Obsolete>\nPublic Class Marked\nEnd Class\nPublic Class Plain\nEnd Class\n");
+    let marked = symbol(&results, "Marked", SymbolKind::Class);
+    let plain = symbol(&results, "Plain", SymbolKind::Class);
+    assert_eq!(marked.annotations.len(), 1);
+    assert!(plain.annotations.is_empty());
 }
 
 #[test]

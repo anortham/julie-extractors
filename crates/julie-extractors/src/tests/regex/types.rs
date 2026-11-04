@@ -1,8 +1,8 @@
-// Tests for Regex type extraction through the factory
-
 #[cfg(test)]
 mod tests {
     use crate::factory::extract_symbols_and_relationships;
+    use crate::pipeline::extract_canonical;
+    use std::path::Path;
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
@@ -43,5 +43,75 @@ mod tests {
             assert_eq!(type_info.language, "regex");
             assert!(type_info.is_inferred);
         }
+    }
+
+    #[test]
+    fn regex_types_follow_semantic_symbol_categories_without_construct_rows() {
+        let source = "(?<name>[A-Z]+)(?=x)\\p{Lu}\n";
+        let results =
+            extract_canonical("rules.regex", source, Path::new("/repo")).expect("regex extraction");
+
+        assert!(results.parse_diagnostics.is_empty());
+        let pattern = results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.kind == crate::base::SymbolKind::Variable)
+            .expect("pattern symbol");
+        let named_group = results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == "name")
+            .expect("named capture symbol");
+        assert_eq!(named_group.parent_id.as_deref(), Some(pattern.id.as_str()));
+
+        let expected = [
+            (pattern, "regex:regex-pattern"),
+            (named_group, "regex:group"),
+            (
+                results
+                    .symbols
+                    .iter()
+                    .find(|symbol| symbol.kind == crate::base::SymbolKind::Class)
+                    .expect("character class symbol"),
+                "regex:character-class",
+            ),
+            (
+                results
+                    .symbols
+                    .iter()
+                    .find(|symbol| symbol.kind == crate::base::SymbolKind::Method)
+                    .expect("lookaround symbol"),
+                "regex:lookaround",
+            ),
+            (
+                results
+                    .symbols
+                    .iter()
+                    .find(|symbol| symbol.kind == crate::base::SymbolKind::Constant)
+                    .expect("Unicode property symbol"),
+                "regex:unicode-property",
+            ),
+        ];
+
+        assert_eq!(results.symbols.len(), expected.len());
+        assert_eq!(results.types.len(), expected.len());
+        for (symbol, resolved_type) in expected {
+            let type_info = results.types.get(&symbol.id).expect("symbol type");
+            assert_eq!(type_info.resolved_type, resolved_type);
+            assert_eq!(type_info.language, "regex");
+            assert!(type_info.is_inferred);
+        }
+        assert!(
+            results
+                .types
+                .keys()
+                .all(|symbol_id| results.symbols.iter().any(|symbol| &symbol.id == symbol_id))
+        );
+        assert!(
+            results
+                .symbols
+                .iter()
+                .all(|symbol| { !["+", "x", "Lu"].contains(&symbol.name.as_str()) })
+        );
     }
 }

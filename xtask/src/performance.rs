@@ -16,6 +16,8 @@ use serde::Serialize;
 
 use crate::dogfood::{self, DogfoodMetrics, DogfoodOutputPaths, DogfoodPlan};
 
+pub mod comparison;
+
 const MIN_BASELINE_RUNS: usize = 3;
 const DEFAULT_WRITER_CURRENT_SCHEMA_FILES: usize = 10_000;
 const DEFAULT_WRITER_CURRENT_SCHEMA_SYMBOLS_PER_FILE: usize = 8;
@@ -282,12 +284,17 @@ impl From<ArtifactWriteError> for PerformanceError {
 pub fn run_from_args(args: &[String]) -> ExitCode {
     let result = match args.first().map(String::as_str) {
         Some("baseline") => run_baseline_from_args(args).map(|_| ()),
+        Some("baseline-receipt") => {
+            return comparison::run_capture_baseline_receipt_from_args(&args[1..]);
+        }
         Some("writer-current-schema") => run_writer_current_schema_from_args(args).map(|_| ()),
+        Some("compare") => return comparison::run_from_args(&args[1..]),
         Some(other) => Err(PerformanceError::Usage(format!(
-            "unknown performance subcommand `{other}`; expected `baseline` or `writer-current-schema`"
+            "unknown performance subcommand `{other}`; expected `baseline`, `baseline-receipt`, `writer-current-schema`, or `compare`"
         ))),
         None => Err(PerformanceError::Usage(
-            "usage: cargo xtask performance <baseline|writer-current-schema> ...".to_string(),
+            "usage: cargo xtask performance <baseline|baseline-receipt|writer-current-schema|compare> ..."
+                .to_string(),
         )),
     };
 

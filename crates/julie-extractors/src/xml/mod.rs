@@ -28,6 +28,7 @@
 //! - Project and application configuration documents
 
 pub(crate) mod build;
+pub(crate) mod complexity_metrics;
 pub(crate) mod context;
 mod elements;
 pub(crate) mod facts;

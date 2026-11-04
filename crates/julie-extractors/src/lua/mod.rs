@@ -51,6 +51,7 @@ impl LuaExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         self.symbols.clear();
         self.relationships.clear();
         self.base.clear_pending_relationships();

@@ -39,7 +39,7 @@ pub(super) fn extract_variable(
         .starts_with("global:");
 
     let doc_comment = super::documentation::extract_powershell_doc_comment(base, &node);
-    let symbol = base.create_symbol(
+    let mut symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Variable,
@@ -56,6 +56,14 @@ pub(super) fn extract_variable(
             annotations: Vec::new(),
         },
     );
+    let has_script_block_value = node
+        .child_by_field_name("value")
+        .and_then(|value| type_facts::value_core(value, 0))
+        .is_some_and(|value| value.kind() == "script_block_expression");
+    if !has_script_block_value {
+        symbol.body_span = None;
+        symbol.body_hash = None;
+    }
     type_facts::record_assignment_facts(base, &symbol.id, node, return_types);
     Some(symbol)
 }

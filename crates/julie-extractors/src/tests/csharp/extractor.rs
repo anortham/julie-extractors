@@ -136,6 +136,9 @@ fn test_xml_doc_comment_extraction() {
             /// <param name="templateName">Name of the template</param>
             public static void RenderTemplate(string templateName) {
             }
+
+        public static void NoSummary() {
+        }
         }
     "#;
 
@@ -189,6 +192,12 @@ fn test_xml_doc_comment_extraction() {
         method_symbol.doc_comment.is_some(),
         "Method should have doc_comment populated"
     );
+
+    let undocumented_method = symbols
+        .iter()
+        .find(|symbol| symbol.name == "NoSummary")
+        .expect("NoSummary method should be extracted");
+    assert!(undocumented_method.doc_comment.is_none());
 
     let method_doc = method_symbol.doc_comment.as_ref().unwrap();
     assert!(

@@ -11,7 +11,7 @@ use super::helpers::{
     arg_count, attribute_signature, child_named_kinds, find_child_by_type, first_atom_text,
     named_children, unquote_atom,
 };
-use crate::base::{Symbol, SymbolKind, SymbolOptions, TestRole, Visibility};
+use crate::base::{NormalizedSpan, Symbol, SymbolKind, SymbolOptions, TestRole, Visibility};
 use crate::test_detection::apply_test_role;
 
 pub(super) fn extract_module(
@@ -29,22 +29,21 @@ pub(super) fn extract_module(
         apply_test_role(&mut metadata, TestRole::TestContainer);
     }
 
-    Some(super::doc::keep_doc(
-        extractor.base.create_symbol(
-            node,
-            name,
-            SymbolKind::Module,
-            SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(Visibility::Public),
-                parent_id: None,
-                metadata: Some(metadata),
-                doc_comment: doc_comment.clone(),
-                annotations,
-            },
-        ),
-        doc_comment,
-    ))
+    let mut symbol = extractor.base.create_symbol(
+        node,
+        name,
+        SymbolKind::Module,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Public),
+            parent_id: None,
+            metadata: Some(metadata),
+            doc_comment: doc_comment.clone(),
+            annotations,
+        },
+    );
+    extractor.base.set_body_span(&mut symbol, None);
+    Some(super::doc::keep_doc(symbol, doc_comment))
 }
 
 /// Pushes the record symbol followed by its field symbols so declaration order
@@ -105,7 +104,7 @@ fn extract_record_field(
     let name = first_atom_text(&extractor.base, node)?;
     let signature = attribute_signature(&extractor.base, node);
 
-    let symbol = extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         node,
         name,
         SymbolKind::Field,
@@ -118,6 +117,7 @@ fn extract_record_field(
             annotations: Vec::new(),
         },
     );
+    extractor.base.set_body_span(&mut symbol, None);
     if let Some(declared) = node
         .child_by_field_name("ty")
         .and_then(|field_type| field_type.named_child(0))
@@ -160,22 +160,24 @@ pub(super) fn extract_macro(
         );
     }
 
-    Some(super::doc::keep_doc(
-        extractor.base.create_symbol(
-            node,
-            name,
-            SymbolKind::Constant,
-            SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(declaration_visibility(extractor)),
-                parent_id: parent_id.map(String::from),
-                metadata: Some(metadata),
-                doc_comment: doc_comment.clone(),
-                annotations,
-            },
-        ),
-        doc_comment,
-    ))
+    let mut symbol = extractor.base.create_symbol(
+        node,
+        name,
+        SymbolKind::Constant,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(declaration_visibility(extractor)),
+            parent_id: parent_id.map(String::from),
+            metadata: Some(metadata),
+            doc_comment: doc_comment.clone(),
+            annotations,
+        },
+    );
+    let body_span = node
+        .child_by_field_name("replacement")
+        .map(|replacement| NormalizedSpan::from_node(&replacement));
+    extractor.base.set_body_span(&mut symbol, body_span);
+    Some(super::doc::keep_doc(symbol, doc_comment))
 }
 
 pub(super) fn extract_type(
@@ -211,22 +213,24 @@ pub(super) fn extract_type(
     let doc_comment = super::doc::doc_for(extractor, node);
     let annotations = super::doc::annotations_for(extractor, node);
 
-    Some(super::doc::keep_doc(
-        extractor.base.create_symbol(
-            node,
-            name,
-            SymbolKind::Type,
-            SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(visibility),
-                parent_id: parent_id.map(String::from),
-                metadata: Some(metadata),
-                doc_comment: doc_comment.clone(),
-                annotations,
-            },
-        ),
-        doc_comment,
-    ))
+    let mut symbol = extractor.base.create_symbol(
+        node,
+        name,
+        SymbolKind::Type,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(visibility),
+            parent_id: parent_id.map(String::from),
+            metadata: Some(metadata),
+            doc_comment: doc_comment.clone(),
+            annotations,
+        },
+    );
+    let body_span = node
+        .child_by_field_name("ty")
+        .map(|definition| NormalizedSpan::from_node(&definition));
+    extractor.base.set_body_span(&mut symbol, body_span);
+    Some(super::doc::keep_doc(symbol, doc_comment))
 }
 
 pub(super) fn extract_callback(

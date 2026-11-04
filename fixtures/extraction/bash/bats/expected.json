@@ -51,7 +51,7 @@
         "start_byte": 189,
         "end_byte": 203
       },
-      "body_hash": "35addaf25c6e795a32d67eccd273a1a6",
+      "body_hash": "42dd98697f6beca507ca2da68c8f9ea8",
       "signature": "TMP=\"$(mktemp -d)\"",
       "doc_comment": null,
       "visibility": "Private",
@@ -261,7 +261,7 @@
         "start_byte": 179,
         "end_byte": 205
       },
-      "body_hash": "6f7c510f85f522e07ca9e7e1264ea1d2",
+      "body_hash": "160be8a66065d8d3aa28757dbd5a7a3b",
       "signature": "function setup()",
       "doc_comment": null,
       "visibility": "Public",

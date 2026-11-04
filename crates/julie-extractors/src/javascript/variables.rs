@@ -57,7 +57,7 @@ impl super::JavaScriptExtractor {
                 // Extract JSDoc comment
                 let doc_comment = self.base.find_doc_comment(&doc_node);
 
-                return Some(self.base.create_symbol(
+                let mut symbol = self.base.create_symbol(
                     &node,
                     name,
                     SymbolKind::Import,
@@ -69,7 +69,10 @@ impl super::JavaScriptExtractor {
                         doc_comment,
                         annotations: Vec::new(),
                     },
-                ));
+                );
+                symbol.body_span = None;
+                symbol.body_hash = None;
+                return Some(symbol);
             }
 
             if matches!(
@@ -98,7 +101,7 @@ impl super::JavaScriptExtractor {
         // Extract JSDoc comment
         let doc_comment = self.base.find_doc_comment(&doc_node);
 
-        let symbol = self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Variable,
@@ -111,6 +114,8 @@ impl super::JavaScriptExtractor {
                 annotations: Vec::new(),
             },
         );
+        symbol.body_span = None;
+        symbol.body_hash = None;
         Some(symbol)
     }
 

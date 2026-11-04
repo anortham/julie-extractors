@@ -106,6 +106,22 @@ fn tsql_set_statements_parses_cleanly() {
 }
 
 #[test]
+fn tsql_variable_assignments_support_compound_operators() {
+    assert_clean_parse(
+        "T-SQL variable assignments",
+        "CREATE PROCEDURE dbo.p @Balance int AS BEGIN SET @Balance = @Balance + 1; SET @Balance += 1; END;",
+    );
+}
+
+#[test]
+fn tsql_malformed_compound_assignment_stays_diagnostic() {
+    assert_has_parse_diagnostic(
+        "malformed T-SQL compound assignment",
+        "CREATE PROCEDURE dbo.p @Balance int AS BEGIN SET @Balance +== 1; END;",
+    );
+}
+
+#[test]
 fn tsql_if_object_id_and_exists_parses_cleanly() {
     assert_clean_parse(
         "IF OBJECT_ID",
@@ -138,6 +154,115 @@ fn tsql_declare_with_initializer_parses_cleanly() {
     assert_clean_parse(
         "DECLARE with initializer",
         "DECLARE @AdGroup NVARCHAR(256) = N'example';",
+    );
+}
+
+#[test]
+fn tsql_table_variable_declaration_after_statement_parses_cleanly() {
+    assert_clean_parse(
+        "table variable after SET",
+        "CREATE PROCEDURE dbo.p AS BEGIN SET NOCOUNT ON; DECLARE @Rows AS TABLE (Id int PRIMARY KEY); SELECT 1; END;",
+    );
+}
+
+#[test]
+fn tsql_declaration_initializer_accepts_function_calls() {
+    assert_clean_parse(
+        "variable initializer function call",
+        "CREATE PROCEDURE dbo.p AS BEGIN SET NOCOUNT ON; DECLARE @StartedWhen datetime2(7) = SYSDATETIME(); SELECT @StartedWhen; END;",
+    );
+}
+
+#[test]
+fn tsql_insert_output_parses_cleanly() {
+    assert_clean_parse(
+        "INSERT OUTPUT",
+        "INSERT dbo.T (Id) OUTPUT inserted.Id AS Id VALUES (1);",
+    );
+}
+
+#[test]
+fn tsql_system_variables_parse_cleanly() {
+    assert_clean_parse("system variable", "SELECT @@ROWCOUNT;");
+}
+
+#[test]
+fn tsql_select_assigns_into_a_variable() {
+    assert_clean_parse(
+        "SELECT TOP variable assignment",
+        "CREATE PROCEDURE dbo.p @Value int AS BEGIN SELECT TOP 1 @Value = t.Value FROM dbo.T AS t; END;",
+    );
+}
+
+#[test]
+fn tsql_if_statement_inside_procedure_parses_cleanly() {
+    assert_clean_parse(
+        "IF inside procedure",
+        "CREATE PROCEDURE dbo.p AS BEGIN IF @@ROWCOUNT = 0 SELECT 1; END;",
+    );
+}
+
+#[test]
+fn tsql_native_compilation_procedure_options_parse_cleanly() {
+    assert_clean_parse(
+        "native compilation procedure options",
+        "CREATE PROCEDURE dbo.p @Batch AS dbo.MeterRows READONLY, @BatchSize int WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN SELECT @BatchSize; END;",
+    );
+}
+
+#[test]
+fn tsql_atomic_block_options_parse_cleanly() {
+    assert_clean_parse(
+        "atomic procedure block options",
+        "CREATE PROCEDURE dbo.p AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL=SNAPSHOT, LANGUAGE=N'English') SELECT 1; END;",
+    );
+}
+
+#[test]
+fn tsql_atomic_compilation_procedure_parses_cleanly() {
+    assert_clean_parse(
+        "native compiled atomic procedure",
+        "CREATE PROCEDURE dbo.p @Batch AS dbo.MeterRows READONLY, @BatchSize int WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL=SNAPSHOT, LANGUAGE=N'English') INSERT INTO dbo.MeterMeasurement (MeterID) SELECT MeterID FROM @Batch; END;",
+    );
+}
+
+#[test]
+fn tsql_atomic_block_allows_an_unterminated_final_statement() {
+    assert_clean_parse(
+        "atomic block without final statement terminator",
+        "CREATE PROCEDURE dbo.p @Batch AS dbo.MeterRows READONLY WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL=SNAPSHOT, LANGUAGE=N'English') INSERT INTO dbo.MeterMeasurement (MeterID) SELECT MeterID FROM @Batch END;",
+    );
+}
+
+#[test]
+fn tsql_atomic_block_without_end_stays_diagnostic() {
+    assert_has_parse_diagnostic(
+        "atomic block missing END",
+        "CREATE PROCEDURE dbo.p AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL=SNAPSHOT, LANGUAGE=N'English') SELECT 1;",
+    );
+}
+
+#[test]
+fn tsql_utf8_bom_before_procedure_parses_cleanly() {
+    assert_clean_parse(
+        "UTF-8 BOM before T-SQL procedure",
+        "\u{feff}CREATE PROCEDURE dbo.p @Id int AS BEGIN SELECT @Id; END;",
+    );
+}
+
+#[test]
+fn tsql_inline_select_with_where_clause_and_nested_role_query_parses_cleanly() {
+    assert_clean_parse(
+        "inline TVF WHERE and nested role query",
+        "CREATE FUNCTION dbo.f(@CustomerID int) RETURNS TABLE AS RETURN (SELECT 1 AS AccessResult WHERE IS_ROLEMEMBER(N'db_owner') <> 0 OR IS_ROLEMEMBER((SELECT u.RoleName FROM dbo.Users AS u WHERE u.CustomerID = @CustomerID)) <> 0);",
+    );
+}
+
+#[test]
+fn tsql_if_not_exists_join_and_try_catch_parse_cleanly() {
+    assert_clean_parse(
+        "IF NOT EXISTS with joins and TRY/CATCH",
+        "CREATE PROCEDURE dbo.p @RoleName sysname, @UserName sysname AS BEGIN IF NOT EXISTS (SELECT 1 FROM sys.database_role_members AS drm INNER JOIN sys.database_principals AS dpr ON drm.role_principal_id = dpr.principal_id AND dpr.type = N'R' INNER JOIN sys.database_principals AS dpu ON drm.member_principal_id = dpu.principal_id AND dpu.type = N'S' WHERE dpr.name = @RoleName AND dpu.name = @UserName) BEGIN BEGIN TRY EXECUTE (N'ALTER ROLE'); END TRY BEGIN CATCH THROW; END CATCH; END; END;",
     );
 }
 
@@ -191,6 +316,14 @@ fn tsql_supported_drop_create_index_parses_cleanly() {
 }
 
 #[test]
+fn tsql_nonclustered_index_parses_cleanly() {
+    assert_clean_parse(
+        "CREATE NONCLUSTERED INDEX",
+        "CREATE NONCLUSTERED INDEX IX_T_Col ON dbo.T (Col ASC);",
+    );
+}
+
+#[test]
 fn tsql_supported_add_fk_parses_cleanly() {
     assert_clean_parse(
         "ADD CONSTRAINT FK",
@@ -235,4 +368,61 @@ fn tsql_malformed_merge_still_diagnostic() {
 #[test]
 fn tsql_malformed_throw_still_diagnostic() {
     assert_has_parse_diagnostic("incomplete THROW", "THROW 50001, N'message';");
+}
+
+#[test]
+fn tsql_coverage_regressions_fixture_parses_cleanly() {
+    assert_clean_parse(
+        "SQL coverage regressions",
+        include_str!("../../../../../fixtures/extraction/sql/tsql_coverage_regressions/source.sql"),
+    );
+}
+
+#[test]
+fn tsql_procedure_try_catch_transactions_parse_cleanly() {
+    assert_clean_parse(
+        "procedure transaction control flow",
+        r#"CREATE PROCEDURE dbo.p
+@Input int
+WITH EXECUTE AS OWNER
+AS
+BEGIN
+    DECLARE @Rows AS TABLE (Id int PRIMARY KEY);
+    BEGIN TRY
+        BEGIN TRAN;
+        SELECT @Input;
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0 ROLLBACK;
+        PRINT N'failed';
+        THROW;
+        RETURN -1;
+    END CATCH;
+END;"#,
+    );
+}
+
+#[test]
+fn tsql_malformed_system_time_period_still_diagnostic() {
+    assert_has_parse_diagnostic(
+        "malformed system time period",
+        "CREATE TABLE dbo.T (ValidFrom datetime2, PERIOD FOR SYSTEM_TIME (ValidFrom, ));",
+    );
+}
+
+#[test]
+fn tsql_incomplete_execute_as_owner_still_diagnostic() {
+    assert_has_parse_diagnostic(
+        "incomplete EXECUTE AS option",
+        "CREATE PROCEDURE dbo.p @Id int WITH EXECUTE AS AS BEGIN SELECT @Id; END;",
+    );
+}
+
+#[test]
+fn tsql_incomplete_inline_tvf_case_still_diagnostic() {
+    assert_has_parse_diagnostic(
+        "incomplete inline TVF CASE",
+        "CREATE FUNCTION dbo.f() RETURNS TABLE AS RETURN SELECT CASE WHEN THEN 1 END;",
+    );
 }

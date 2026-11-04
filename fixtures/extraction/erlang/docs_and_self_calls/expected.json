@@ -218,13 +218,13 @@
       "end_byte": 251,
       "body_span": {
         "start_line": 12,
-        "start_column": 7,
+        "start_column": 15,
         "end_line": 12,
-        "end_column": 18,
-        "start_byte": 239,
-        "end_byte": 250
+        "end_column": 17,
+        "start_byte": 247,
+        "end_byte": 249
       },
-      "body_hash": "fccad624f309aeb4d823f10096904547",
+      "body_hash": "d3d9446802a44259755d38e6d163e820",
       "signature": "-define(LIMIT, 10)",
       "doc_comment": null,
       "visibility": "Private",
@@ -466,13 +466,13 @@
       "end_byte": 231,
       "body_span": {
         "start_line": 11,
-        "start_column": 7,
+        "start_column": 18,
         "end_line": 11,
-        "end_column": 27,
-        "start_byte": 210,
-        "end_byte": 230
+        "end_column": 26,
+        "start_byte": 221,
+        "end_byte": 229
       },
-      "body_hash": "1ffedb49c000b70ab2203bdbb5dd21e2",
+      "body_hash": "ce7b6e261532ea0b5b3a9fd9e11c8ed7",
       "signature": "-define(is_ok(X), X =:= ok)",
       "doc_comment": null,
       "visibility": "Private",
@@ -497,15 +497,8 @@
       "end_column": 16,
       "start_byte": 83,
       "end_byte": 99,
-      "body_span": {
-        "start_line": 6,
-        "start_column": 7,
-        "end_line": 6,
-        "end_column": 15,
-        "start_byte": 90,
-        "end_byte": 98
-      },
-      "body_hash": "b562495234b07cd587ca70325e4fdb10",
+      "body_span": null,
+      "body_hash": null,
       "signature": "-module(ledger)",
       "doc_comment": "Ledger entry points.",
       "visibility": "Public",
@@ -912,6 +905,215 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:A:variable_ref:40:17",
+      "name": "A",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 40,
+      "start_column": 17,
+      "end_line": 40,
+      "end_column": 18,
+      "start_byte": 958,
+      "end_byte": 959,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:handle:40:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Account:variable_ref:45:12",
+      "name": "Account",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 45,
+      "start_column": 12,
+      "end_line": 45,
+      "end_column": 19,
+      "start_byte": 1105,
+      "end_byte": 1112,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:open:42:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:B:variable_ref:40:20",
+      "name": "B",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 40,
+      "start_column": 20,
+      "end_line": 40,
+      "end_column": 21,
+      "start_byte": 961,
+      "end_byte": 962,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:handle:40:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Fresh:variable_ref:43:4",
+      "name": "Fresh",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 43,
+      "start_column": 4,
+      "end_line": 43,
+      "end_column": 9,
+      "start_byte": 1007,
+      "end_byte": 1012,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:open:42:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Fresh:variable_ref:45:5",
+      "name": "Fresh",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 45,
+      "start_column": 5,
+      "end_line": 45,
+      "end_column": 10,
+      "start_byte": 1098,
+      "end_byte": 1103,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:open:42:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Handler:variable_ref:23:4",
+      "name": "Handler",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 11,
+      "start_byte": 509,
+      "end_byte": 516,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Handler:variable_ref:27:5",
+      "name": "Handler",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 27,
+      "start_column": 5,
+      "end_line": 27,
+      "end_column": 12,
+      "start_byte": 638,
+      "end_byte": 645,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Id:variable_ref:43:26",
+      "name": "Id",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 43,
+      "start_column": 26,
+      "end_line": 43,
+      "end_column": 28,
+      "start_byte": 1029,
+      "end_byte": 1031,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:open:42:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Key:variable_ref:47:15",
+      "name": "Key",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 47,
+      "start_column": 15,
+      "end_line": 47,
+      "end_column": 18,
+      "start_byte": 1131,
+      "end_byte": 1134,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:lookup:47:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Key:variable_ref:51:12",
+      "name": "Key",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 51,
+      "start_column": 12,
+      "end_line": 51,
+      "end_column": 15,
+      "start_byte": 1201,
+      "end_byte": 1204,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:route:50:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Key:variable_ref:53:47",
+      "name": "Key",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 53,
+      "start_column": 47,
+      "end_line": 53,
+      "end_column": 50,
+      "start_byte": 1286,
+      "end_byte": 1289,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:route:50:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
       "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:LIMIT:variable_ref:25:33",
       "name": "LIMIT",
       "kind": "variable_ref",
@@ -923,6 +1125,44 @@
       "end_column": 38,
       "start_byte": 600,
       "end_byte": 605,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Local:variable_ref:24:4",
+      "name": "Local",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 24,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 9,
+      "start_byte": 545,
+      "end_byte": 550,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Local:variable_ref:27:14",
+      "name": "Local",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 27,
+      "start_column": 14,
+      "end_line": 27,
+      "end_column": 19,
+      "start_byte": 647,
+      "end_byte": 652,
       "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
       "target_key": null,
       "confidence": "1.000",
@@ -981,6 +1221,101 @@
       "start_byte": 746,
       "end_byte": 752,
       "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:loop:30:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:N:variable_ref:33:26",
+      "name": "N",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 33,
+      "start_column": 26,
+      "end_line": 33,
+      "end_column": 27,
+      "start_byte": 758,
+      "end_byte": 759,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:loop:30:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:State:variable_ref:51:18",
+      "name": "State",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 51,
+      "start_column": 18,
+      "end_line": 51,
+      "end_column": 23,
+      "start_byte": 1207,
+      "end_byte": 1212,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:route:50:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:State:variable_ref:54:33",
+      "name": "State",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 54,
+      "start_column": 33,
+      "end_line": 54,
+      "end_column": 38,
+      "start_byte": 1327,
+      "end_byte": 1332,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:route:50:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:State:variable_ref:57:12",
+      "name": "State",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 57,
+      "start_column": 12,
+      "end_line": 57,
+      "end_column": 17,
+      "start_byte": 1389,
+      "end_byte": 1394,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:route:50:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:Value:variable_ref:54:24",
+      "name": "Value",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
+      "start_line": 54,
+      "start_column": 24,
+      "end_line": 54,
+      "end_column": 29,
+      "start_byte": 1318,
+      "end_byte": 1323,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:route:50:0",
       "target_key": null,
       "confidence": "1.000",
       "metadata": {

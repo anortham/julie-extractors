@@ -31,7 +31,7 @@ use super::helpers::{
     function_arity_entries, named_children, unquote_atom,
 };
 use super::{Bounded, ErlangExtractor};
-use super::{definition_forms, mfa};
+use super::{definition_forms, mfa, variable_access};
 use crate::base::{Identifier, IdentifierKind, Symbol, SymbolKind, extract_type_arguments};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -75,6 +75,12 @@ pub(super) fn extract_identifiers(
                     &mut clause_scopes,
                 );
                 walk(extractor, *declaration, scope.as_deref(), &context, 0);
+                variable_access::emit_variable_reads(
+                    extractor,
+                    *declaration,
+                    scope.as_deref(),
+                    end,
+                );
             }
             "spec" => {
                 let scope = spec_identity(extractor, declaration)

@@ -703,4 +703,97 @@ func update(seed, values):
             Some("write")
         );
     }
+
+    #[test]
+    fn parameter_shadowing_preserves_property_and_variable_access_kinds() {
+        let code = "extends Node\nvar value: int = 1\nfunc update(value: int) -> int:\n    value += 1\n    print(value)\n    return value + self.value\n";
+        let tree = init_parser(code, "gdscript");
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = GDScriptExtractor::new(
+            "gdscript".to_string(),
+            "test.gd".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        let update = symbols
+            .iter()
+            .find(|symbol| symbol.name == "update")
+            .expect("update function extracted");
+        let access_at = |start: usize, kind: IdentifierKind| {
+            identifiers
+                .iter()
+                .find(|identifier| identifier.start_byte == start as u32 && identifier.kind == kind)
+                .and_then(|identifier| identifier.metadata.as_ref())
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(serde_json::Value::as_str)
+        };
+
+        assert_eq!(
+            access_at(code.find("value +=").unwrap(), IdentifierKind::VariableRef),
+            Some("read_write")
+        );
+        assert_eq!(
+            access_at(
+                code.find("print(value)").unwrap() + "print(".len(),
+                IdentifierKind::VariableRef
+            ),
+            Some("read")
+        );
+        assert_eq!(
+            access_at(
+                code.find("return value").unwrap() + "return ".len(),
+                IdentifierKind::VariableRef
+            ),
+            Some("read")
+        );
+        assert_eq!(
+            access_at(
+                code.find("self.value").unwrap() + "self.".len(),
+                IdentifierKind::MemberAccess
+            ),
+            Some("read")
+        );
+        for (start, kind) in [
+            (code.find("value +=").unwrap(), IdentifierKind::VariableRef),
+            (
+                code.find("print(value)").unwrap() + "print(".len(),
+                IdentifierKind::VariableRef,
+            ),
+            (
+                code.find("return value").unwrap() + "return ".len(),
+                IdentifierKind::VariableRef,
+            ),
+            (
+                code.find("self.value").unwrap() + "self.".len(),
+                IdentifierKind::MemberAccess,
+            ),
+        ] {
+            let identifier = identifiers
+                .iter()
+                .find(|identifier| {
+                    identifier.kind == kind && identifier.start_byte as usize == start
+                })
+                .expect("shadowed property or variable occurrence");
+            assert_eq!(
+                identifier.containing_symbol_id.as_deref(),
+                Some(update.id.as_str())
+            );
+        }
+        for kind in [IdentifierKind::Call, IdentifierKind::TypeUsage] {
+            let rows: Vec<_> = identifiers
+                .iter()
+                .filter(|identifier| identifier.kind == kind)
+                .collect();
+            assert!(!rows.is_empty(), "expected {kind:?} rows");
+            assert!(
+                rows.iter().all(|identifier| identifier
+                    .metadata
+                    .as_ref()
+                    .is_none_or(|metadata| !metadata.contains_key("access"))),
+                "{kind:?} rows do not carry variable access"
+            );
+        }
+    }
 }

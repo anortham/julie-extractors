@@ -1,0 +1,162 @@
+[
+  {
+    "path": "fixtures/extraction/bash/bats/expected.json",
+    "fields": [
+      "/symbols/1/body_hash",
+      "/symbols/8/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/bash/commands/expected.json",
+    "fields": [
+      "/symbols/14/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/dart/declarations/expected.json",
+    "fields": [
+      "/symbols/46/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/fsharp/basic/expected.json",
+    "fields": [
+      "/symbols/3/body_hash",
+      "/symbols/7/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/fsharp/declaration_forms/expected.json",
+    "fields": [
+      "/symbols/23/body_hash",
+      "/symbols/24/body_hash",
+      "/symbols/55/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/html/basic/expected.json",
+    "fields": [
+      "/symbols/6/body_hash",
+      "/symbols/15/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/html/cross_file/expected.json",
+    "fields": [
+      "/symbols/1/body_hash",
+      "/symbols/4/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/html/documents_and_templates/expected.json",
+    "fields": [
+      "/symbols/5/body_hash",
+      "/symbols/13/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/html/external_script_body/expected.json",
+    "fields": [
+      "/symbols/6/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/powershell/basic/expected.json",
+    "fields": [
+      "/symbols/11/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/razor/agent_usefulness/expected.json",
+    "fields": [
+      "/symbols/4/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/razor/attribute-expressions/explicit/golden.json",
+    "fields": [
+      "/symbols/9/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/razor/attribute-expressions/implicit/golden.json",
+    "fields": [
+      "/symbols/5/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/razor/cross_file/expected.json",
+    "fields": [
+      "/symbols/9/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/razor/current-syntax/expected.json",
+    "fields": [
+      "/symbols/3/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/razor/mvc_views/expected.page.json",
+    "fields": [
+      "/symbols/1/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/razor/mvc_views/expected.view.json",
+    "fields": [
+      "/symbols/0/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/razor/wave2_component/expected.json",
+    "fields": [
+      "/symbols/14/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/ruby/sinatra/expected.json",
+    "fields": [
+      "/symbols/0/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/scala/members_and_literals/expected.json",
+    "fields": [
+      "/symbols/2/body_hash",
+      "/symbols/20/body_hash",
+      "/symbols/26/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/scala/web_routes/expected.json",
+    "fields": [
+      "/symbols/0/body_hash",
+      "/symbols/1/body_hash",
+      "/symbols/12/body_hash",
+      "/symbols/16/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/swift/structure/expected.json",
+    "fields": [
+      "/symbols/6/body_hash",
+      "/symbols/16/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/typescript/language_gaps/expected.json",
+    "fields": [
+      "/symbols/31/body_hash",
+      "/symbols/32/body_hash",
+      "/symbols/50/body_hash"
+    ]
+  },
+  {
+    "path": "fixtures/extraction/typescript/nestjs_routes/expected.json",
+    "fields": [
+      "/symbols/5/body_hash",
+      "/symbols/6/body_hash"
+    ]
+  }
+]

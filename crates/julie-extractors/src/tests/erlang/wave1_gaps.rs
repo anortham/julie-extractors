@@ -246,3 +246,155 @@ fn remote_call_and_record_field_identifiers_carry_their_qualifier() {
         ["order"]
     );
 }
+
+#[test]
+fn macro_catch_head_keeps_the_body_inside_its_function_clause() {
+    let source =
+        include_str!("../../../../../fixtures/extraction/erlang/macro_catch_head/source.erl");
+    let result = extract("src/macro_catch_head.erl", source);
+    let handle = symbol(&result, "handle");
+    let later = symbol(&result, "later");
+
+    assert!(
+        result.parse_diagnostics.is_empty(),
+        "{:?}",
+        result.parse_diagnostics
+    );
+    assert!(later.start_line > handle.end_line);
+    let body = handle.body_span.as_ref().expect("handle body span");
+    assert!(body.start_byte < body.end_byte);
+    let body_text = &source[body.start_byte as usize..body.end_byte as usize];
+    assert!(body_text.contains("detach(Reason)"), "{body_text:?}");
+    assert!(
+        body_text.contains("log(Class, Stacktrace)"),
+        "{body_text:?}"
+    );
+    assert!(handle.body_hash.is_some());
+    assert!(result.symbols.iter().all(|symbol| {
+        symbol.kind != SymbolKind::Variable
+            || !["Class", "Reason", "Stacktrace"].contains(&symbol.name.as_str())
+    }));
+    for call in ["detach", "log"] {
+        assert!(result.identifiers.iter().any(|identifier| {
+            identifier.kind == IdentifierKind::Call
+                && identifier.name == call
+                && identifier.containing_symbol_id.as_ref() == Some(&handle.id)
+        }));
+    }
+}
+
+#[test]
+fn literal_arrow_and_malformed_catch_heads_keep_their_syntax_boundary() {
+    let valid = extract(
+        "src/catch_controls.erl",
+        "-module(catch_controls).\nnormal() -> try throw(error) catch error:Reason:Stack -> recover(Reason) end.\nmacro_pattern() -> try throw(error) catch ?PATTERN -> recover() end.\n",
+    );
+    assert!(
+        valid.parse_diagnostics.is_empty(),
+        "{:?}",
+        valid.parse_diagnostics
+    );
+    for function in ["normal", "macro_pattern"] {
+        let function = symbol(&valid, function);
+        assert!(function.body_span.is_some(), "{}", function.name);
+        assert!(valid.identifiers.iter().any(|identifier| {
+            identifier.name == "recover"
+                && identifier.kind == IdentifierKind::Call
+                && identifier.containing_symbol_id.as_ref() == Some(&function.id)
+        }));
+    }
+
+    for source in [
+        "-module(missing_arrow).\nbad() -> try throw(error) catch error:Reason:Stack recover(Reason) end.\n",
+        "-module(missing_paren).\nbad() -> try throw(error) catch ?WITH_STACKTRACE(Class, Reason, Stacktrace detach() end.\n",
+    ] {
+        let invalid = extract("src/invalid_catch.erl", source);
+        assert!(!invalid.parse_diagnostics.is_empty(), "{source}");
+    }
+}
+
+#[cfg(feature = "test-real-world")]
+#[test]
+fn real_world_telemetry_macro_catch_heads_keep_bodies_and_later_function_arities() {
+    let source =
+        include_str!("../../../../../fixtures/real-world/erlang/telemetry-1.3.0/src/telemetry.erl");
+    let result = extract("src/telemetry.erl", source);
+    let function = |arity: u64| {
+        result
+            .symbols
+            .iter()
+            .find(|symbol| {
+                symbol.name == "execute"
+                    && symbol
+                        .metadata
+                        .as_ref()
+                        .and_then(|metadata| metadata.get("arity"))
+                        .and_then(serde_json::Value::as_u64)
+                        == Some(arity)
+            })
+            .unwrap_or_else(|| panic!("missing execute/{arity}"))
+    };
+    let execute_three = function(3);
+    let execute_two = function(2);
+    let span_three = result
+        .symbols
+        .iter()
+        .find(|symbol| {
+            symbol.name == "span"
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("arity"))
+                    .and_then(serde_json::Value::as_u64)
+                    == Some(3)
+        })
+        .expect("span/3");
+
+    assert!(
+        result.parse_diagnostics.is_empty(),
+        "{:?}",
+        result.parse_diagnostics
+    );
+    assert!(execute_three.end_line > 175, "{}", execute_three.end_line);
+    assert!(execute_two.start_line > execute_three.start_line);
+    let body = execute_three
+        .body_span
+        .as_ref()
+        .expect("execute/3 body span");
+    let body_text = &source[body.start_byte as usize..body.end_byte as usize];
+    assert!(body_text.contains("detach(HandlerId)"));
+    assert!(body_text.contains("?WITH_STACKTRACE(Class, Reason, Stacktrace)"));
+    assert!(execute_three.body_hash.is_some());
+    assert!(result.symbols.iter().all(|symbol| {
+        symbol.parent_id.as_ref() != Some(&execute_three.id)
+            || symbol.kind != SymbolKind::Variable
+            || !["Class", "Reason", "Stacktrace"].contains(&symbol.name.as_str())
+    }));
+    let span_body = span_three.body_span.as_ref().expect("span/3 body span");
+    let span_body_text = &source[span_body.start_byte as usize..span_body.end_byte as usize];
+    assert!(span_body_text.contains("?WITH_STACKTRACE(Class, Reason, Stacktrace)"));
+    assert!(span_body_text.contains("erlang:raise(Class, Reason, Stacktrace)"));
+    assert!(span_three.body_hash.is_some());
+    assert!(execute_two.start_line > span_three.start_line);
+    assert!(result.symbols.iter().all(|symbol| {
+        symbol.parent_id.as_ref() != Some(&span_three.id)
+            || symbol.kind != SymbolKind::Variable
+            || !["Class", "Reason", "Stacktrace"].contains(&symbol.name.as_str())
+    }));
+    assert!(result.identifiers.iter().any(|identifier| {
+        identifier.kind == IdentifierKind::Call
+            && identifier.name == "detach"
+            && identifier.containing_symbol_id.as_ref() == Some(&execute_three.id)
+    }));
+    assert!(result.identifiers.iter().any(|identifier| {
+        identifier.kind == IdentifierKind::Call
+            && identifier.name == "raise"
+            && identifier
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("receiver"))
+                .and_then(serde_json::Value::as_str)
+                == Some("erlang")
+            && identifier.containing_symbol_id.as_ref() == Some(&span_three.id)
+    }));
+}

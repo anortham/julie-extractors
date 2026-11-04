@@ -1,0 +1,388 @@
+================================================================================
+T-SQL procedures parse bare parameters separately from execution options
+================================================================================
+
+CREATE PROCEDURE dbo.p
+@Id int
+WITH EXECUTE AS OWNER
+AS
+BEGIN
+    DECLARE @Rows AS TABLE (Id int PRIMARY KEY);
+    BEGIN TRY
+        BEGIN TRAN;
+        SELECT @Id;
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0 ROLLBACK;
+        PRINT N'failed';
+        THROW;
+        RETURN -1;
+    END CATCH;
+END;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_procedure
+      (keyword_create)
+      (keyword_procedure)
+      (object_reference
+        (identifier)
+        (identifier))
+      (tsql_parameter_declarations
+        (tsql_parameter
+          (identifier)
+          (int
+            (keyword_int))))
+      (function_execute_as
+        (keyword_with)
+        (keyword_execute)
+        (keyword_as)
+        (keyword_owner))
+      (function_body
+        (keyword_as)
+        (keyword_begin)
+        (var_declarations
+          (keyword_declare)
+          (var_declaration
+            (identifier)
+            (keyword_as)
+            (keyword_table)
+            (column_definitions
+              (column_definition
+                (identifier)
+                (int
+                  (keyword_int))
+                (keyword_primary)
+                (keyword_key)))))
+        (statement
+          (try_catch_statement
+            (keyword_begin)
+            (keyword_try)
+            (statement
+              (tsql_transaction_action
+                (keyword_begin)
+                (keyword_tran)))
+            (statement
+              (select
+                (keyword_select)
+                (select_expression
+                  (term
+                    (field
+                      (identifier))))))
+            (statement
+              (tsql_transaction_action
+                (keyword_commit)))
+            (keyword_end)
+            (keyword_try)
+            (keyword_begin)
+            (keyword_catch)
+            (if_statement
+              (keyword_if)
+              (binary_expression
+                (invocation
+                  (object_reference
+                    (identifier)))
+                (literal))
+              (statement
+                (tsql_transaction_action
+                  (keyword_rollback))))
+            (statement
+              (print_statement
+                (keyword_print)
+                (literal)))
+            (statement
+              (throw_statement
+                (keyword_throw)))
+            (return_statement
+              (keyword_return)
+              (literal))
+            (keyword_end)
+            (keyword_catch)))
+        (keyword_end)))))
+
+================================================================================
+T-SQL temporal tables keep period clauses outside the column list
+================================================================================
+
+CREATE TABLE [Application].[Cities] (
+    [CityID] int CONSTRAINT [DF_Cities_CityID] DEFAULT (NEXT VALUE FOR [Sequences].[CityID]) NOT NULL,
+    [StateProvinceID] int NOT NULL,
+    [ValidFrom] datetime2(7) GENERATED ALWAYS AS ROW START NOT NULL,
+    [ValidTo] datetime2(7) GENERATED ALWAYS AS ROW END NOT NULL,
+    CONSTRAINT [PK_Cities] PRIMARY KEY CLUSTERED ([CityID] ASC, [StateProvinceID] ASC),
+    CONSTRAINT [FK_Cities_StateProvince] FOREIGN KEY ([StateProvinceID]) REFERENCES [Dimension].[City] ([CityID]),
+    PERIOD FOR SYSTEM_TIME ([ValidFrom], [ValidTo])
+) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE=[Application].[Cities_Archive], DATA_CONSISTENCY_CHECK=ON));
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        (identifier)
+        (identifier))
+      (column_definitions
+        (column_definition
+          (identifier)
+          (int
+            (keyword_int))
+          (named_column_constraint
+            (keyword_constraint)
+            (identifier)
+            (keyword_default)
+            (next_value_expression
+              (keyword_next)
+              (keyword_value)
+              (keyword_for)
+              (object_reference
+                (identifier)
+                (identifier))))
+          (keyword_not)
+          (keyword_null))
+        (column_definition
+          (identifier)
+          (int
+            (keyword_int))
+          (keyword_not)
+          (keyword_null))
+        (column_definition
+          (identifier)
+          (datetime2
+            (keyword_datetime2)
+            (literal))
+          (temporal_column_generation
+            (keyword_generated)
+            (keyword_always)
+            (keyword_as)
+            (keyword_row)
+            (keyword_start))
+          (keyword_not)
+          (keyword_null))
+        (column_definition
+          (identifier)
+          (datetime2
+            (keyword_datetime2)
+            (literal))
+          (temporal_column_generation
+            (keyword_generated)
+            (keyword_always)
+            (keyword_as)
+            (keyword_row)
+            (keyword_end))
+          (keyword_not)
+          (keyword_null))
+        (constraints
+          (constraint
+            (keyword_constraint)
+            (identifier)
+            (keyword_primary)
+            (keyword_key)
+            (keyword_clustered)
+            (ordered_columns
+              (column
+                (identifier)
+                (direction
+                  (keyword_asc)))
+              (column
+                (identifier)
+                (direction
+                  (keyword_asc)))))
+          (constraint
+            (keyword_constraint)
+            (identifier)
+            (keyword_foreign)
+            (keyword_key)
+            (ordered_columns
+              (column
+                (identifier)))
+            (keyword_references)
+            (object_reference
+              (identifier)
+              (identifier))
+            (identifier))
+          (system_time_period
+            (keyword_period)
+            (keyword_for)
+            (keyword_system_time)
+            (identifier)
+            (identifier))))
+      (storage_parameters
+        (keyword_with)
+        (identifier)
+        (keyword_on)
+        (identifier)
+        (object_reference
+          (identifier)
+          (identifier))
+        (identifier)
+        (keyword_on)))))
+
+================================================================================
+T-SQL inline table-valued functions return unparenthesized SELECT queries
+================================================================================
+
+CREATE FUNCTION dbo.GenerateDateDimensionColumns(@Year int)
+RETURNS TABLE
+AS
+RETURN SELECT CASE
+    WHEN EXISTS (SELECT 1 FROM dbo.T WHERE Id = @Year) THEN @Year
+    ELSE 0
+END AS Value;
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_function
+      (keyword_create)
+      (keyword_function)
+      (object_reference
+        (identifier)
+        (identifier))
+      (function_arguments
+        (function_argument
+          (identifier)
+          (int
+            (keyword_int))))
+      (keyword_returns)
+      (keyword_table)
+      (function_body
+        (keyword_as)
+        (keyword_return)
+        (select
+          (keyword_select)
+          (select_expression
+            (term
+              (case
+                (keyword_case)
+                (keyword_when)
+                (exists
+                  (keyword_exists)
+                  (subquery
+                    (select
+                      (keyword_select)
+                      (select_expression
+                        (term
+                          (literal))))
+                    (from
+                      (keyword_from)
+                      (relation
+                        (object_reference
+                          (identifier)
+                          (identifier)))
+                      (where
+                        (keyword_where)
+                        (binary_expression
+                          (field
+                            (identifier))
+                          (field
+                            (identifier)))))))
+                (keyword_then)
+                (field
+                  (identifier))
+                (keyword_else)
+                (literal)
+                (keyword_end))
+              (keyword_as)
+              (identifier))))))))
+
+================================================================================
+T-SQL inline table-valued functions return parenthesized SELECT queries
+================================================================================
+
+CREATE FUNCTION [Application].DetermineCustomerAccess(@CityID int)
+RETURNS TABLE
+WITH SCHEMABINDING
+AS
+RETURN (
+    SELECT 1 AS AccessResult
+    FROM dbo.T
+    WHERE EXISTS (
+        SELECT 1
+        FROM dbo.T AS Allowed
+        WHERE Allowed.Id = dbo.T.Id AND dbo.T.Id = @CityID
+    )
+);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_function
+      (keyword_create)
+      (keyword_function)
+      (object_reference
+        (identifier)
+        (identifier))
+      (function_arguments
+        (function_argument
+          (identifier)
+          (int
+            (keyword_int))))
+      (keyword_returns)
+      (keyword_table)
+      (function_schema_binding
+        (keyword_with)
+        (keyword_schemabinding))
+      (function_body
+        (keyword_as)
+        (keyword_return)
+        (select
+          (keyword_select)
+          (select_expression
+            (term
+              (literal)
+              (keyword_as)
+              (identifier))))
+        (from
+          (keyword_from)
+          (relation
+            (object_reference
+              (identifier)
+              (identifier)))
+          (where
+            (keyword_where)
+            (exists
+              (keyword_exists)
+              (subquery
+                (select
+                  (keyword_select)
+                  (select_expression
+                    (term
+                      (literal))))
+                (from
+                  (keyword_from)
+                  (relation
+                    (object_reference
+                      (identifier)
+                      (identifier))
+                    (keyword_as)
+                    (identifier))
+                  (where
+                    (keyword_where)
+                    (binary_expression
+                      (binary_expression
+                        (field
+                          (object_reference
+                            (identifier))
+                          (identifier))
+                        (field
+                          (object_reference
+                            (identifier)
+                            (identifier))
+                          (identifier)))
+                      (keyword_and)
+                      (binary_expression
+                        (field
+                          (object_reference
+                            (identifier)
+                            (identifier))
+                          (identifier))
+                        (field
+                          (identifier))))))))))))))

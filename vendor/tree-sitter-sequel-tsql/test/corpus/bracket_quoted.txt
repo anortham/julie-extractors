@@ -1,0 +1,52 @@
+================================================================================
+ALTER PROCEDURE with bracket-quoted identifiers
+================================================================================
+
+ALTER PROCEDURE [dbo].[sp_Test]
+AS
+BEGIN
+    SELECT 1
+END
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (alter_procedure
+      (keyword_alter)
+      (keyword_procedure)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (function_body
+        (keyword_as)
+        (keyword_begin)
+        (statement
+          (select
+            (keyword_select)
+            (select_expression
+              (term
+                value: (literal)))))
+        (keyword_end)))))
+
+================================================================================
+SELECT with bracket-quoted column and table
+================================================================================
+
+SELECT [Column Name] FROM [My Table]
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (select
+      (keyword_select)
+      (select_expression
+        (term
+          value: (field
+            name: (identifier)))))
+    (from
+      (keyword_from)
+      (relation
+        (object_reference
+          name: (identifier))))))

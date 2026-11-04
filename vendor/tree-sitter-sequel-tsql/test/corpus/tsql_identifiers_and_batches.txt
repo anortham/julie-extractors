@@ -1,0 +1,62 @@
+================================================================================
+T-SQL bracket identifiers remain identifier nodes
+================================================================================
+
+CREATE TABLE [edr].[EdrForms] (
+  [Id] int NOT NULL
+);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))
+          (keyword_not)
+          (keyword_null))))))
+
+================================================================================
+GO is a sibling go_statement, not part of the prior statement
+================================================================================
+
+CREATE TABLE dbo.T (Id int);
+GO
+CREATE TABLE dbo.U (Id int);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int))))))
+  (go_statement)
+  (statement
+    (create_table
+      (keyword_create)
+      (keyword_table)
+      (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (column_definitions
+        (column_definition
+          name: (identifier)
+          type: (int
+            (keyword_int)))))))

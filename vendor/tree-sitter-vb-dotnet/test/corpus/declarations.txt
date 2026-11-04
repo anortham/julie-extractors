@@ -1,0 +1,516 @@
+==================
+Simple Dim declaration
+==================
+
+Module M
+    Sub Main()
+        Dim x As Integer
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Dim with initializer
+==================
+
+Module M
+    Sub Main()
+        Dim x As Integer = 5
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type))
+          (integer_literal))))))
+
+==================
+Dim without type inference
+==================
+
+Module M
+    Sub Main()
+        Dim x = 42
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (integer_literal))))))
+
+==================
+Multiple Dim declarators
+==================
+
+Module M
+    Sub Main()
+        Dim a As Integer, b As String, c As Double
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (primitive_type))
+          (identifier)
+          (as_clause
+            (primitive_type))
+          (identifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Dim As New Type
+==================
+
+Module M
+    Sub Main()
+        Dim xs As New List(Of String)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (new_expression
+            (generic_type
+              (namespace_name
+                (identifier))
+              (type_argument_list
+                (primitive_type)))))))))
+
+==================
+Dim As New Type with args
+==================
+
+Module M
+    Sub Main()
+        Dim cmd As New SqlCommand("SELECT 1", conn)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (new_expression
+            (array_type
+              (namespace_name
+                (identifier))
+              (array_rank_specifier
+                (string_literal)
+                (identifier)))))))))
+
+==================
+Dim array empty
+==================
+
+Module M
+    Sub Main()
+        Dim xs() As String
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_rank_specifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Dim array with bound
+==================
+
+Module M
+    Sub Main()
+        Dim xs(9) As Integer
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_rank_specifier
+            (integer_literal))
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Dim two-dimensional array
+==================
+
+Module M
+    Sub Main()
+        Dim grid(,) As String
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_rank_specifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Dim nullable type
+==================
+
+Module M
+    Sub Main()
+        Dim x As Integer?
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (as_clause
+            (nullable_type
+              (primitive_type))))))))
+
+==================
+Const declaration
+==================
+
+Module M
+    Const Pi As Double = 3.14159
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (const_declaration
+        (identifier)
+        (as_clause
+          (primitive_type))
+        (floating_point_literal)))))
+
+==================
+Local const declaration
+==================
+
+Module M
+    Sub Main()
+        Const Max As Integer = 100
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (const_declaration
+          (identifier)
+          (as_clause
+            (primitive_type))
+          (integer_literal))))))
+
+==================
+Simple assignment
+==================
+
+Module M
+    Sub Main()
+        x = 5
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))))))
+
+==================
+Compound assignment plus
+==================
+
+Module M
+    Sub Main()
+        total += 10
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (compound_assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))))))
+
+==================
+Compound assignment minus
+==================
+
+Module M
+    Sub Main()
+        total -= 1
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (compound_assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))))))
+
+==================
+Compound assignment string concat
+==================
+
+Module M
+    Sub Main()
+        result &= "more"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (compound_assignment_statement
+          (left_hand_side
+            (identifier))
+          (string_literal))))))
+
+==================
+Compound assignment multiply divide
+==================
+
+Module M
+    Sub Main()
+        x *= 2
+        y /= 4
+        z \= 3
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (compound_assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))
+        (compound_assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))
+        (compound_assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))))))
+
+==================
+Compound assignment bit shift
+==================
+
+Module M
+    Sub Main()
+        x <<= 2
+        y >>= 1
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (compound_assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))
+        (compound_assignment_statement
+          (left_hand_side
+            (identifier))
+          (integer_literal))))))
+
+==================
+WithEvents field declaration
+==================
+
+Class Form1
+    WithEvents btn As Button
+
+    Sub Click() Handles btn.Click
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (namespace_name
+              (identifier)))))
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (handles_clause
+          (namespace_name
+            (identifier)
+            (identifier)))))))

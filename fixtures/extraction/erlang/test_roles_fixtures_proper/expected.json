@@ -217,15 +217,8 @@
       "end_column": 17,
       "start_byte": 457,
       "end_byte": 474,
-      "body_span": {
-        "start_line": 9,
-        "start_column": 7,
-        "end_line": 9,
-        "end_column": 16,
-        "start_byte": 464,
-        "end_byte": 473
-      },
-      "body_hash": "ad7b54a975d0da0688c71edf00ac5a0c",
+      "body_span": null,
+      "body_hash": null,
       "signature": "-module(prop_kv)",
       "doc_comment": "%% EUnit fixture roles and PropEr properties in one test module.\n%%   setup/0        fixture_setup     named in a {setup, ...} Setup slot\n%%   cleanup/1      fixture_teardown  named in the Cleanup slot\n%%   put_then_get/0 test_case         an instantiator in the Tests list\n%%   missing/0      test_case         a {foreach, Where, ...} test\n%%   prop_roundtrip/0 test_case       a PropEr property\n%%   helper/1       none              an ordinary helper",
       "visibility": "Public",
@@ -571,6 +564,82 @@
       "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:prop_roundtrip:24:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:L:variable_ref:25:12",
+      "name": "L",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl",
+      "start_line": 25,
+      "start_column": 12,
+      "end_line": 25,
+      "end_column": 13,
+      "start_byte": 827,
+      "end_byte": 828,
+      "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:prop_roundtrip:24:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:L:variable_ref:25:39",
+      "name": "L",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl",
+      "start_line": 25,
+      "start_column": 39,
+      "end_line": 25,
+      "end_column": 40,
+      "start_byte": 854,
+      "end_byte": 855,
+      "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:prop_roundtrip:24:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:L:variable_ref:25:46",
+      "name": "L",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl",
+      "start_line": 25,
+      "start_column": 46,
+      "end_line": 25,
+      "end_column": 47,
+      "start_byte": 861,
+      "end_byte": 862,
+      "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:prop_roundtrip:24:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:L:variable_ref:27:13",
+      "name": "L",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl",
+      "start_line": 27,
+      "start_column": 13,
+      "end_line": 27,
+      "end_column": 14,
+      "start_byte": 879,
+      "end_byte": 880,
+      "containing_key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:helper:27:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
     },
     {
       "key": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl:cleanup:variable_ref:14:29",

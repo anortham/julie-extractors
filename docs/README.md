@@ -4,10 +4,13 @@ Julie Extractors owns parser-backed extraction and the standalone `julie-extract
 with the [CLI contract](contracts/cli.md), [report contract](contracts/reports.md), and
 [testing strategy](testing-strategy.md).
 
+The `julie-extract` CLI is the integration surface. SQLite is the only durable
+artifact; JSON is command output.
+
 ## Current contracts
 
 - [Extraction contract v4](contracts/extracted-data-v4.md)
-- [SQLite artifact schema v7](contracts/sqlite-schema-v7.md)
+- [SQLite artifact schema v8](contracts/sqlite-schema-v8.md)
 - [Progress file v1](contracts/progress-file-v1.md)
 - [Test evidence v1](contracts/test-evidence-v1.md)
 

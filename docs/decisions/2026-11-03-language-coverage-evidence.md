@@ -35,3 +35,35 @@ The bounded review also reproduced `HTML-IMPORT-BODY`: an external `<script src=
 ## Consequences
 
 No SQLite schema, extraction level, report schema, or production output format changes follow from repairing evidence claims. The pinned corpus and the 630-cell audit must independently verify the native facts, negative controls, and source boundaries before the goal can close.
+
+## Definition bodies
+
+A body is the syntax payload owned by a declaration under its language's
+existing policy. It need not be executable: Bash assignments and F# bindings
+own their values; C# properties own accessor lists; R class factories and QML
+type descriptors own their definition payloads; Erlang config properties own
+values. Empty braced definitions also retain bodies. Reject a blanket rule
+that clears every non-executable payload.
+
+Programming parameters have no declaration body. The shared symbol factory
+uses the explicit `role: "parameter"` metadata to exclude function types,
+object types, generic arguments and decorators from body inference. This does
+not affect QML type-info descriptors, which use separate `typeinfo_kind`
+metadata. Imports and signature-only signals similarly cannot acquire bodies
+from incidental delimiters. Any correction to emitted rows requires a named
+extraction-contract marker and a reviewed golden delta.
+
+## XML control flow
+
+The existing XML extractor recognizes XSLT templates and functions. Their
+control-flow metrics are applicable, so the audit must implement the missing
+collector rather than mark the domain N/A. Recognize elements by their
+namespace URI, count `if`/`when` decisions and `for-each`/`for-each-group`/
+`iterate` loops, and track nesting among those controls. Direct `param`
+children define callable parameter counts; `with-param` does not. Foreign
+elements with matching local names are excluded. Emit file and callable rows
+at full extraction level using the existing metric contract.
+
+The collector walks once, indexes callable starts once and maintains scoped
+namespace bindings with direct lookups. Deterministic work-count checks
+protect those bounds. It performs no cross-file linking or XSLT evaluation.

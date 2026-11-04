@@ -177,6 +177,83 @@ fn arithmetic_reads_emit_variable_refs() {
 }
 
 #[test]
+fn function_local_variables_shadow_outer_names_and_keep_access() {
+    let source = "value=outer\nshadow() {\n  local value\n  value=inner\n  (( value += 1 ))\n  printf '%s' \"$value\"\n}\nprintf '%s' \"$value\"\nshadow\n";
+    let result = extract("shadow.sh", source);
+    let access_at = |start: usize| {
+        result
+            .identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte as usize == start
+            })
+            .and_then(|identifier| identifier.metadata.as_ref())
+            .and_then(|metadata| metadata.get("access"))
+            .and_then(serde_json::Value::as_str)
+    };
+
+    assert_eq!(
+        result
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.name == "value" && symbol.parent_id.is_none())
+            .count(),
+        1
+    );
+    let shadow = symbol(&result, "shadow");
+    assert!(result.symbols.iter().any(|variable| {
+        variable.name == "value" && variable.parent_id.as_deref() == Some(shadow.id.as_str())
+    }));
+    let inner_read_start = source.find("$value").unwrap() + 1;
+    let outer_read_start = source.rfind("$value").unwrap() + 1;
+    let inner_scoped_reads = [
+        inner_read_start,
+        source.find("value +=").unwrap(),
+        source.find("value=inner").unwrap(),
+    ];
+    assert_eq!(access_at(inner_scoped_reads[0]), Some("read"));
+    assert_eq!(access_at(inner_scoped_reads[1]), Some("read_write"));
+    assert_eq!(access_at(inner_scoped_reads[2]), Some("write"));
+    for start in inner_scoped_reads {
+        let identifier = result
+            .identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.kind == IdentifierKind::VariableRef
+                    && identifier.start_byte as usize == start
+            })
+            .expect("function-local variable occurrence");
+        assert_eq!(
+            identifier.containing_symbol_id.as_deref(),
+            Some(shadow.id.as_str())
+        );
+    }
+    assert_eq!(access_at(outer_read_start), Some("read"));
+    let outer_read = result
+        .identifiers
+        .iter()
+        .find(|identifier| {
+            identifier.kind == IdentifierKind::VariableRef
+                && identifier.start_byte as usize == outer_read_start
+        })
+        .expect("top-level variable read");
+    assert_eq!(outer_read.containing_symbol_id, None);
+    let call_rows: Vec<_> = result
+        .identifiers
+        .iter()
+        .filter(|identifier| identifier.kind == IdentifierKind::Call)
+        .collect();
+    assert!(!call_rows.is_empty(), "expected Call rows");
+    assert!(call_rows.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
+    }));
+}
+
+#[test]
 fn dynamic_source_paths_import_their_static_tail() {
     let source = r#"source "$(dirname "$0")/base-test.sh"
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"

@@ -375,7 +375,9 @@ pub fn extract_delegate(
         ..Default::default()
     };
 
-    let symbol = base.create_symbol(&node, name, SymbolKind::Delegate, options);
+    let mut symbol = base.create_symbol(&node, name, SymbolKind::Delegate, options);
+    symbol.body_span = None;
+    symbol.body_hash = None;
     if let Some(return_node) = node.child_by_field_name("type") {
         super::type_inference::record_return_type(base, &symbol.id, return_node);
     }

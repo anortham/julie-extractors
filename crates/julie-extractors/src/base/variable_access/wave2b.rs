@@ -545,6 +545,15 @@ const SQL_ASSIGNMENTS: &[AssignmentRule] = &[
         write_operators: &["="],
         read_write_operators: &[],
     },
+    AssignmentRule {
+        parent_kind: "set_statement",
+        required_parent_kind: None,
+        required_child: None,
+        target: kind("object_reference"),
+        operator: Some(kind("tsql_compound_assignment_operator")),
+        write_operators: &[],
+        read_write_operators: &["+=", "-=", "*=", "/=", "%=", "&=", "^=", "|="],
+    },
 ];
 
 const SQL_RULES: VariableAccessRules = VariableAccessRules {

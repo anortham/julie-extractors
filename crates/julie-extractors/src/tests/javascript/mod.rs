@@ -6,12 +6,15 @@
 pub mod anonymous_classes;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
+pub mod ecmascript_audit;
 pub mod error_handling;
 pub mod identifier_extraction;
 pub mod initializer_types;
 pub mod jsdoc_comments;
+pub mod jsx_access;
 pub mod jsx_complexity;
 pub mod jsx_cross_file_pending;
+pub mod jsx_literals;
 pub mod legacy_patterns;
 pub mod literals;
 pub mod modern_features;

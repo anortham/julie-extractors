@@ -4,7 +4,7 @@
 
 use super::helpers;
 use super::type_facts;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::test_detection::apply_callable_test_metadata;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -95,7 +95,7 @@ pub(super) fn extract_function(
         &mut metadata,
     );
 
-    Some(base.create_symbol(
+    let mut symbol = base.create_symbol(
         node,
         name,
         symbol_kind,
@@ -107,7 +107,13 @@ pub(super) fn extract_function(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    base.set_body_span(
+        &mut symbol,
+        node.child_by_field_name("body")
+            .map(|body| NormalizedSpan::from_node(&body)),
+    );
+    Some(symbol)
 }
 
 /// Extract a Scala import declaration

@@ -186,6 +186,7 @@ class Repo {
     db.rawQuery("SELECT * FROM users WHERE id = $id");
   }
 }
+
 "#;
     let literals = capture(code);
     let lit = literals
@@ -196,4 +197,27 @@ class Repo {
         lit.literal_text, "SELECT * FROM users WHERE id = {}",
         "interpolation hole must normalize to a {{}} placeholder"
     );
+}
+
+#[test]
+fn call_argument_confusables_are_excluded_and_utf8_span_is_preserved() {
+    let code = r#"
+class Loader {
+  void load(bool enabled, Object named) {
+    // request("comment")
+    final standalone = "loose";
+    request(42, false, enabled, named, "café");
+  }
+}
+"#;
+    let literals = capture(code);
+    assert_eq!(literals.len(), 1, "{literals:?}");
+    let literal = &literals[0];
+    let source_token = "\"café\"";
+    let source_start = code.find(source_token).unwrap() as u32;
+    assert_eq!(literal.literal_text, "café");
+    assert_eq!(literal.carrier.as_deref(), Some("request"));
+    assert_eq!(literal.arg_position, 4);
+    assert_eq!(literal.start_byte, source_start);
+    assert_eq!(literal.end_byte, source_start + source_token.len() as u32);
 }

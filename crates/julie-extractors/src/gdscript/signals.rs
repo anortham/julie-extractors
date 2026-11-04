@@ -29,6 +29,8 @@ pub(super) fn extract_signal_statement(
             annotations: Vec::new(),
         },
     );
+    symbol.body_span = None;
+    symbol.body_hash = None;
     symbol.doc_comment = doc;
     Some(symbol)
 }

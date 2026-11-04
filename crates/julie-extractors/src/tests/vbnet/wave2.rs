@@ -279,6 +279,227 @@ fn syntax_stated_return_types_are_declared_facts() {
 }
 
 #[test]
+fn adjacent_parameter_attributes_preserve_symbols_types_and_owners() {
+    let results = extract(include_str!(
+        "../../../../../fixtures/extraction/vbnet/parameter_attributes/source.vb"
+    ));
+
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "{:#?}",
+        results.parse_diagnostics
+    );
+
+    let class = symbol(&results, "AccessibilityParameter", SymbolKind::Class);
+    let check = symbol(&results, "Check", SymbolKind::Method);
+    let value = symbol(&results, "value", SymbolKind::Variable);
+    assert_eq!(check.parent_id.as_deref(), Some(class.id.as_str()));
+    assert_eq!(value.parent_id.as_deref(), Some(check.id.as_str()));
+    assert_eq!(
+        type_of(&results, value),
+        Some(("Integer".to_string(), false))
+    );
+    assert_eq!(
+        type_of(&results, check),
+        Some(("Boolean".to_string(), false))
+    );
+    assert_eq!(
+        annotation_raw(check),
+        vec![("Obsolete".to_string(), Some("Obsolete".to_string()))]
+    );
+
+    let single = symbol(&results, "Single", SymbolKind::Method);
+    let result = symbol(&results, "result", SymbolKind::Variable);
+    let unmarked = symbol(&results, "unmarked", SymbolKind::Variable);
+    assert_eq!(result.parent_id.as_deref(), Some(single.id.as_str()));
+    assert_eq!(unmarked.parent_id.as_deref(), Some(single.id.as_str()));
+    assert_eq!(
+        type_of(&results, result),
+        Some(("Integer".to_string(), false))
+    );
+    assert_eq!(
+        type_of(&results, unmarked),
+        Some(("String".to_string(), false))
+    );
+
+    let plain = symbol(&results, "Plain", SymbolKind::Method);
+    let required = symbol(&results, "required", SymbolKind::Variable);
+    let note = symbol(&results, "note", SymbolKind::Variable);
+    assert_eq!(required.parent_id.as_deref(), Some(plain.id.as_str()));
+    assert_eq!(note.parent_id.as_deref(), Some(plain.id.as_str()));
+    assert_eq!(
+        type_of(&results, required),
+        Some(("Integer".to_string(), false))
+    );
+    assert_eq!(type_of(&results, note), Some(("String".to_string(), false)));
+
+    let attributes: Vec<_> = results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == "vbnet.attribute.v1")
+        .collect();
+    let mut attribute_owners: Vec<_> = attributes
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "attribute_name")
+                    .unwrap_or_default()
+                    .to_string(),
+                fact.containing_symbol_id
+                    .as_deref()
+                    .map(|id| label(&results, id)),
+            )
+        })
+        .collect();
+    attribute_owners.sort();
+    assert_eq!(
+        attribute_owners,
+        vec![
+            ("Obsolete".to_string(), Some("Check:Method".to_string())),
+            ("Out".to_string(), Some("result:Variable".to_string())),
+            ("Out".to_string(), Some("value:Variable".to_string())),
+            ("[In]".to_string(), Some("value:Variable".to_string())),
+        ]
+    );
+}
+
+#[test]
+fn malformed_parameter_attribute_block_reports_parse_error() {
+    let results = extract(
+        "Class C\n    Public Sub M(<[In] ByRef value As Integer)\n    End Sub\nEnd Class\n",
+    );
+
+    assert!(!results.parse_diagnostics.is_empty());
+}
+
+#[test]
+fn parameter_attribute_owners_cover_growing_parameter_lists() {
+    for count in [8, 16, 32] {
+        let parameters = (0..count)
+            .map(|index| format!("<Out> ByRef parameter_{index} As Integer"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let results = extract(&format!(
+            "Class C\n    Public Sub Check({parameters})\n    End Sub\nEnd Class\n"
+        ));
+        let facts: Vec<_> = results
+            .structural_facts
+            .iter()
+            .filter(|fact| fact.pattern_id == "vbnet.attribute.v1")
+            .collect();
+        let mut owners: Vec<_> = facts
+            .iter()
+            .filter_map(|fact| fact.containing_symbol_id.as_deref())
+            .map(|id| label(&results, id))
+            .collect();
+        owners.sort();
+        let mut expected = (0..count)
+            .map(|index| format!("parameter_{index}:Variable"))
+            .collect::<Vec<_>>();
+        expected.sort();
+
+        assert!(
+            results.parse_diagnostics.is_empty(),
+            "{:#?}",
+            results.parse_diagnostics
+        );
+        assert_eq!(facts.len(), count);
+        assert_eq!(owners, expected);
+    }
+}
+
+#[test]
+fn parameter_attribute_owner_index_work_scales_with_symbols_and_attributes() {
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_vb_dotnet::LANGUAGE.into())
+        .expect("Error loading VB.NET grammar");
+    let mut work_by_size = Vec::new();
+
+    for parameter_count in [8, 16, 32] {
+        let parameters = (0..parameter_count)
+            .map(|index| format!("<[In]> <Out> ByRef parameter_{index} As Integer"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let code = format!("Class C\n    Public Sub Check({parameters})\n    End Sub\nEnd Class\n");
+        let tree = parser.parse(&code, None).expect("parse VB.NET source");
+        let results = extract(&code);
+        assert!(
+            results.parse_diagnostics.is_empty(),
+            "{:#?}",
+            results.parse_diagnostics
+        );
+
+        let targets: Vec<_> = (0..parameter_count)
+            .map(|index| {
+                symbol(
+                    &results,
+                    &format!("parameter_{index}"),
+                    SymbolKind::Variable,
+                )
+            })
+            .collect();
+        let mut symbols: Vec<_> = results
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind != SymbolKind::Variable)
+            .cloned()
+            .collect();
+        for target in &targets {
+            for _ in 0..64 {
+                let mut decoy = (*target).clone();
+                decoy.kind = SymbolKind::Method;
+                symbols.push(decoy);
+            }
+            symbols.push((*target).clone());
+        }
+
+        let mut facts: Vec<_> = results
+            .structural_facts
+            .iter()
+            .filter(|fact| fact.pattern_id == "vbnet.attribute.v1")
+            .cloned()
+            .collect();
+        for fact in &mut facts {
+            fact.containing_symbol_id = None;
+        }
+        let work = crate::base::code_structural_facts::attach_vbnet_attribute_owners_counted(
+            &tree, &mut facts, &symbols,
+        );
+
+        let mut owner_counts = std::collections::HashMap::new();
+        for fact in &facts {
+            let owner_id = fact
+                .containing_symbol_id
+                .as_ref()
+                .expect("every parameter attribute has an owner");
+            *owner_counts.entry(owner_id.clone()).or_insert(0usize) += 1;
+        }
+        assert_eq!(facts.len(), parameter_count * 2);
+        assert_eq!(owner_counts.len(), parameter_count);
+        for target in targets {
+            assert_eq!(owner_counts.get(&target.id), Some(&2));
+        }
+        assert_eq!(work.index_insertions, symbols.len());
+        assert_eq!(work.owner_lookups, facts.len());
+        assert_eq!(work.candidate_inspections, symbols.len() + facts.len());
+        work_by_size.push(work);
+    }
+
+    for window in work_by_size.windows(2) {
+        assert_eq!(
+            window[1].index_insertions,
+            window[0].index_insertions * 2 - 2
+        );
+        assert_eq!(window[1].owner_lookups, window[0].owner_lookups * 2);
+        assert_eq!(
+            window[1].candidate_inspections,
+            window[0].candidate_inspections * 2 - 2
+        );
+    }
+}
+
+#[test]
 fn every_type_declaration_keeps_its_attributes_with_arguments() {
     let code = "Namespace Contoso.Tests\n    <TestClass>\n    Public Class FirstTests\n    End Class\n    <TestClass>\n    Public Class HooksOnly\n        <AssemblyInitialize>\n        Public Shared Sub Init(ctx As TestContext)\n        End Sub\n    End Class\n    <ApiController>\n    <Route(\"api/x\")>\n    Public Class SecondController\n    End Class\nEnd Namespace\n<Flags>\nPublic Enum Perm\n    A = 1\nEnd Enum\n<Serializable>\nPublic Structure Pt\nEnd Structure\n<HideModuleName>\nModule Helpers\nEnd Module\n<ComVisible(True)>\nPublic Interface IShape\nEnd Interface\n";
     let results = extract(code);

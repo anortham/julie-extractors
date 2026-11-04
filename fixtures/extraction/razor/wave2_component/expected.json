@@ -475,7 +475,7 @@
         "start_byte": 0,
         "end_byte": 2075
       },
-      "body_hash": "49831f8268fe649f8ac6f199916e7c8f",
+      "body_hash": "029a0af9acdb03fc7c6c8ecbeda962e2",
       "signature": "component Shop.Components.Orders.OrderPage<TItem>",
       "doc_comment": null,
       "visibility": "Public",
@@ -602,7 +602,7 @@
         "start_byte": 1729,
         "end_byte": 1770
       },
-      "body_hash": "87345f55685915fad1cc95c0db21224c",
+      "body_hash": "e851575bb7e291e5ffaf8173e5414e55",
       "signature": "private void Remove(int id)",
       "doc_comment": null,
       "visibility": "Private",
@@ -3857,6 +3857,19 @@
       "end_column": 37,
       "start_byte": 296,
       "end_byte": 303,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/wave2_component/OrderPage.razor",
+      "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Remove:60:4",
+      "start_line": 60,
+      "start_column": 50,
+      "end_line": 60,
+      "end_column": 72,
+      "start_byte": 1747,
+      "end_byte": 1769,
       "metadata": null
     },
     {

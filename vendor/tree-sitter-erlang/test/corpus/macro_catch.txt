@@ -1,0 +1,59 @@
+==================
+Macro catch head
+==================
+handle(Value) ->
+    try Value of
+        ok -> ok;
+        _ -> ok
+    catch
+        ?WITH_STACKTRACE(Class, Reason, Stacktrace)
+            detach(Reason),
+            log(Class, Stacktrace)
+    end.
+
+later() -> ok.
+---
+
+(source_file
+  (fun_decl
+    (function_clause
+      (atom)
+      (expr_args
+        (var))
+      (clause_body
+        (try_expr
+          (var)
+          (cr_clause
+            (atom)
+            (clause_body
+              (atom)))
+          (cr_clause
+            (var)
+            (clause_body
+              (atom)))
+          (catch_clause
+            (macro_call_expr
+              (var)
+              (macro_call_args
+                (macro_expr
+                  (var))
+                (macro_expr
+                  (var))
+                (macro_expr
+                  (var))))
+            (macro_catch_body
+              (call
+                (atom)
+                (expr_args
+                  (var)))
+              (call
+                (atom)
+                (expr_args
+                  (var)
+                  (var)))))))))
+  (fun_decl
+    (function_clause
+      (atom)
+      (expr_args)
+      (clause_body
+        (atom)))))

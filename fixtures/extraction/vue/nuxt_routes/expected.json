@@ -75,15 +75,8 @@
       "end_column": 24,
       "start_byte": 298,
       "end_byte": 316,
-      "body_span": {
-        "start_line": 11,
-        "start_column": 13,
-        "end_line": 11,
-        "end_column": 24,
-        "start_byte": 305,
-        "end_byte": 316
-      },
-      "body_hash": "9684a7697bffce963981161aeb0620de",
+      "body_span": null,
+      "body_hash": null,
       "signature": "const post = { id: 123 }",
       "doc_comment": null,
       "visibility": "Public",

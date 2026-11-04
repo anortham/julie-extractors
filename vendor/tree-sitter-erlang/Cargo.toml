@@ -1,0 +1,21 @@
+[package]
+name = "tree-sitter-erlang"
+version = "0.21.0-julie.1"
+edition = "2018"
+authors = ["Leandro Ostera", "Alan Zimmerman"]
+description = "Locally patched Erlang grammar for Tree-sitter"
+license = "Apache-2.0"
+repository = "https://github.com/WhatsApp/tree-sitter-erlang"
+build = "bindings/rust/build.rs"
+
+[workspace]
+
+[lib]
+name = "tree_sitter_erlang"
+path = "bindings/rust/lib.rs"
+
+[dependencies]
+tree-sitter-language = "0.1"
+
+[build-dependencies]
+cc = "1.2"

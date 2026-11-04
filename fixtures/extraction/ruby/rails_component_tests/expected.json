@@ -12,15 +12,8 @@
       "end_column": 23,
       "start_byte": 99,
       "end_byte": 118,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 17,
-        "end_line": 5,
-        "end_column": 23,
-        "start_byte": 112,
-        "end_byte": 118
-      },
-      "body_hash": "c415329befd3fcd4379ebedc08eddb14",
+      "body_span": null,
+      "body_hash": null,
       "signature": "@user = users(:one)",
       "doc_comment": null,
       "visibility": "Public",

@@ -46,6 +46,8 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
+[workspace]
+
 [dependencies]
 julie-extractors = {{ path = "{extractors_abs_str}" }}
 "#
@@ -202,6 +204,8 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
+[workspace]
+
 [dependencies]
 julie-extractors = {{ path = "{extractors_abs_str}", default-features = false }}
 "#
@@ -241,6 +245,8 @@ name = "julie_extractors_downstream_syntax_smoke"
 version = "0.0.0"
 edition = "2021"
 publish = false
+
+[workspace]
 
 [dependencies]
 julie-extractors = {{ path = "{extractors_abs_str}", default-features = false, features = ["syntax-api"] }}
@@ -282,6 +288,8 @@ name = "julie_extractors_downstream_syntax_smoke"
 version = "0.0.0"
 edition = "2021"
 publish = false
+
+[workspace]
 
 [dependencies]
 julie-extractors = {{ path = "{extractors_abs_str}" }}

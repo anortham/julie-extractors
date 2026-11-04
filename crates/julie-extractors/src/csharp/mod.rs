@@ -145,6 +145,7 @@ impl CSharpExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         let root = tree.root_node();
+        self.base.init_body_hashes(root);
         self.return_types = initializer_types::ReturnTypeIndex::for_csharp(&self.base, root);
         self.walk_tree(root, &mut symbols, None, 0);
         self.ensure_file_scope_symbol(root, &mut symbols);

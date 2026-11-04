@@ -1,0 +1,183 @@
+================================================================================
+T-SQL MERGE using VALUES
+================================================================================
+
+MERGE dbo.AreaRoleDefinitions AS t
+USING (VALUES
+    (N'ser', N'Submitter'),
+    (N'edr', N'Admin')
+) AS s (FormArea, Role)
+ON t.FormArea = s.FormArea AND t.Role = s.Role
+WHEN NOT MATCHED THEN INSERT (FormArea, Role) VALUES (s.FormArea, s.Role);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (merge_statement
+      (keyword_merge)
+      target: (object_reference
+        schema: (identifier)
+        name: (identifier))
+      (keyword_as)
+      target_alias: (identifier)
+      (keyword_using)
+      source: (merge_values_source
+        (values
+          (keyword_values)
+          (list
+            (literal)
+            (literal))
+          (list
+            (literal)
+            (literal)))
+        (keyword_as)
+        source_alias: (identifier)
+        columns: (list
+          (column
+            (identifier))
+          (column
+            (identifier))))
+      (keyword_on)
+      predicate: (binary_expression
+        left: (binary_expression
+          left: (field
+            (object_reference
+              name: (identifier))
+            name: (identifier))
+          right: (field
+            (object_reference
+              name: (identifier))
+            name: (identifier)))
+        operator: (keyword_and)
+        right: (binary_expression
+          left: (field
+            (object_reference
+              name: (identifier))
+            name: (identifier))
+          right: (field
+            (object_reference
+              name: (identifier))
+            name: (identifier))))
+      (when_clause
+        (keyword_when)
+        (keyword_not)
+        (keyword_matched)
+        (keyword_then)
+        (keyword_insert)
+        (list
+          (column
+            (identifier))
+          (column
+            (identifier)))
+        (keyword_values)
+        (list
+          (field
+            (object_reference
+              name: (identifier))
+            name: (identifier))
+          (field
+            (object_reference
+              name: (identifier))
+            name: (identifier)))))))
+
+================================================================================
+Malformed T-SQL MERGE remains diagnostic
+================================================================================
+
+MERGE dbo.Target AS t
+USING (VALUES (1)) AS s (Id)
+ON t.Id = s.Id
+WHEN NOT MATCHED INSERT (Id) VALUES (s.Id);
+
+--------------------------------------------------------------------------------
+
+(program
+  (ERROR
+    (keyword_merge)
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword_as)
+    (identifier)
+    (keyword_using)
+    (merge_values_source
+      (values
+        (keyword_values)
+        (list
+          (literal)))
+      (keyword_as)
+      (identifier)
+      (list
+        (column
+          (identifier))))
+    (keyword_on)
+    (binary_expression
+      (field
+        (object_reference
+          (identifier))
+        (identifier))
+      (field
+        (object_reference
+          (identifier))
+        (identifier)))
+    (keyword_when)
+    (keyword_not)
+    (keyword_matched)
+    (keyword_values)))
+
+================================================================================
+T-SQL MERGE accepts optional INTO
+================================================================================
+
+MERGE INTO dbo.Target t
+USING (VALUES (1)) s (Id)
+ON t.Id = s.Id
+WHEN NOT MATCHED THEN INSERT (Id) VALUES (s.Id);
+
+--------------------------------------------------------------------------------
+
+(program
+  (statement
+    (merge_statement
+      (keyword_merge)
+      (keyword_into)
+      target: (object_reference
+        schema: (identifier)
+        name: (identifier))
+      target_alias: (identifier)
+      (keyword_using)
+      source: (merge_values_source
+        (values
+          (keyword_values)
+          (list
+            (literal)))
+        source_alias: (identifier)
+        columns: (list
+          (column
+            (identifier))))
+      (keyword_on)
+      predicate: (binary_expression
+        left: (field
+          (object_reference
+            name: (identifier))
+          name: (identifier))
+        right: (field
+          (object_reference
+            name: (identifier))
+          name: (identifier)))
+      (when_clause
+        (keyword_when)
+        (keyword_not)
+        (keyword_matched)
+        (keyword_then)
+        (keyword_insert)
+        (list
+          (column
+            (identifier)))
+        (keyword_values)
+        (list
+          (field
+            (object_reference
+              name: (identifier))
+            name: (identifier)))))))

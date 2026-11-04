@@ -66,7 +66,7 @@ fn extract_declaration(
         }
         let name = base.get_node_text(&name_node);
         let signature = base.get_node_text(&child);
-        let symbol = base.create_symbol(
+        let mut symbol = base.create_symbol(
             &child,
             name,
             SymbolKind::Variable,
@@ -76,6 +76,17 @@ fn extract_declaration(
                 ..Default::default()
             },
         );
+        let callable_body = child
+            .child_by_field_name("value")
+            .filter(|value| {
+                matches!(
+                    value.kind(),
+                    "arrow_function" | "function_expression" | "generator_function"
+                )
+            })
+            .and_then(|value| value.child_by_field_name("body"));
+        symbol.body_span = callable_body.map(|body| crate::base::NormalizedSpan::from_node(&body));
+        symbol.body_hash = symbol.body_span.and_then(|body| base.hash_body(body));
         type_facts::record_annotation_type(base, &symbol.id, child, "type");
         if let Some(value) = child.child_by_field_name("value") {
             type_facts::record_new_expression_fact(base, &symbol.id, value);

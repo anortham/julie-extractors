@@ -7,7 +7,7 @@
 //! Rows for an exported declaration carry no signature or doc comment: the
 //! declaration's own symbol has them.
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
@@ -162,6 +162,8 @@ pub(crate) fn extract_export_rows(
             if row.is_type_only {
                 metadata.insert("isTypeOnly".to_string(), json!(true));
             }
+            let body_override =
+                export_body_override(base, node, declaration, source.is_some(), &row);
             let mut row_symbol = base.create_symbol(
                 &node,
                 row.name,
@@ -174,10 +176,69 @@ pub(crate) fn extract_export_rows(
                     ..Default::default()
                 },
             );
+            if let Some(body_span) = body_override {
+                row_symbol.body_span = body_span;
+                row_symbol.body_hash = body_span.and_then(|span| base.hash_body(span));
+            }
             row_symbol.doc_comment = doc_comment.clone();
             row_symbol
         })
         .collect()
+}
+
+fn export_body_override(
+    base: &BaseExtractor,
+    node: Node,
+    declaration: Option<Node>,
+    has_source: bool,
+    row: &ExportRow,
+) -> Option<Option<NormalizedSpan>> {
+    if has_source {
+        return Some(None);
+    }
+    if let Some(declaration) = declaration {
+        let declaration = declaration_of(declaration);
+        if matches!(
+            declaration.kind(),
+            "lexical_declaration" | "variable_declaration"
+        ) {
+            let Some(local_name) = row.local_name.as_deref() else {
+                return Some(None);
+            };
+            let mut cursor = declaration.walk();
+            let value = declaration
+                .named_children(&mut cursor)
+                .find(|declarator| {
+                    declarator.kind() == "variable_declarator"
+                        && declarator
+                            .child_by_field_name("name")
+                            .is_some_and(|name| base.get_node_text(&name) == local_name)
+                })
+                .and_then(|declarator| declarator.child_by_field_name("value"));
+            return Some(value.and_then(callable_or_class_body_span));
+        }
+        return None;
+    }
+    if let Some(value) = node.child_by_field_name("value") {
+        return Some(callable_or_class_body_span(value));
+    }
+    Some(None)
+}
+
+fn callable_or_class_body_span(value: Node) -> Option<NormalizedSpan> {
+    if !matches!(
+        value.kind(),
+        "arrow_function"
+            | "function_expression"
+            | "generator_function"
+            | "class"
+            | "class_expression"
+    ) {
+        return None;
+    }
+    value
+        .child_by_field_name("body")
+        .map(|body| NormalizedSpan::from_node(&body))
 }
 
 /// The names an exported declaration binds. An overload signature binds
@@ -328,7 +389,7 @@ pub(crate) fn dynamic_import_row(
         ("source".to_string(), json!(source.clone())),
         ("isDynamic".to_string(), json!(true)),
     ]);
-    Some(base.create_symbol(
+    let mut symbol = base.create_symbol(
         &call_node,
         source,
         SymbolKind::Import,
@@ -338,7 +399,10 @@ pub(crate) fn dynamic_import_row(
             metadata: Some(metadata),
             ..Default::default()
         },
-    ))
+    );
+    symbol.body_span = None;
+    symbol.body_hash = None;
+    Some(symbol)
 }
 
 /// Local names a module exports without an `export` wrapper on their

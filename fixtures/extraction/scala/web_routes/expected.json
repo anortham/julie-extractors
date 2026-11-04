@@ -20,7 +20,7 @@
         "start_byte": 894,
         "end_byte": 1309
       },
-      "body_hash": "0e5145ff6e653b0775d9996dfec8cd0a",
+      "body_hash": "1bc69c69134fe48e4c47e9ea6f0737cb",
       "signature": "class Clients(ws: WSClient, other: Other)",
       "doc_comment": null,
       "visibility": "Public",
@@ -54,7 +54,7 @@
         "start_byte": 601,
         "end_byte": 850
       },
-      "body_hash": "c303a2869ad4594cfb8e656455adcbbd",
+      "body_hash": "66b638e914aa4606f37c6a058bcea46c",
       "signature": "object Http4sRoutes",
       "doc_comment": null,
       "visibility": "Public",
@@ -392,7 +392,7 @@
         "start_byte": 636,
         "end_byte": 848
       },
-      "body_hash": "e03c7d6a31cb0e49a926279fabb01e78",
+      "body_hash": "70c83400886d3fdbea507c0c67bd2cb0",
       "signature": "val routes",
       "doc_comment": null,
       "visibility": "Public",
@@ -516,7 +516,7 @@
         "start_byte": 1187,
         "end_byte": 1243
       },
-      "body_hash": "3e6ed0eff43a60d136a129280f714157",
+      "body_hash": "27f32739b2b7b8f91287ac57cd370ae0",
       "signature": "def user(id: Int)",
       "doc_comment": null,
       "visibility": "Public",

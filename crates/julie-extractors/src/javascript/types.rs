@@ -193,7 +193,7 @@ impl super::JavaScriptExtractor {
         } else {
             self.extract_decorator_annotations(node)
         };
-        let symbol = self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             name,
             symbol_kind,
@@ -206,6 +206,8 @@ impl super::JavaScriptExtractor {
                 annotations,
             },
         );
+        symbol.body_span = None;
+        symbol.body_hash = None;
         if let Some(value) = value_node {
             super::type_facts::record_new_expression_fact(
                 &mut self.base,

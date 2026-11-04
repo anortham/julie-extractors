@@ -858,7 +858,7 @@ fn record_inferred_rhs(
     }
 }
 
-fn value_core(value: Node, depth: u32) -> Option<Node> {
+pub(super) fn value_core(value: Node, depth: u32) -> Option<Node> {
     if !should_visit_tree_depth(depth) {
         return None;
     }

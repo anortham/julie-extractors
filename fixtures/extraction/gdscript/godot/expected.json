@@ -332,15 +332,8 @@
       "end_column": 34,
       "start_byte": 101,
       "end_byte": 135,
-      "body_span": {
-        "start_line": 7,
-        "start_column": 22,
-        "end_line": 7,
-        "end_column": 34,
-        "start_byte": 123,
-        "end_byte": 135
-      },
-      "body_hash": "d4b4c94819ad1979033ca726b11628d6",
+      "body_span": null,
+      "body_hash": null,
       "signature": "signal _health_changed(value: int)",
       "doc_comment": null,
       "visibility": "Private",

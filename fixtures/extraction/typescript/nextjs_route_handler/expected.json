@@ -161,15 +161,8 @@
       "end_column": 43,
       "start_byte": 0,
       "end_byte": 43,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 7,
-        "end_line": 1,
-        "end_column": 23,
-        "start_byte": 7,
-        "end_byte": 23
-      },
-      "body_hash": "6fdd22e67d3a5db3b6c2ab990721b389",
+      "body_span": null,
+      "body_hash": null,
       "signature": "import { NextResponse } from \"next/server\";",
       "doc_comment": null,
       "visibility": null,

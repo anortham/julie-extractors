@@ -3,7 +3,7 @@
 Use this checklist when adding a language, adding a language variant, or
 upgrading a language claim from partial/domain-limited to fuller support.
 
-## 1. Define The Public Claim
+## 1. Define the public claim
 
 - Pick the canonical language name. Use lower-case snake case or the existing
   registry style.
@@ -16,7 +16,7 @@ upgrading a language claim from partial/domain-limited to fuller support.
 - Write down any domain-limited false capabilities before coding. Each one needs
   a typed exception in `fixtures/extraction/capabilities.json`.
 
-## 2. Wire The Parser And Registry
+## 2. Wire the parser and registry
 
 - Add the parser dependency in `crates/julie-extractors/Cargo.toml`.
 - Add the parser function and `LanguageSpec` row in
@@ -64,7 +64,7 @@ that fail for any new language until they are updated:
   code-kb at query time; see the [retired coverage contract](../contracts/reference-resolution-coverage-v1.md)
   and [retirement decision](../decisions/2026-08-18-resolution-write-path-retirement.md).
 
-## 3. Implement Extraction By Data Domain
+## 3. Implement extraction by data domain
 
 Implement every domain the language claims:
 
@@ -98,7 +98,7 @@ Implement every domain the language claims:
 Do not set a capability to true because the extractor returns an empty vector for
 that domain. True means useful rows are emitted and verified.
 
-## 4. Add Capability Matrix Evidence
+## 4. Add capability matrix evidence
 
 Update `fixtures/extraction/capabilities.json`:
 
@@ -113,7 +113,17 @@ Update `fixtures/extraction/capabilities.json`:
 - Add `capability_gaps` only for real open gaps or true domain/parser
   exceptions. Every row needs typed evidence.
 
-## 5. Add Golden Fixtures
+Add one cell per observed domain to `fixtures/extraction/validation-matrix.json`.
+Supported cells need exact positive and negative/boundary assertions; absent
+domains need a source-backed classification. Preserve retained gap identities
+and record fixes in their primary cells. Regenerate the Markdown view with
+`node scripts/check-language-coverage-matrix.mjs --markdown <path>` using the path in CI.
+
+Add a pinned real-source sample to `fixtures/real-world/coverage-manifest.json`
+with its immutable revision, content hash, license evidence and persisted-fact
+assertions. Variants and wrappers need their own native evidence.
+
+## 5. Add golden fixtures
 
 Add fixtures under `fixtures/extraction/<language>/`.
 
@@ -134,7 +144,7 @@ Each fixture needs:
 - No smoke-only expected data. Empty arrays are valid only when the capability is
   false or the specific fixture is proving absence.
 
-## 6. Add Focused Tests
+## 6. Add focused tests
 
 Add narrow tests under `crates/julie-extractors/src/tests/<language>/`.
 
@@ -156,7 +166,7 @@ Required tests when applicable:
 Every test must assert returned values. Do not add no-assertion tests, smoke-only
 tests, placeholder tests, or tests that only prove the extractor does not panic.
 
-## 7. Verify Before Claiming Support
+## 7. Verify before claiming support
 
 Run these gates:
 
@@ -167,6 +177,9 @@ cargo xtask test capability
 cargo xtask test changed crates/julie-extractors/src/language_spec/specs.rs fixtures/extraction/capabilities.json
 cargo run -p julie-extract-cli -- languages --json
 node scripts/language-data-quality-report.mjs --strict
+node scripts/language-data-quality-report.mjs --strict --check-applicability
+node scripts/check-language-coverage-matrix.mjs
+cargo xtask coverage --language <language> --binary <built-binary>
 ```
 
 If parser dependencies changed, run the certification gate:
@@ -187,18 +200,21 @@ evidence. The evidence should include row counts, failed files, parse
 diagnostics, and before/after deltas for the domains being upgraded. Dogfood
 evidence does not replace fixture-backed assertions.
 
-## 8. Update Public Docs
+## 8. Update public docs
 
 - Update `README.md` only when the human-facing summary needs to change.
-- Update `docs/contracts/extracted-data-v3.md` when a new row domain or support
+- Update `docs/contracts/cli.md` when a command, flag, report, or exit behavior
+  changes.
+- Update `docs/contracts/extracted-data-v4.md` when a new row domain or support
   label is introduced.
-- Update `docs/contracts/sqlite-schema-v3.md`, `docs/contracts/jsonl-v3.md`, and
-  `docs/contracts/reports.md` before changing artifact or report shape.
+- Update `docs/contracts/sqlite-schema-v8.md` and `docs/contracts/reports.md`
+  before changing SQLite artifact or report shape. SQLite is the only durable
+  output.
 - Update `docs/testing-strategy.md` before changing test-tier behavior.
 - Record major architecture or product decisions under `docs/decisions/`,
   `docs/architecture/`, or `docs/plans/`.
 
-## 9. Review The Claim
+## 9. Review the claim
 
 Before merging, answer these review questions:
 

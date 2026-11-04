@@ -68,6 +68,15 @@ fn body_text<'a>(source: &'a str, symbol: &Symbol) -> Option<&'a str> {
     source.get(span.start_byte as usize..span.end_byte as usize)
 }
 
+fn assert_body(source: &str, symbol: &Symbol, expected: &str, expected_hash: &str) {
+    let span = symbol.body_span.expect("body span");
+    let start = source.find(expected).expect("body text in source");
+    assert_eq!(span.start_byte as usize, start);
+    assert_eq!(span.end_byte as usize, start + expected.len());
+    assert_eq!(body_text(source, symbol), Some(expected));
+    assert_eq!(symbol.body_hash.as_deref(), Some(expected_hash));
+}
+
 #[test]
 fn wrapped_commands_and_trap_handlers_call_their_target() {
     let source = r#"cleanup() { rm -rf "$TMP"; }
@@ -236,6 +245,19 @@ collect() {
         );
     }
     assert_eq!(one(&result, "LAST_RUN").parent_id, None);
+    for name in [
+        "HANDLERS", "LAST_RUN", "SENTINEL", "result", "parts", "a", "c",
+    ] {
+        let symbol = one(&result, name);
+        assert_eq!(symbol.body_span, None, "{name}");
+        assert_eq!(symbol.body_hash, None, "{name}");
+    }
+    assert_body(
+        source,
+        one(&result, "b"),
+        "2",
+        "c81e728d9d4c2f636f067f89cc14862c",
+    );
     let handlers = one(&result, "HANDLERS");
     assert_eq!(handlers.kind, SymbolKind::Variable);
     assert_eq!(
@@ -354,10 +376,18 @@ outer() {
     assert!(params_of("usage").is_empty());
     assert_eq!(params_of("helper"), vec!["$1", "$2"]);
     assert!(params_of("outer").is_empty());
+    for parameter in result
+        .symbols
+        .iter()
+        .filter(|symbol| meta(symbol, "role") == Some("parameter"))
+    {
+        assert_eq!(parameter.body_span, None, "{}", parameter.name);
+        assert_eq!(parameter.body_hash, None, "{}", parameter.name);
+    }
 }
 
 #[test]
-fn body_spans_come_from_the_grammar() {
+fn assignment_bodies_keep_their_values_and_imports_have_none() {
     let source = r#"greet() {
     local name="${1:-world}"
 }
@@ -365,18 +395,109 @@ source "${BASH_SOURCE%/*}/lib/strings.sh"
 total=$((total + 1))
 "#;
     let result = extract("spans.sh", source);
-    assert_eq!(
-        body_text(source, one(&result, "name")),
-        Some("\"${1:-world}\"")
+    assert_body(
+        source,
+        one(&result, "name"),
+        "\"${1:-world}\"",
+        "d569fb6bcdbdd494bb84d519b7b17924",
     );
-    assert_eq!(body_text(source, one(&result, "strings")), None);
-    assert_eq!(
-        body_text(source, one(&result, "total")),
-        Some("$((total + 1))")
+    assert_eq!(one(&result, "strings").body_span, None);
+    assert_eq!(one(&result, "strings").body_hash, None);
+    assert_body(
+        source,
+        one(&result, "total"),
+        "$((total + 1))",
+        "d65bd56773c0dcaa9003fd49f135c6ad",
+    );
+    assert_body(
+        source,
+        one(&result, "greet"),
+        "{\n    local name=\"${1:-world}\"\n}",
+        "70a1f17fb55fb1b184c4d0c3633611a4",
+    );
+}
+
+#[test]
+fn assignment_values_and_function_bodies_keep_exact_spans_and_hashes() {
+    let source = r#"run() {
+    readonly MAX=3
+    MAX_RETRIES=4
+    count=5
+    readonly count
+    items=(web1 web2)
+    result=$(printf '%s' "${items[0]}")
+    printf '%s' "$result"
+}
+"#;
+    let result = extract("variable_bodies.sh", source);
+    let max = one(&result, "MAX");
+    let retries = one(&result, "MAX_RETRIES");
+    let count = one(&result, "count");
+    let items = one(&result, "items");
+    let output = one(&result, "result");
+    let run = one(&result, "run");
+
+    assert_body(source, max, "3", "eccbc87e4b5ce2fe28308fd9f2a7baf3");
+    assert_body(source, retries, "4", "a87ff679a2f3e71d9181a67b7542122c");
+    assert_eq!(count.kind, SymbolKind::Constant);
+    assert_body(source, count, "5", "e4da3b7fbbce2345d7772b0674a318d5");
+    assert_body(
+        source,
+        items,
+        "(web1 web2)",
+        "8da0acd205795f819cf61f6b3effa668",
+    );
+    assert_body(
+        source,
+        output,
+        "$(printf '%s' \"${items[0]}\")",
+        "4c80ee27d845b10221c72bbf3849458f",
+    );
+    assert_body(
+        source,
+        run,
+        "{\n    readonly MAX=3\n    MAX_RETRIES=4\n    count=5\n    readonly count\n    items=(web1 web2)\n    result=$(printf '%s' \"${items[0]}\")\n    printf '%s' \"$result\"\n}",
+        "0eca46b7180751b129c268f56806f54f",
     );
     assert_eq!(
-        body_text(source, one(&result, "greet")),
-        Some("{\n    local name=\"${1:-world}\"\n}")
+        result
+            .types
+            .get(&items.id)
+            .map(|fact| fact.resolved_type.as_str()),
+        Some("array")
+    );
+    assert_eq!(
+        result
+            .types
+            .get(&max.id)
+            .map(|fact| fact.resolved_type.as_str()),
+        Some("integer")
+    );
+    assert_eq!(
+        result
+            .types
+            .get(&count.id)
+            .map(|fact| fact.resolved_type.as_str()),
+        Some("integer")
+    );
+}
+
+#[test]
+fn type_facts_apply_to_variable_declarations_not_functions() {
+    let result = extract(
+        "types.sh",
+        "run() { local retries=3; echo \"$retries\"; }\n",
+    );
+    let run = one(&result, "run");
+    let retries = one(&result, "retries");
+
+    assert_eq!(result.types.get(&run.id), None);
+    assert_eq!(
+        result
+            .types
+            .get(&retries.id)
+            .map(|fact| fact.resolved_type.as_str()),
+        Some("integer")
     );
 }
 

@@ -85,7 +85,7 @@
         "start_byte": 0,
         "end_byte": 228
       },
-      "body_hash": "87ccc6a1109559ab8390a59948acea23",
+      "body_hash": "ddb49b28b09901cdfdeab4bc43446226",
       "signature": "component App.Shared.Panel",
       "doc_comment": null,
       "visibility": "Public",

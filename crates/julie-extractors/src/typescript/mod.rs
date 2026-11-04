@@ -142,6 +142,7 @@ impl TypeScriptExtractor {
 
     /// Extract all symbols from the syntax tree
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         symbols::extract_symbols(self, tree)
     }
 

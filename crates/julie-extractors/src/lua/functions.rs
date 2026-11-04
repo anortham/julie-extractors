@@ -8,7 +8,7 @@ use super::scope;
 /// - Local functions: `local function name() end`
 /// - Methods with colon syntax: `function obj:method() end`
 /// - Methods with dot syntax: `function obj.method() end`
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -38,6 +38,11 @@ fn build_function_signature(base: &BaseExtractor, node: Node, name_node: Node) -
         base.get_node_text(&name_node).trim(),
         parameters
     ))
+}
+
+pub(super) fn lua_function_body_span(node: &Node) -> Option<NormalizedSpan> {
+    let body = node.child_by_field_name("body")?;
+    (body.start_byte() < body.end_byte()).then(|| NormalizedSpan::from_node(&body))
 }
 
 /// Extract regular function definition statement
@@ -111,7 +116,8 @@ pub(super) fn extract_function_definition_statement(
         },
     };
 
-    let symbol = base.create_symbol(&node, name, kind, options);
+    let mut symbol = base.create_symbol(&node, name, kind, options);
+    base.set_body_span(&mut symbol, lua_function_body_span(&node));
     symbols.push(symbol.clone());
     symbols.extend(parameters::extract_parameter_symbols(
         base, node, &symbol.id,
@@ -144,7 +150,8 @@ pub(super) fn extract_local_function_definition_statement(
         ..Default::default()
     };
 
-    let symbol = base.create_symbol(&node, name, SymbolKind::Function, options);
+    let mut symbol = base.create_symbol(&node, name, SymbolKind::Function, options);
+    base.set_body_span(&mut symbol, lua_function_body_span(&node));
     symbols.push(symbol.clone());
     symbols.extend(parameters::extract_parameter_symbols(
         base, node, &symbol.id,

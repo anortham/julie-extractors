@@ -812,15 +812,8 @@
       "end_column": 24,
       "start_byte": 1003,
       "end_byte": 1016,
-      "body_span": {
-        "start_line": 53,
-        "start_column": 18,
-        "end_line": 53,
-        "end_column": 20,
-        "start_byte": 1010,
-        "end_byte": 1012
-      },
-      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "body_span": null,
+      "body_hash": null,
       "signature": "%Worker{} = w",
       "doc_comment": null,
       "visibility": null,

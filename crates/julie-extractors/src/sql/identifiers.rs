@@ -54,7 +54,11 @@ fn is_named_argument(field: tree_sitter::Node) -> bool {
 fn is_variable_declaration(parent: &str) -> bool {
     matches!(
         parent,
-        "function_argument" | "var_declaration" | "function_declaration" | "declare_statement"
+        "function_argument"
+            | "tsql_parameter"
+            | "var_declaration"
+            | "function_declaration"
+            | "declare_statement"
     )
 }
 

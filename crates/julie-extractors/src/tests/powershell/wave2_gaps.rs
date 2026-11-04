@@ -119,6 +119,46 @@ Describe 'widget' {
 }
 
 #[test]
+fn nested_function_bodies_keep_exact_spans_hashes_and_owners() {
+    let source = "function Outer {\n    Write-Output 'outer-before'\n    function Inner {\n        Write-Output 'inner'\n    }\n    Write-Output 'outer-after'\n}\n$outside = 'outside'\n";
+    let result = extract("nested-bodies.ps1", source);
+    let outer = symbol(&result, "Outer", SymbolKind::Function);
+    let inner = symbol(&result, "Inner", SymbolKind::Function);
+    let outer_body = "{\n    Write-Output 'outer-before'\n    function Inner {\n        Write-Output 'inner'\n    }\n    Write-Output 'outer-after'\n}";
+    let inner_body = "{\n        Write-Output 'inner'\n    }";
+    let outer_start = source.find(outer_body).unwrap();
+    let inner_start = source.find(inner_body).unwrap();
+    let outer_span = outer.body_span.as_ref().expect("outer body span");
+    let inner_span = inner.body_span.as_ref().expect("inner body span");
+
+    assert_eq!(
+        (outer_span.start_byte, outer_span.end_byte),
+        (outer_start as u32, (outer_start + outer_body.len()) as u32)
+    );
+    assert_eq!(
+        (inner_span.start_byte, inner_span.end_byte),
+        (inner_start as u32, (inner_start + inner_body.len()) as u32)
+    );
+    assert_eq!(
+        &source[outer_span.start_byte as usize..outer_span.end_byte as usize],
+        outer_body
+    );
+    assert_eq!(
+        &source[inner_span.start_byte as usize..inner_span.end_byte as usize],
+        inner_body
+    );
+    assert_eq!(inner.parent_id.as_deref(), Some(outer.id.as_str()));
+    assert_eq!(
+        outer.body_hash.as_deref(),
+        Some("641713f60043a3ec30e49d696bf6fc99")
+    );
+    assert_eq!(
+        inner.body_hash.as_deref(),
+        Some("64a8e647751d72a85ac0e9a8a74b3fcf")
+    );
+}
+
+#[test]
 fn script_level_param_block_declares_file_scope_parameters() {
     let result = extract(
         "deploy.ps1",
@@ -429,13 +469,21 @@ foreach ($f in $files) { . $f.FullName }
         "Tools",
         "Az.Storage",
         "xWebAdministration",
-        "Common",
     ] {
         assert!(
             imports.contains(&expected.to_string()),
             "{expected}: {imports:?}"
         );
     }
+    let calls = call_names(&result);
+    assert!(calls.contains(&"Join-Path".to_string()), "{calls:?}");
+    assert!(
+        result.literals.iter().any(|literal| {
+            literal.literal_text == "Common.ps1" && literal.carrier.as_deref() == Some("Join-Path")
+        }),
+        "{:?}",
+        result.literals
+    );
     assert!(
         !imports.iter().any(|name| name.contains('$') || name == "."),
         "{imports:?}"

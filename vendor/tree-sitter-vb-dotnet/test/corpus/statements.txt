@@ -1,0 +1,1797 @@
+==================
+If block statement
+==================
+
+Module M
+    Sub Main()
+        If x > 0 Then
+            Print("positive")
+        End If
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (binary_expression
+            (identifier)
+            (integer_literal))
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (string_literal))))))))))
+
+==================
+If ElseIf Else statement
+==================
+
+Module M
+    Sub Main()
+        If x > 0 Then
+            Print("positive")
+        ElseIf x < 0 Then
+            Print("negative")
+        Else
+            Print("zero")
+        End If
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (binary_expression
+            (identifier)
+            (integer_literal))
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (string_literal)))))
+          (elseif_clause
+            (binary_expression
+              (identifier)
+              (integer_literal))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal))))))
+          (else_clause
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal)))))))))))
+
+==================
+Single-line If statement
+==================
+
+Module M
+    Sub Main()
+        If x > 0 Then Print("positive")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (binary_expression
+            (identifier)
+            (integer_literal))
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))
+        (empty_statement)))))
+
+==================
+Single-line If Else statement
+==================
+
+Module M
+    Sub Main()
+        If x > 0 Then Print("pos") Else Print("neg")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (binary_expression
+            (identifier)
+            (integer_literal))
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal))))
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))
+        (empty_statement)))))
+
+==================
+Select Case with simple values
+==================
+
+Module M
+    Sub Main()
+        Select Case day
+            Case 1
+                Print("Mon")
+            Case 2
+                Print("Tue")
+            Case Else
+                Print("other")
+        End Select
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (select_case_statement
+          (identifier)
+          (case_block
+            (case_clause
+              (integer_literal))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal))))))
+          (case_block
+            (case_clause
+              (integer_literal))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal))))))
+          (case_else_block
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal)))))))))))
+
+==================
+Select Case with range
+==================
+
+Module M
+    Sub Main()
+        Select Case score
+            Case 0 To 59
+                grade = "F"
+            Case 60 To 69
+                grade = "D"
+            Case 70 To 79
+                grade = "C"
+            Case Else
+                grade = "A"
+        End Select
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (select_case_statement
+          (identifier)
+          (case_block
+            (case_clause
+              (integer_literal)
+              (integer_literal))
+            (call_statement
+              (binary_expression
+                (identifier)
+                (string_literal))))
+          (case_block
+            (case_clause
+              (integer_literal)
+              (integer_literal))
+            (call_statement
+              (binary_expression
+                (identifier)
+                (string_literal))))
+          (case_block
+            (case_clause
+              (integer_literal)
+              (integer_literal))
+            (call_statement
+              (binary_expression
+                (identifier)
+                (string_literal))))
+          (case_else_block
+            (call_statement
+              (binary_expression
+                (identifier)
+                (string_literal)))))))))
+
+==================
+Select Case with Is comparison
+==================
+
+Module M
+    Sub Main()
+        Select Case n
+            Case Is < 0
+                sign = -1
+            Case Is > 0
+                sign = 1
+            Case Else
+                sign = 0
+        End Select
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (select_case_statement
+          (identifier)
+          (case_block
+            (case_clause
+              (relational_operator)
+              (integer_literal))
+            (call_statement
+              (binary_expression
+                (identifier)
+                (unary_expression
+                  (integer_literal)))))
+          (case_block
+            (case_clause
+              (relational_operator)
+              (integer_literal))
+            (call_statement
+              (binary_expression
+                (identifier)
+                (integer_literal))))
+          (case_else_block
+            (call_statement
+              (binary_expression
+                (identifier)
+                (integer_literal)))))))))
+
+==================
+For loop with Step
+==================
+
+Module M
+    Sub Main()
+        For i = 1 To 10 Step 2
+            Print(i)
+        Next
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (for_statement
+          (identifier)
+          (integer_literal)
+          (integer_literal)
+          (integer_literal)
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (identifier))))))))))
+
+==================
+For loop with Next variable
+==================
+
+Module M
+    Sub Main()
+        For i = 1 To 10
+            Print(i)
+        Next i
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (for_statement
+          (identifier)
+          (integer_literal)
+          (integer_literal)
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (identifier)))))
+          (identifier))))))
+
+==================
+For loop with As clause
+==================
+
+Module M
+    Sub Main()
+        For i As Integer = 1 To count
+            total += i
+        Next
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (for_statement
+          (identifier)
+          (as_clause
+            (primitive_type))
+          (integer_literal)
+          (identifier)
+          (compound_assignment_statement
+            (left_hand_side
+              (identifier))
+            (identifier)))))))
+
+==================
+For Each loop
+==================
+
+Module M
+    Sub Main()
+        For Each item In items
+            Process(item)
+        Next
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (for_each_statement
+          (identifier)
+          (identifier)
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (identifier))))))))))
+
+==================
+For Each with As clause
+==================
+
+Module M
+    Sub Main()
+        For Each item As String In items
+            Print(item)
+        Next
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (for_each_statement
+          (identifier)
+          (as_clause
+            (primitive_type))
+          (identifier)
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (identifier))))))))))
+
+==================
+While loop
+==================
+
+Module M
+    Sub Main()
+        While x > 0
+            x -= 1
+        End While
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (while_statement
+          (binary_expression
+            (identifier)
+            (integer_literal))
+          (compound_assignment_statement
+            (left_hand_side
+              (identifier))
+            (integer_literal)))))))
+
+==================
+Do Loop Until
+==================
+
+Module M
+    Sub Main()
+        Do
+            Advance()
+        Loop Until done
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (do_statement
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list)))
+          (identifier))))))
+
+==================
+Do Loop While
+==================
+
+Module M
+    Sub Main()
+        Do
+            Advance()
+        Loop While More()
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (do_statement
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list)))
+          (invocation
+            (identifier)
+            (argument_list)))))))
+
+==================
+Do While Loop
+==================
+
+Module M
+    Sub Main()
+        Do While x > 0
+            x -= 1
+        Loop
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (do_statement
+          (binary_expression
+            (identifier)
+            (integer_literal))
+          (compound_assignment_statement
+            (left_hand_side
+              (identifier))
+            (integer_literal)))))))
+
+==================
+Do Until Loop
+==================
+
+Module M
+    Sub Main()
+        Do Until done
+            Advance()
+        Loop
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (do_statement
+          (identifier)
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list))))))))
+
+==================
+Try Catch
+==================
+
+Module M
+    Sub Main()
+        Try
+            DoWork()
+        Catch ex As Exception
+            Log(ex.Message)
+        End Try
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (try_statement
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list)))
+          (catch_block
+            (identifier)
+            (namespace_name
+              (identifier))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (member_access
+                      (identifier)
+                      (identifier))))))))))))
+
+==================
+Try Catch Finally
+==================
+
+Module M
+    Sub Main()
+        Try
+            Open()
+            DoWork()
+        Catch ex As IOException
+            Log("IO error")
+        Catch ex As Exception
+            Log("other")
+        Finally
+            Close()
+        End Try
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (try_statement
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list)))
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list)))
+          (catch_block
+            (identifier)
+            (namespace_name
+              (identifier))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal))))))
+          (catch_block
+            (identifier)
+            (namespace_name
+              (identifier))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal))))))
+          (finally_block
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list)))))))))
+
+==================
+Try Catch with When filter
+==================
+
+Module M
+    Sub Main()
+        Try
+            Work()
+        Catch ex As Exception When ex.Message.Contains("retry")
+            Retry()
+        End Try
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (try_statement
+          (call_statement
+            (invocation
+              (identifier)
+              (argument_list)))
+          (catch_block
+            (identifier)
+            (namespace_name
+              (identifier))
+            (invocation
+              (member_access
+                (member_access
+                  (identifier)
+                  (identifier))
+                (identifier))
+              (argument_list
+                (argument
+                  (string_literal))))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list)))))))))
+
+==================
+With statement
+==================
+
+Module M
+    Sub Main()
+        With customer
+            .FirstName = "Ada"
+            .LastName = "Lovelace"
+        End With
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (with_statement
+          (identifier)
+          (assignment_statement
+            (left_hand_side
+              (implicit_member_access
+                (identifier)))
+            (string_literal))
+          (call_statement
+            (binary_expression
+              (implicit_member_access
+                (identifier))
+              (string_literal))))))))
+
+==================
+Using statement with assignment
+==================
+
+Module M
+    Sub Main()
+        Using scope As TransactionScope = CreateScope()
+            scope.Complete()
+        End Using
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (using_statement
+          (identifier)
+          (as_clause
+            (namespace_name
+              (identifier)))
+          (invocation
+            (identifier)
+            (argument_list))
+          (call_statement
+            (invocation
+              (member_access
+                (identifier)
+                (identifier))
+              (argument_list))))))))
+
+==================
+SyncLock statement
+==================
+
+Module M
+    Sub Main()
+        SyncLock lockObj
+            counter += 1
+        End SyncLock
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (sync_lock_statement
+          (identifier)
+          (compound_assignment_statement
+            (left_hand_side
+              (identifier))
+            (integer_literal)))))))
+
+==================
+Return statement
+==================
+
+Module M
+    Function F() As Integer
+        Return 42
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (primitive_type)
+        (return_statement
+          (integer_literal))))))
+
+==================
+Exit statements
+==================
+
+Module M
+    Sub Main()
+        For i = 1 To 10
+            If done Then Exit For
+        Next
+        Do
+            Exit Do
+        Loop
+        While True
+            Exit While
+        End While
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (for_statement
+          (identifier)
+          (integer_literal)
+          (integer_literal)
+          (if_statement
+            (identifier)
+            (exit_statement)))
+        (do_statement
+          (exit_statement))
+        (while_statement
+          (boolean_literal)
+          (exit_statement))))))
+
+==================
+Continue statements
+==================
+
+Module M
+    Sub Main()
+        For i = 1 To 10
+            If skip Then Continue For
+        Next
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (for_statement
+          (identifier)
+          (integer_literal)
+          (integer_literal)
+          (if_statement
+            (identifier)
+            (continue_statement)))))))
+
+==================
+Throw statement
+==================
+
+Module M
+    Sub Main()
+        Throw New Exception("boom")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (throw_statement
+          (element_access
+            (new_expression
+              (namespace_name
+                (identifier)))
+            (string_literal)))))))
+
+==================
+GoTo and label
+==================
+
+Module M
+    Sub Main()
+        GoTo MyLabel
+MyLabel:
+        Print("jumped")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (goto_statement
+          (identifier))
+        (label_statement
+          (identifier))
+        (empty_statement)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))))))
+
+==================
+ReDim statement
+==================
+
+Module M
+    Sub Main()
+        ReDim xs(10)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (redim_statement
+          (identifier)
+          (re_dim_clause
+            (integer_literal)))))))
+
+==================
+ReDim Preserve
+==================
+
+Module M
+    Sub Main()
+        ReDim Preserve xs(20)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (redim_statement
+          (identifier)
+          (re_dim_clause
+            (integer_literal)))))))
+
+==================
+Yield statement
+==================
+
+Module M
+    Iterator Function GetNumbers() As IEnumerable(Of Integer)
+        Yield 1
+        Yield 2
+        Yield 3
+    End Function
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (generic_type
+          (namespace_name
+            (identifier))
+          (type_argument_list
+            (primitive_type)))
+        (yield_statement
+          (integer_literal))
+        (yield_statement
+          (integer_literal))
+        (yield_statement
+          (integer_literal))))))
+
+==================
+Using statement with As New constructor args
+==================
+
+Module M
+    Sub Main()
+        Using reader As New StreamReader(path)
+            Dim line = reader.ReadLine()
+        End Using
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (using_statement
+          (identifier)
+          (new_expression
+            (array_type
+              (namespace_name
+                (identifier))
+              (array_rank_specifier
+                (identifier))))
+          (dim_statement
+            (identifier)
+            (invocation
+              (member_access
+                (identifier)
+                (identifier))
+              (argument_list))))))))
+
+==================
+Select Case with comment before first Case
+==================
+
+Module M
+    Sub Main()
+        Select Case scheduleType
+            ' primary schedule types
+            Case "UTA"
+                Process("uta")
+            Case "RES"
+                Process("res")
+        End Select
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (select_case_statement
+          (identifier)
+          (comment)
+          (blank_line)
+          (case_block
+            (case_clause
+              (string_literal))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal))))))
+          (case_block
+            (case_clause
+              (string_literal))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (string_literal)))))))))))
+
+==================
+Select Case with blank lines between cases
+==================
+
+Module M
+    Sub Main()
+        Select Case x
+            Case 1
+                One()
+
+            Case 2
+                Two()
+
+            Case Else
+                Other()
+        End Select
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (select_case_statement
+          (identifier)
+          (case_block
+            (case_clause
+              (integer_literal))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list)))
+            (empty_statement))
+          (case_block
+            (case_clause
+              (integer_literal))
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list)))
+            (empty_statement))
+          (case_else_block
+            (call_statement
+              (invocation
+                (identifier)
+                (argument_list)))))))))
+
+==================
+Compound assignment with invocation left-hand side
+==================
+
+Module M
+    Sub Main()
+        dr("ColumnName") &= " suffix"
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (compound_assignment_statement
+          (left_hand_side
+            (invocation
+              (identifier)
+              (argument_list
+                (argument
+                  (string_literal)))))
+          (string_literal))))))
+
+==================
+Stop statement
+==================
+
+Module M
+    Sub Main()
+        Stop
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (stop_statement)))))
+
+==================
+End statement
+==================
+
+Module M
+    Sub Main()
+        End
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (end_statement)))))
+
+==================
+Stop in conditional
+==================
+
+Module M
+    Sub Main()
+        If debug Then Stop
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_statement
+          (identifier)
+          (stop_statement))))))
+
+==================
+End in error handler
+==================
+
+Module M
+    Sub Main()
+        On Error GoTo ErrHandler
+        Exit Sub
+ErrHandler:
+        End
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (on_error_statement
+          (identifier))
+        (exit_statement)
+        (label_statement
+          (identifier))
+        (empty_statement)
+        (end_statement)))))
+
+==================
+Erase statement
+==================
+
+Module M
+    Sub Main()
+        Dim arr(10) As Integer
+        Erase arr
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (array_rank_specifier
+            (integer_literal))
+          (as_clause
+            (primitive_type)))
+        (erase_statement
+          (identifier))))))
+
+==================
+RemoveHandler statement
+==================
+
+Class C
+    WithEvents btn As Object
+
+    Sub Detach()
+        RemoveHandler btn.Click, AddressOf HandleClick
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (primitive_type))))
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (remove_handler_statement
+          (member_access
+            (identifier)
+            (identifier))
+          (unary_expression
+            (identifier)))))))
+
+==================
+Exit Select statement
+==================
+
+Module M
+    Sub Main()
+        Select Case x
+            Case 1
+                Exit Select
+            Case Else
+                Exit Select
+        End Select
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (select_case_statement
+          (identifier)
+          (case_block
+            (case_clause
+              (integer_literal))
+            (exit_statement))
+          (case_else_block
+            (exit_statement)))))))
+
+==================
+Exit Try statement
+==================
+
+Module M
+    Sub Main()
+        Try
+            Exit Try
+        Catch ex As Exception
+        End Try
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (try_statement
+          (exit_statement)
+          (catch_block
+            (identifier)
+            (namespace_name
+              (identifier))))))))
+
+==================
+Call statement explicit
+==================
+
+Module M
+    Sub Main()
+        Call DoSomething()
+        Call obj.Method(1, 2)
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list)))
+        (call_statement
+          (invocation
+            (member_access
+              (identifier)
+              (identifier))
+            (argument_list
+              (argument
+                (integer_literal))
+              (argument
+                (integer_literal)))))))))
+
+==================
+Continue While statement
+==================
+
+Module M
+    Sub Main()
+        While True
+            Continue While
+        End While
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (while_statement
+          (boolean_literal)
+          (continue_statement))))))
+
+==================
+Await expression in statement
+==================
+
+Class C
+    Async Sub F()
+        Await Task.Delay(1000)
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (call_statement
+          (unary_expression
+            (invocation
+              (member_access
+                (identifier)
+                (identifier))
+              (argument_list
+                (argument
+                  (integer_literal))))))))))
+
+==================
+Yield in iterator
+==================
+
+Class C
+    Iterator Function GetItems() As IEnumerable(Of Integer)
+        Yield 1
+        Yield 2
+        Yield 3
+    End Function
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (generic_type
+          (namespace_name
+            (identifier))
+          (type_argument_list
+            (primitive_type)))
+        (yield_statement
+          (integer_literal))
+        (yield_statement
+          (integer_literal))
+        (yield_statement
+          (integer_literal))))))
+
+==================
+Numeric label statement
+==================
+
+Module M
+    Sub Main()
+100:    Dim x = 1
+200:
+        GoTo 100
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (label_statement
+          (integer_literal))
+        (dim_statement
+          (identifier)
+          (integer_literal))
+        (label_statement
+          (integer_literal))
+        (empty_statement)
+        (goto_statement
+          (integer_literal))))))
+
+==================
+Using with multiple resources
+==================
+
+Module M
+    Sub Main()
+        Using r1 As New StreamReader("a.txt"), r2 As New StreamWriter("b.txt")
+            r1.ReadLine()
+        End Using
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (using_statement
+          (identifier)
+          (new_expression
+            (array_type
+              (namespace_name
+                (identifier))
+              (array_rank_specifier
+                (string_literal))))
+          (identifier)
+          (new_expression
+            (array_type
+              (namespace_name
+                (identifier))
+              (array_rank_specifier
+                (string_literal))))
+          (call_statement
+            (invocation
+              (member_access
+                (identifier)
+                (identifier))
+              (argument_list))))))))
+
+==================
+Tuple deconstruction in Dim
+==================
+
+Module M
+    Sub Main()
+        Dim (a, b) = (1, "hello")
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (identifier)
+          (tuple_expression
+            (integer_literal)
+            (string_literal)))))))
+
+==================
+Tuple deconstruction three elements
+==================
+
+Module M
+    Sub Main()
+        Dim (x, y, z) = GetPoint()
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (dim_statement
+          (identifier)
+          (identifier)
+          (identifier)
+          (invocation
+            (identifier)
+            (argument_list)))))))

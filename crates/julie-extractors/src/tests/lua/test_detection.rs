@@ -71,6 +71,11 @@ end)
         .find(|s| s.name == "adds two numbers")
         .unwrap_or_else(|| panic!("expected an `it` test symbol, got {syms:?}"));
     assert!(meta_bool(it, "is_test"), "it() is a test case");
+    let it_body = it.body_span.expect("test body span");
+    assert_eq!(
+        code.get(it_body.start_byte as usize..it_body.end_byte as usize),
+        Some("assert.equal(2, 1 + 1)")
+    );
 
     let describe = syms
         .iter()
@@ -97,6 +102,7 @@ end)
         meta_bool(before, "test_lifecycle"),
         "before_each is a lifecycle hook"
     );
+    assert!(before.body_span.is_none());
 }
 
 #[test]

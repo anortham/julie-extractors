@@ -321,7 +321,9 @@ fn test_python_variable_access_facts() {
     let code = r#"
 global_plain = 0
 global_plain = 1
-def writes(initial, box, argument, records):
+class Payload:
+    pass
+def writes(initial, box, argument, records, typed: Payload):
     initialized = initial
     plain = 0
     plain = initial
@@ -412,6 +414,34 @@ def writes(initial, box, argument, records):
             .and_then(|metadata| metadata.get("access")),
         None
     );
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.kind == IdentifierKind::Call)
+    );
+    assert!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == IdentifierKind::Call)
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+    );
+    assert!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
     if symbols.iter().any(|symbol| {
         symbol.name == "captured"
             && symbol.start_byte <= binding as u32
@@ -428,6 +458,44 @@ def writes(initial, box, argument, records):
             Some("write")
         );
     }
+}
+
+#[test]
+fn shadowed_parameter_access_stays_at_its_byte_occurrences() {
+    let code = r#"
+value = 1
+def update(value):
+    value += 1
+    return value
+consume(value)
+"#;
+    let (_, identifiers, _) = extract_all(code);
+    let access_at = |start: usize| -> Option<String> {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.start_byte == start as u32
+                    && identifier.kind == IdentifierKind::VariableRef
+            })?
+            .metadata
+            .as_ref()?
+            .get("access")?
+            .as_str()
+            .map(str::to_owned)
+    };
+
+    assert_eq!(
+        access_at(code.find("value += 1").unwrap()),
+        Some("read_write".to_string())
+    );
+    assert_eq!(
+        access_at(code.find("return value").unwrap() + "return ".len()),
+        Some("read".to_string())
+    );
+    assert_eq!(
+        access_at(code.find("consume(value)").unwrap() + "consume(".len()),
+        Some("read".to_string())
+    );
 }
 
 #[test]

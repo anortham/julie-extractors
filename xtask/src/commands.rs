@@ -34,6 +34,9 @@ pub fn run_from_env_args(args: impl IntoIterator<Item = OsString>) -> ExitCode {
     if args.first().map(String::as_str) == Some("dogfood") {
         return crate::dogfood::run_from_args(&args[1..]);
     }
+    if args.first().map(String::as_str) == Some("coverage") {
+        return crate::coverage::run_from_args(&args[1..]);
+    }
     if args.first().map(String::as_str) == Some("performance") {
         return crate::performance::run_from_args(&args[1..]);
     }

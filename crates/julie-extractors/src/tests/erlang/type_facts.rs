@@ -1149,5 +1149,6 @@ run() ->
     let (symbols, extractor) = extract(source);
     no_fact(&extractor, &symbols, "C2", SymbolKind::Variable);
     no_fact(&extractor, &symbols, "O", SymbolKind::Variable);
+    assert!(extractor.base.get_type_argument_usages().is_empty());
     assert_eq!(inferred_type(&extractor, &symbols, "C1"), "a");
 }

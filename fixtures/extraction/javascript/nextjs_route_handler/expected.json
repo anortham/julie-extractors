@@ -160,15 +160,8 @@
       "end_column": 37,
       "start_byte": 125,
       "end_byte": 152,
-      "body_span": {
-        "start_line": 6,
-        "start_column": 35,
-        "end_line": 6,
-        "end_column": 37,
-        "start_byte": 150,
-        "end_byte": 152
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "const body = await request.json()",
       "doc_comment": null,
       "visibility": null,

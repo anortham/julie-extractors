@@ -229,9 +229,8 @@ pub(super) fn split_function_scope(raw: &str) -> (Option<String>, &str) {
     }
 }
 
-/// A command's argument values, each with the lowercase name of the
-/// parameter it binds to (`-Name X` binds `X` to `name`). Positional values
-/// bind to `None`. A value list (`'a', 'b'`) is one argument.
+/// Command argument values with the lowercase name of the parameter they
+/// bind to. Comma-list values inherit the parameter of the preceding value.
 pub(super) fn command_arguments<'a>(
     base: &BaseExtractor,
     command: Node<'a>,
@@ -241,23 +240,29 @@ pub(super) fn command_arguments<'a>(
     };
     let mut arguments: Vec<(Option<String>, Node<'a>)> = Vec::new();
     let mut pending_parameter: Option<String> = None;
+    let mut comma_parameter: Option<Option<String>> = None;
     let mut cursor = elements.walk();
-    for element in elements.named_children(&mut cursor) {
+    for element in elements.children(&mut cursor) {
         match element.kind() {
-            "command_argument_sep" | "redirection" | "comment" => {}
+            "," => {
+                comma_parameter = arguments.last().map(|(parameter, _)| parameter.clone());
+            }
+            "command_argument_sep" | "redirection" | "comment" => {
+                comma_parameter = None;
+            }
             "command_parameter" => {
+                comma_parameter = None;
                 let text = base.get_node_text(&element);
                 let name = text.trim_start_matches('-').trim_end_matches(':');
                 pending_parameter = Some(name.to_ascii_lowercase());
             }
-            _ => {
-                let continues_list = base.get_node_text(&element).starts_with(',');
-                let parameter = match (continues_list, arguments.last()) {
-                    (true, Some((previous, _))) => previous.clone(),
-                    _ => pending_parameter.take(),
-                };
+            _ if element.is_named() => {
+                let parameter = comma_parameter
+                    .take()
+                    .unwrap_or_else(|| pending_parameter.take());
                 arguments.push((parameter, element));
             }
+            _ => comma_parameter = None,
         }
     }
     arguments
@@ -297,6 +302,11 @@ fn collect_argument_words(base: &BaseExtractor, node: Node, words: &mut Vec<Stri
             words.push(text.trim_matches(['"', '\'']).to_string());
             return;
         }
+        "compound_argument" => {
+            words.push(base.get_node_text(&node));
+            return;
+        }
+        "parenthesized_expression" => return,
         "variable" | "sub_expression" | "script_block_expression" | "hash_literal_expression" => {
             return;
         }

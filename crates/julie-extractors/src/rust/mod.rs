@@ -94,6 +94,7 @@ impl RustExtractor {
     /// Phase 1: Extract all symbols except methods in impl blocks
     /// Phase 2: Process impl blocks and link methods to parent structs/traits
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         let mut symbols = Vec::new();
 
         // Phase 1: Extract symbols (skip impl block methods)

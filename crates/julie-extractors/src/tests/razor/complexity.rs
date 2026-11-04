@@ -77,3 +77,26 @@ fn razor_complexity_metrics_emit_file_and_symbol_scopes() {
     assert_eq!(symbol_metric.parameter_count, Some(2));
     assert!(symbol_metric.end_byte > symbol_metric.start_byte);
 }
+
+#[test]
+fn razor_markup_control_words_do_not_add_complexity() {
+    let source = r#"<div if="ready" for="item in items">if (ready) for item</div>
+@code {
+    private string Description = "if (ready) for";
+}
+"#;
+    let results = extract("src/MarkupOnly.razor", source);
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "{:#?}",
+        results.parse_diagnostics
+    );
+    let metric = results
+        .complexity_metrics
+        .iter()
+        .find(|metric| metric.scope == "file")
+        .expect("expected file complexity metric");
+    assert_eq!(metric.decision_count, 0);
+    assert_eq!(metric.loop_count, 0);
+    assert_eq!(metric.max_nesting_depth, 0);
+}

@@ -1,0 +1,354 @@
+==================
+Attribute on class
+==================
+
+<Serializable()>
+Public Class C
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (attribute_block
+      (attribute
+        (identifier)
+        (argument_list)))
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier))))
+
+==================
+Attribute with arguments
+==================
+
+<DebuggerDisplay("Name={Name}")>
+Public Class C
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (attribute_block
+      (attribute
+        (identifier)
+        (argument_list
+          (argument
+            (string_literal)))))
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier))))
+
+==================
+Multiple attributes on same declaration
+==================
+
+<Serializable(), Obsolete("use NewThing instead")>
+Public Class C
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (attribute_block
+      (attribute
+        (identifier)
+        (argument_list))
+      (attribute
+        (identifier)
+        (argument_list
+          (argument
+            (string_literal)))))
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier))))
+
+==================
+Attribute on method
+==================
+
+Class C
+    <DllImport("kernel32.dll")>
+    Public Shared Sub Beep()
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (parameter_list)))))
+
+==================
+Attribute on parameter
+==================
+
+Class C
+    Public Sub Handle(<Optional> value As Object)
+    End Sub
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (attribute_block
+              (attribute
+                (identifier)))
+            (identifier)
+            (as_clause
+              (primitive_type))))))))
+
+==================
+Attribute on field
+==================
+
+Class C
+    <NonSerialized()>
+    Private cache As Object
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list)))
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Attribute with line continuation
+==================
+
+<Serializable()> _
+Public Class C
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (attribute_block
+      (attribute
+        (identifier)
+        (argument_list)))
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier))))
+
+==================
+Attribute on property
+==================
+
+Class C
+    <DataMember()>
+    Public Property Id As Integer
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list)))
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (primitive_type))))))
+
+==================
+Qualified attribute name
+==================
+
+<System.Serializable()>
+Public Class C
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (attribute_block
+      (attribute
+        (namespace_name
+          (identifier)
+          (identifier))
+        (argument_list)))
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier))))
+
+==================
+Multiple attribute blocks on a field
+==================
+
+Class C
+    <NonSerialized()>
+    <ThreadStatic()>
+    Private cache As Object
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list)))
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list)))
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (primitive_type)))))))
+
+==================
+Multiple attribute blocks with line continuation
+==================
+
+Class C
+    <Global.System.Serializable()> _
+    <Global.System.Obsolete()> _
+    Public Shared Property Legacy As Integer
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (property_declaration
+        (attribute_block
+          (attribute
+            (namespace_name
+              (identifier)
+              (identifier)
+              (identifier))
+            (argument_list)))
+        (attribute_block
+          (attribute
+            (namespace_name
+              (identifier)
+              (identifier)
+              (identifier))
+            (argument_list)))
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (as_clause
+          (primitive_type))))))
+
+==================
+Assembly-level attribute
+==================
+
+<Assembly: CLSCompliant(True)>
+
+Module M
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (attribute_block
+    (attribute
+      (identifier)
+      (identifier)
+      (argument_list
+        (argument
+          (boolean_literal)))))
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))
+
+==================
+Module-level attribute
+==================
+
+<Module: SomeAttribute("value")>
+
+Module M
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (attribute_block
+    (attribute
+      (identifier)
+      (identifier)
+      (argument_list
+        (argument
+          (string_literal)))))
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier))))

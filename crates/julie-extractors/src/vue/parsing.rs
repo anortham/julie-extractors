@@ -9,6 +9,8 @@ use tree_sitter::Tree;
 #[cfg(test)]
 thread_local! {
     static SCRIPT_PARSE_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static STYLE_PARSE_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static HOST_PARSE_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 #[cfg(test)]
@@ -19,6 +21,26 @@ pub(crate) fn reset_script_parse_count() {
 #[cfg(test)]
 pub(crate) fn get_script_parse_count() -> usize {
     SCRIPT_PARSE_COUNT.with(|c| c.get())
+}
+
+#[cfg(test)]
+pub(crate) fn reset_style_parse_count() {
+    STYLE_PARSE_COUNT.with(|c| c.set(0));
+}
+
+#[cfg(test)]
+pub(crate) fn get_style_parse_count() -> usize {
+    STYLE_PARSE_COUNT.with(|c| c.get())
+}
+
+#[cfg(test)]
+pub(crate) fn reset_host_parse_count() {
+    HOST_PARSE_COUNT.with(|c| c.set(0));
+}
+
+#[cfg(test)]
+pub(crate) fn get_host_parse_count() -> usize {
+    HOST_PARSE_COUNT.with(|c| c.get())
 }
 
 /// A top-level block of a Vue SFC (template, script, or style).
@@ -71,11 +93,21 @@ pub(crate) fn parse_script_section(section: &VueSection) -> Option<Tree> {
     parser.parse(&section.content, None)
 }
 
+fn parse_style_section(section: &VueSection) -> Option<Tree> {
+    #[cfg(test)]
+    STYLE_PARSE_COUNT.with(|c| c.set(c.get() + 1));
+
+    let mut parser = crate::pipeline::configured_parser_for_language("css").ok()?;
+    parser.parse(&section.content, None)
+}
+
 /// Parsed Vue SFC structure holding extracted sections and lazily parsed `Tree`s per script section.
 #[derive(Debug, Default)]
 pub(crate) struct ParsedVueSfc {
     pub(crate) sections: Vec<VueSection>,
     script_trees: Vec<OnceLock<Option<Tree>>>,
+    style_trees: Vec<OnceLock<Option<Tree>>>,
+    host_tree: OnceLock<Option<Tree>>,
 }
 
 impl Clone for ParsedVueSfc {
@@ -91,9 +123,26 @@ impl Clone for ParsedVueSfc {
                 new_cell
             })
             .collect();
+        let style_trees = self
+            .style_trees
+            .iter()
+            .map(|cell| {
+                let new_cell = OnceLock::new();
+                if let Some(tree_opt) = cell.get() {
+                    let _ = new_cell.set(tree_opt.clone());
+                }
+                new_cell
+            })
+            .collect();
+        let host_tree = OnceLock::new();
+        if let Some(tree_opt) = self.host_tree.get() {
+            let _ = host_tree.set(tree_opt.clone());
+        }
         Self {
             sections: self.sections.clone(),
             script_trees,
+            style_trees,
+            host_tree,
         }
     }
 }
@@ -111,9 +160,12 @@ impl ParsedVueSfc {
     pub(crate) fn parse(content: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let sections = parse_vue_sfc_sections(content)?;
         let script_trees = (0..sections.len()).map(|_| OnceLock::new()).collect();
+        let style_trees = (0..sections.len()).map(|_| OnceLock::new()).collect();
         Ok(Self {
             sections,
             script_trees,
+            style_trees,
+            host_tree: OnceLock::new(),
         })
     }
 
@@ -135,6 +187,31 @@ impl ParsedVueSfc {
             }
         })
         .as_ref()
+    }
+
+    pub(crate) fn style_tree(&self, section_index: usize) -> Option<&Tree> {
+        let cell = self.style_trees.get(section_index)?;
+        cell.get_or_init(|| {
+            let section = self.sections.get(section_index)?;
+            (section.section_type == "style"
+                && super::script::is_plain_css(section.lang.as_deref()))
+            .then(|| parse_style_section(section))?
+        })
+        .as_ref()
+    }
+
+    pub(crate) fn host_tree(&self, supplied: Option<&Tree>, source: &str) -> Option<Tree> {
+        if let Some(tree) = supplied {
+            return Some(tree.clone());
+        }
+        self.host_tree
+            .get_or_init(|| {
+                #[cfg(test)]
+                HOST_PARSE_COUNT.with(|c| c.set(c.get() + 1));
+                let mut parser = crate::pipeline::configured_parser_for_language("vue").ok()?;
+                parser.parse(source, None)
+            })
+            .clone()
     }
 
     /// Retrieve or lazily parse the tree-sitter `Tree` for a specific `VueSection`.
@@ -250,6 +327,7 @@ div { color: red; }
         use std::path::Path;
 
         reset_script_parse_count();
+        reset_host_parse_count();
         let sfc_content = r#"<template>
   <div>{{ count }}</div>
 </template>
@@ -276,6 +354,7 @@ function increment() {
             1,
             "symbols extraction should parse script section once"
         );
+        assert_eq!(get_host_parse_count(), 1);
 
         let _rels = extractor.extract_relationships(None, &symbols);
         assert_eq!(
@@ -307,11 +386,32 @@ function increment() {
     }
 
     #[test]
+    fn style_section_tree_is_reused_by_hash_initialization_and_extraction() {
+        use crate::vue::VueExtractor;
+        use std::path::Path;
+
+        reset_style_parse_count();
+        let source = "<template><div /></template>\n<style>.item { color: red; }</style>";
+        let mut extractor = VueExtractor::new(
+            "vue".to_string(),
+            "Counter.vue".to_string(),
+            source.to_string(),
+            Path::new(""),
+        );
+
+        let symbols = extractor.extract_symbols(None);
+
+        assert!(!symbols.is_empty());
+        assert_eq!(get_style_parse_count(), 1);
+    }
+
+    #[test]
     fn test_canonical_vue_pipeline_parses_script_section_only_once() {
         use crate::{ExtractionLevel, extract_canonical_at};
         use std::path::Path;
 
         reset_script_parse_count();
+        reset_host_parse_count();
         let sfc_content = r#"<template>
   <div>{{ count }}</div>
 </template>
@@ -335,5 +435,6 @@ function increment() {
         assert!(!results.symbols.is_empty());
         assert!(!results.complexity_metrics.is_empty());
         assert_eq!(get_script_parse_count(), 1);
+        assert_eq!(get_host_parse_count(), 0);
     }
 }

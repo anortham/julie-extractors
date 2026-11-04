@@ -1,0 +1,29 @@
+[package]
+name = "tree-sitter-sequel-tsql"
+description = "Locally patched tree-sitter grammar for SQL with T-SQL extensions"
+version = "0.4.2-julie.1"
+authors = ["derek stride", "jamie8johnson"]
+license = "MIT"
+readme = "README.md"
+keywords = ["incremental", "parsing", "tree-sitter", "sql"]
+categories = ["parsing", "text-editors"]
+repository = "https://github.com/jamie8johnson/tree-sitter-sql.git"
+edition = "2021"
+autoexamples = false
+
+build = "bindings/rust/build.rs"
+include = ["/LICENSE", "bindings/rust/*", "grammar.js", "queries/*", "src/*"]
+
+[lib]
+path = "bindings/rust/lib.rs"
+
+[workspace]
+
+[dependencies]
+tree-sitter-language = "0.1"
+
+[build-dependencies]
+cc = "~1.2.1"
+
+[dev-dependencies]
+tree-sitter = "~0.25.0"

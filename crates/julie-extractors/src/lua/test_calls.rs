@@ -127,12 +127,16 @@ pub(super) fn extract_lua_test_call(
         }
     };
 
-    Some(build_test_call_symbol(
-        base,
-        &node,
-        &full_callee,
-        name,
-        category,
-        parent_id,
-    ))
+    let mut symbol = build_test_call_symbol(base, &node, &full_callee, name, category, parent_id);
+    let callback_body = node
+        .child_by_field_name("arguments")
+        .and_then(|arguments| {
+            let mut cursor = arguments.walk();
+            arguments
+                .named_children(&mut cursor)
+                .find(|argument| argument.kind() == "function_definition")
+        })
+        .and_then(|callback| super::functions::lua_function_body_span(&callback));
+    base.set_body_span(&mut symbol, callback_body);
+    Some(symbol)
 }

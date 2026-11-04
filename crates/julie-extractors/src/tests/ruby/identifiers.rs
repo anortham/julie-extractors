@@ -263,6 +263,7 @@ class Sample
     end
   end
 end
+type_value = Namespace::Payload.new
 "#;
     let mut parser = tree_sitter::Parser::new();
     parser
@@ -352,6 +353,34 @@ end
             .and_then(|metadata| metadata.get("access")),
         None
     );
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.kind == IdentifierKind::Call)
+    );
+    assert!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == IdentifierKind::Call)
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
+    assert!(
+        identifiers
+            .iter()
+            .any(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+    );
+    assert!(
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.kind == IdentifierKind::TypeUsage)
+            .all(|identifier| identifier
+                .metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access")))
+    );
     if symbols.iter().any(|symbol| {
         symbol.name == "captured"
             && symbol.start_byte <= binding as u32
@@ -368,4 +397,53 @@ end
             Some("write")
         );
     }
+}
+
+#[test]
+fn shadowed_parameter_access_stays_at_its_byte_occurrences() {
+    let code = r#"
+value = 1
+def update(value)
+  value += 1
+  value
+end
+consume(value)
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_ruby::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+    assert!(!tree.root_node().has_error());
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor =
+        RubyExtractor::new("test.rb".to_string(), code.to_string(), &workspace_root);
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+    let access_at = |start: usize| -> Option<String> {
+        identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.start_byte == start as u32
+                    && identifier.kind == IdentifierKind::VariableRef
+            })?
+            .metadata
+            .as_ref()?
+            .get("access")?
+            .as_str()
+            .map(str::to_owned)
+    };
+
+    assert_eq!(
+        access_at(code.find("value += 1").unwrap()),
+        Some("read_write".to_string())
+    );
+    assert_eq!(
+        access_at(code.find("  value\n").unwrap() + "  ".len()),
+        Some("read".to_string())
+    );
+    assert_eq!(
+        access_at(code.find("consume(value)").unwrap() + "consume(".len()),
+        Some("read".to_string())
+    );
 }

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use xtask::test_tiers::{CommandSpec, plan_from_args, tier_names};
 
 #[test]
-fn test_default_tier_runs_plain_extractor_tests() {
+fn test_default_tier_runs_fast_contracts_and_extractor_tests() {
     let plan = plan_from_args(["test", "default"]).expect("default plan");
 
     assert_eq!(
@@ -10,7 +10,23 @@ fn test_default_tier_runs_plain_extractor_tests() {
         vec![
             CommandSpec::new("cargo", ["test", "-p", "julie-extractors",]),
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact",]),
-            CommandSpec::new("cargo", ["test", "-p", "julie-extract-cli",])
+            CommandSpec::new("cargo", ["test", "-p", "julie-extract-cli",]),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "xtask",
+                    "--test",
+                    "coverage_contract",
+                    "--test",
+                    "performance_comparison_contract",
+                    "--test",
+                    "integration_test_tiers",
+                    "--test",
+                    "test_tiers",
+                ],
+            ),
         ]
     );
     assert!(
@@ -20,8 +36,10 @@ fn test_default_tier_runs_plain_extractor_tests() {
             .flat_map(|command| command.args.iter())
             .any(|arg| arg == "test-certification"
                 || arg == "test-capability-matrix"
-                || arg == "test-real-world"),
-        "default tier must not include certification, capability-matrix, or real-world gates"
+                || arg == "test-real-world"
+                || arg == "test-perf"
+                || arg == "writer_perf"),
+        "default tier must not include certification, capability, real-world, or timed writer gates"
     );
 }
 
@@ -509,6 +527,18 @@ fn test_real_world_smoke_and_release_profiles_are_separate() {
                     "test-real-world",
                     "--lib",
                     "test_real_world_jsonl_memories_fixture",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-real-world",
+                    "--lib",
+                    "real_world_telemetry_macro_catch_heads_keep_bodies_and_later_function_arities",
                 ]
             ),
             CommandSpec::new(

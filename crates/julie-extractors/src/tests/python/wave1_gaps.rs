@@ -552,3 +552,43 @@ app.add_url_rule("/old", "legacy", plain)
         ]
     );
 }
+
+#[test]
+fn flask_route_facts_ignore_comment_and_string_confusers() {
+    let source = r#"from flask import Flask
+app = Flask(__name__)
+
+# @app.route("/comment")
+ROUTE_DOC = """
+@app.route("/string")
+"""
+
+@app.route("/health")
+def health():
+    return "ok"
+"#;
+    let module = extract("app.py", source);
+    let route_facts: Vec<_> = module
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == "flask.route.v1")
+        .collect();
+    assert_eq!(
+        route_facts
+            .iter()
+            .map(|fact| fact.pattern_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["flask.route.v1"]
+    );
+    let fact = route_facts[0];
+    assert_eq!(fact.file_path, "app.py");
+    assert_eq!(
+        fact.containing_symbol_id.as_deref(),
+        Some(one(&module, "health").id.as_str())
+    );
+    assert_eq!(
+        source.get(fact.start_byte as usize..fact.end_byte as usize),
+        Some("@app.route(\"/health\")")
+    );
+    assert_eq!(fact.metadata.as_ref().unwrap()["route_template"], "/health");
+}

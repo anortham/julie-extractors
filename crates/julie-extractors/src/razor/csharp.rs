@@ -383,7 +383,7 @@ impl super::RazorExtractor {
             &mut metadata,
         );
 
-        let symbol = self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Method,
@@ -396,6 +396,10 @@ impl super::RazorExtractor {
                 annotations,
             },
         );
+        if node.child_by_field_name("body").is_none() {
+            symbol.body_span = None;
+            symbol.body_hash = None;
+        }
         if let Some(returns) = node.child_by_field_name("returns") {
             super::type_facts::record_return_type(&mut self.base, &symbol.id, returns);
         }

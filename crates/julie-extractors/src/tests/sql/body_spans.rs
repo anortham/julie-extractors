@@ -132,6 +132,31 @@ END;
     }
 
     #[test]
+    fn trigger_execute_routine_arguments_are_not_body_spans() {
+        let sql = "CREATE FUNCTION public.touch() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END; $$; CREATE TRIGGER orders_touch BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION public.touch(); CREATE TRIGGER audit_touch AFTER INSERT ON public.audit FOR EACH ROW EXECUTE PROCEDURE public.touch();";
+        let symbols = extract_symbols(sql);
+        let trigger = symbols
+            .iter()
+            .find(|symbol| symbol.name == "orders_touch")
+            .expect("orders_touch trigger");
+        let procedure_trigger = symbols
+            .iter()
+            .find(|symbol| symbol.name == "audit_touch")
+            .expect("audit_touch trigger");
+        let function = symbols
+            .iter()
+            .find(|symbol| symbol.name == "touch" && symbol.kind == SymbolKind::Function)
+            .expect("touch function");
+
+        assert!(trigger.body_span.is_none());
+        assert!(trigger.body_hash.is_none());
+        assert!(procedure_trigger.body_span.is_none());
+        assert!(procedure_trigger.body_hash.is_none());
+        assert!(function.body_span.is_some());
+        assert!(body_text(sql, function).contains("RETURN NEW"));
+    }
+
+    #[test]
     fn view_body_span_accepts_as_on_separate_line() {
         let sql = "CREATE VIEW wrapped_view\nAS\nSELECT 1 AS one;";
         let symbols = extract_symbols(sql);

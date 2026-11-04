@@ -78,6 +78,7 @@ impl SwiftExtractor {
     /// Extract all symbols from Swift source code
     /// Implementation of extractSymbols method with comprehensive Swift support
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.base.init_body_hashes(tree.root_node());
         self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
         self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         let mut symbols = Vec::new();
@@ -260,9 +261,7 @@ fn access_level(
 /// Replace a symbol's inferred body with `body`, or clear it.
 pub(super) fn set_body(base: &BaseExtractor, symbol: &mut Symbol, body: Option<Node>) {
     symbol.body_span = body.map(|body| NormalizedSpan::from_node(&body));
-    symbol.body_hash = symbol
-        .body_span
-        .and_then(|span| crate::base::body::body_hash(&base.content, span, "swift"));
+    symbol.body_hash = symbol.body_span.and_then(|span| base.hash_body(span));
 }
 
 /// Declarations without code (enum cases, protocol requirements) have no body.

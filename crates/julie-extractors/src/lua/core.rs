@@ -132,12 +132,14 @@ fn extract_bare_require_import(
         ..Default::default()
     };
 
-    let symbol = base.create_symbol(
+    let mut symbol = base.create_symbol(
         &node,
         require.terminal_name.clone(),
         SymbolKind::Import,
         options,
     );
+    symbol.body_span = None;
+    symbol.body_hash = None;
     record_require_pending(base, &symbol.id, require, node, parent_id);
     symbols.push(symbol.clone());
     Some(symbol)

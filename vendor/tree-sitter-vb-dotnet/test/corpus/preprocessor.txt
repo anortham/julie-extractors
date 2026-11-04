@@ -1,0 +1,280 @@
+==================
+Region directive
+==================
+
+Class C
+#Region "Private Fields"
+    Private _value As Integer
+#End Region
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (region_directive)
+      (blank_line)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (primitive_type))))
+      (end_region_directive)
+      (blank_line))))
+
+==================
+If directive
+==================
+
+Class C
+#If DEBUG Then
+    Sub DebugOnly()
+    End Sub
+#End If
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (if_directive)
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list))
+      (end_if_directive)
+      (blank_line))))
+
+==================
+Const directive
+==================
+
+Class C
+#Const VERSION = 2
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (const_directive)
+      (blank_line))))
+
+==================
+Nested region
+==================
+
+Class C
+#Region "Outer"
+#Region "Inner"
+    Private x As Integer
+#End Region
+#End Region
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (region_directive)
+      (blank_line)
+      (region_directive)
+      (blank_line)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (primitive_type))))
+      (end_region_directive)
+      (blank_line)
+      (end_region_directive)
+      (blank_line))))
+
+==================
+Preprocessor directive inside method
+==================
+
+Module M
+    Sub Main()
+#If DEBUG Then
+        Print("debug")
+#End If
+    End Sub
+End Module
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (if_directive)
+        (empty_statement)
+        (call_statement
+          (invocation
+            (identifier)
+            (argument_list
+              (argument
+                (string_literal)))))
+        (end_if_directive)
+        (empty_statement)))))
+
+==================
+Preprocessor directive at top of file
+==================
+#If DEBUG Then
+Public Class C
+End Class
+#End If
+
+---
+
+(source_file
+  (if_directive)
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)))
+  (end_if_directive)
+  (blank_line))
+
+==================
+Preprocessor directive before namespace
+==================
+#Const VERSION = 2
+
+Namespace MyApp
+    Public Class C
+    End Class
+End Namespace
+
+---
+
+(source_file
+  (const_directive)
+  (blank_line)
+  (blank_line)
+  (namespace_block
+    (namespace_name
+      (identifier))
+    (type_declaration
+      (class_block
+        (modifiers
+          (modifier))
+        (identifier)))))
+
+==================
+ElseIf directive
+==================
+
+Class C
+#If DEBUG Then
+    Sub F()
+    End Sub
+#ElseIf RELEASE Then
+    Sub G()
+    End Sub
+#Else
+    Sub H()
+    End Sub
+#End If
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (if_directive)
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list))
+      (elseif_directive)
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list))
+      (else_directive)
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list))
+      (end_if_directive)
+      (blank_line))))
+
+==================
+ExternalSource directive
+==================
+
+Class C
+#ExternalSource("file.vb", 100)
+    Sub F()
+    End Sub
+#End ExternalSource
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (external_source_directive)
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list))
+      (end_external_source_directive)
+      (blank_line))))
+
+==================
+Enable and Disable Warning directives
+==================
+
+Class C
+#Disable Warning BC42024
+    Sub F()
+    End Sub
+#Enable Warning BC42024
+End Class
+
+---
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (disable_warning_directive)
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list))
+      (enable_warning_directive)
+      (blank_line))))

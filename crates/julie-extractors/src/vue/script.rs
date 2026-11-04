@@ -8,7 +8,7 @@ use super::parsing::{VueSection, script_language};
 use crate::base::{
     BaseExtractor, ExtractionLevel, ExtractionResults, Symbol, SymbolKind, TypeInfo,
 };
-use crate::embedded::{extract_embedded, extract_embedded_tree};
+use crate::embedded::extract_embedded_tree;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::Path;
@@ -77,12 +77,14 @@ pub(super) fn extract_script(
 pub(super) fn extract_style(
     base: &BaseExtractor,
     section: &VueSection,
+    tree: &Tree,
 ) -> Option<(Vec<Symbol>, ExtractionResults)> {
     if !is_plain_css(section.lang.as_deref()) {
         return None;
     }
-    let mut results = extract_embedded(
+    let mut results = extract_embedded_tree(
         "css",
+        tree,
         &section.content,
         &base.content,
         section.content_start,
@@ -241,7 +243,7 @@ fn standalone_macro_symbols(
         if !STANDALONE_MACROS.contains(&callee.as_str()) {
             continue;
         }
-        let Some(symbol) = create_symbol_manual(
+        let Some(mut symbol) = create_symbol_manual(
             base,
             &callee,
             SymbolKind::Function,
@@ -256,6 +258,10 @@ fn standalone_macro_symbols(
         ) else {
             continue;
         };
+        if callee == "defineModel" {
+            symbol.body_span = None;
+            symbol.body_hash = None;
+        }
         symbols.push(symbol);
     }
     symbols

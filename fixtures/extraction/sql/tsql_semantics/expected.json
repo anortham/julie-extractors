@@ -1248,15 +1248,6 @@
   "parse_diagnostics": [
     {
       "kind": "Error",
-      "start_line": 26,
-      "start_column": 45,
-      "end_line": 26,
-      "end_column": 46,
-      "start_byte": 583,
-      "end_byte": 584
-    },
-    {
-      "kind": "Error",
       "start_line": 29,
       "start_column": 51,
       "end_line": 29,

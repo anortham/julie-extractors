@@ -181,7 +181,10 @@ impl RExtractor {
                     } else {
                         SymbolKind::Variable
                     };
-                    let symbol = self.base.create_symbol(&node, name, kind, options);
+                    let mut symbol = self.base.create_symbol(&node, name, kind, options);
+                    if symbol.kind == SymbolKind::Variable {
+                        clear_body(&mut symbol);
+                    }
                     self.symbols.push(symbol.clone());
                     if symbol.kind == SymbolKind::Variable
                         && let Some(class_name) = type_facts::initializer_class(self, right)
@@ -203,9 +206,10 @@ impl RExtractor {
                     doc_comment: self.base.find_doc_comment(&node),
                     ..Default::default()
                 };
-                let symbol = self
-                    .base
-                    .create_symbol(&node, name, SymbolKind::Variable, options);
+                let mut symbol =
+                    self.base
+                        .create_symbol(&node, name, SymbolKind::Variable, options);
+                clear_body(&mut symbol);
                 self.symbols.push(symbol.clone());
                 if let Some(class_name) = node
                     .child(0)
@@ -264,9 +268,10 @@ impl RExtractor {
             metadata: Some(HashMap::from([assignment])),
             ..Default::default()
         };
-        let symbol = self
+        let mut symbol = self
             .base
             .create_symbol(&node, name, SymbolKind::Variable, options);
+        clear_body(&mut symbol);
         self.symbols.push(symbol.clone());
         if let Some(class_name) = type_facts::initializer_class(self, value) {
             type_facts::record_inferred_fact(&mut self.base, &symbol.id, &class_name);
@@ -288,9 +293,10 @@ impl RExtractor {
             )])),
             ..Default::default()
         };
-        let symbol = self
+        let mut symbol = self
             .base
             .create_symbol(&node, name, SymbolKind::Variable, options);
+        clear_body(&mut symbol);
         self.symbols.push(symbol.clone());
         Some(symbol)
     }
@@ -603,6 +609,11 @@ impl RExtractor {
     ) -> Vec<crate::base::StructuredPendingRelationship> {
         self.base.get_structured_pending_relationships()
     }
+}
+
+fn clear_body(symbol: &mut Symbol) {
+    symbol.body_span = None;
+    symbol.body_hash = None;
 }
 
 fn roxygen_s3_method(doc_comment: &str) -> Option<(String, String)> {

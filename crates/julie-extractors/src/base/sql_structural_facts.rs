@@ -170,7 +170,17 @@ fn collect_sql_node(
                 && let Some(fact) = foreign_key_fact(file_path, content, node)
             {
                 facts.push(fact);
-            } else if let Some(fact) = constraint_fact(file_path, content, node) {
+            }
+            if node
+                .parent()
+                .is_none_or(|parent| parent.kind() != "add_constraint")
+                && let Some(fact) = constraint_fact(file_path, content, node)
+            {
+                facts.push(fact);
+            }
+        }
+        "add_constraint" => {
+            if let Some(fact) = constraint_fact(file_path, content, node) {
                 facts.push(fact);
             }
         }
@@ -189,7 +199,7 @@ fn collect_sql_node(
                 facts.push(fact);
             }
         }
-        "transaction" => {
+        "transaction" | "tsql_transaction_action" => {
             if let Some(fact) = transaction_fact(file_path, content, node) {
                 facts.push(fact);
             }
@@ -514,10 +524,9 @@ fn column_definition_fact(
 
 fn constraint_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let constraint_type = constraint_type_name(node)?;
-    let constraint_name = node
-        .child_by_field_name("name")
-        .or_else(|| find_child(node, "identifier"))
-        .and_then(|name_node| node_text(content, name_node).map(normalize_sql_identifier));
+    let name_node = node.child_by_field_name("name");
+    let constraint_name =
+        name_node.and_then(|name_node| node_text(content, name_node).map(normalize_sql_identifier));
     let table_name = table_statement(node)
         .and_then(find_object_reference)
         .and_then(|reference| object_reference_parts(content, reference))
@@ -911,16 +920,10 @@ fn function_definition_fact(
     ))
 }
 
-/// Count a routine's declared parameters: the `function_argument` nodes of a
-/// parenthesized list.
-///
-/// The vendored SQL grammar does not wrap parenless T-SQL procedure
-/// parameters (`CREATE PROCEDURE p @Id INT AS ...`) in `function_argument`
-/// nodes, so a routine without an argument list counts the parameter sigils
-/// in its header region (before the body, and before a function's `RETURNS`
-/// clause so a table-valued `RETURNS @r TABLE` return variable is not
-/// miscounted).
 fn count_routine_parameters(content: &str, node: Node<'_>) -> usize {
+    if let Some(parameters) = find_child(node, "tsql_parameter_declarations") {
+        return count_direct_children(parameters, "tsql_parameter");
+    }
     if let Some(arguments) = find_child(node, "function_arguments") {
         let declared = count_direct_children(arguments, "function_argument");
         if declared > 0 || !arguments.has_error() {

@@ -112,7 +112,7 @@ pub fn collect_complexity_metrics(
 #[cfg(all(test, feature = "test-capability-matrix"))]
 pub(crate) fn complexity_metric_scopes_for_language(language: &str) -> Vec<&'static str> {
     if config_for_language(language).is_some()
-        || matches!(language, "vue" | "html" | "sql" | "regex")
+        || matches!(language, "vue" | "html" | "sql" | "regex" | "xml")
     {
         vec!["file", "symbol"]
     } else {

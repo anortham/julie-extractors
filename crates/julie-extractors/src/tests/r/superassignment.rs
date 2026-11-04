@@ -236,8 +236,9 @@ fn ordinary_assignments_write_no_write_sites() {
 
 #[test]
 fn superassignment_records_write_and_read_access() {
-    let result = extract("update <- function(x) { x <<- x + 1 }\n");
-    let write = writes(&result, "x")[0];
+    let source = "value <- 1\nouter <- function(value) {\n  inner <- function(value) {\n    value <<- value + 1\n    value\n  }\n  inner(value)\n}\nouter(0)\n";
+    let result = extract(source);
+    let write = writes(&result, "value")[0];
 
     assert_eq!(
         write
@@ -246,15 +247,45 @@ fn superassignment_records_write_and_read_access() {
             .and_then(|metadata| metadata.get("access")),
         Some(&serde_json::json!("write"))
     );
-    assert!(result.identifiers.iter().any(|identifier| {
-        identifier.name == "x"
-            && identifier.start_line == 1
-            && identifier.start_byte != write.start_byte
-            && identifier
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.get("access"))
-                == Some(&serde_json::json!("read"))
+    assert_eq!(write.start_byte as usize, source.find("value <<-").unwrap());
+    assert_eq!(container(&result, write), "inner");
+    assert_eq!(
+        result
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.name == "value")
+            .count(),
+        3
+    );
+    let read_at = |start: usize, owner: &str| {
+        result.identifiers.iter().any(|identifier| {
+            identifier.name == "value"
+                && identifier.start_byte as usize == start
+                && identifier
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("access"))
+                    == Some(&serde_json::json!("read"))
+                && container(&result, identifier) == owner
+        })
+    };
+    assert!(read_at(source.find("value + 1").unwrap(), "inner"));
+    assert!(read_at(source.find("    value\n").unwrap() + 4, "inner"));
+    assert!(read_at(
+        source.find("inner(value)").unwrap() + "inner(".len(),
+        "outer"
+    ));
+    let call_rows: Vec<_> = result
+        .identifiers
+        .iter()
+        .filter(|identifier| identifier.kind == IdentifierKind::Call)
+        .collect();
+    assert!(!call_rows.is_empty(), "expected Call rows");
+    assert!(call_rows.iter().all(|identifier| {
+        identifier
+            .metadata
+            .as_ref()
+            .is_none_or(|metadata| !metadata.contains_key("access"))
     }));
 }
 

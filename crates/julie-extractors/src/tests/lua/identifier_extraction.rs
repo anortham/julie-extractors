@@ -498,6 +498,61 @@ end
             ),
             Some("read")
         );
+        let call_start = code.find("consume(output)").unwrap();
+        let call = identifiers
+            .iter()
+            .find(|identifier| identifier.start_byte == call_start as u32)
+            .expect("Lua call identifier");
+        assert_eq!(call.kind, IdentifierKind::Call);
+        assert!(
+            call.metadata
+                .as_ref()
+                .is_none_or(|metadata| !metadata.contains_key("access"))
+        );
+    }
+
+    #[test]
+    fn shadowed_local_access_stays_at_its_byte_occurrences() {
+        let code = r#"
+value = 1
+do
+    local value = 2
+    value = value + 1
+    consume(value)
+end
+consume(value)
+"#;
+        let (_, identifiers) = extract_all(code);
+        let access_at = |start: usize| -> Option<String> {
+            identifiers
+                .iter()
+                .find(|identifier| {
+                    identifier.start_byte == start as u32
+                        && identifier.kind == IdentifierKind::VariableRef
+                })?
+                .metadata
+                .as_ref()?
+                .get("access")?
+                .as_str()
+                .map(str::to_owned)
+        };
+
+        assert_eq!(
+            access_at(code.find("value = value + 1").unwrap()),
+            Some("write".to_string())
+        );
+        assert_eq!(
+            access_at(code.find("value = value + 1").unwrap() + "value = ".len()),
+            Some("read".to_string())
+        );
+        assert_eq!(
+            access_at(code.find("consume(value)").unwrap() + "consume(".len()),
+            Some("read".to_string())
+        );
+        assert_eq!(
+            access_at(code.rfind("consume(value)").unwrap() + "consume(".len()),
+            Some("read".to_string())
+        );
     }
 
     #[test]

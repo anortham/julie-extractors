@@ -32,6 +32,16 @@ fn annotation<'a>(symbol: &'a crate::base::Symbol, key: &str) -> &'a AnnotationM
         })
 }
 
+fn annotation_keys(symbol: &crate::base::Symbol) -> Vec<&str> {
+    let mut keys: Vec<_> = symbol
+        .annotations
+        .iter()
+        .map(|annotation| annotation.annotation_key.as_str())
+        .collect();
+    keys.sort_unstable();
+    keys
+}
+
 #[test]
 fn vue_component_receives_script_setup_macro_annotations() {
     let vue_code = r#"<template>
@@ -187,4 +197,72 @@ defineExpose({ publicFormat: format });
         !symbols.iter().any(|symbol| symbol.name == "publicFormat"),
         "publicFormat is an expose alias key, not a source symbol"
     );
+}
+
+#[test]
+fn vue_embedded_annotations_follow_extraction_levels_and_keep_host_offsets() {
+    let source = r#"<template>
+  <div>{{ title }}</div>
+</template>
+
+<script setup lang="ts">
+defineOptions({ name: "WorkerPanel" });
+const props = defineProps<{ title: string }>();
+const emit = defineEmits<{ update: [] }>();
+function format(value: string): string {
+  return value.trim();
+}
+defineExpose({ format });
+</script>"#;
+    let format_source = "function format(value: string): string {\n  return value.trim();\n}";
+    let format_start = source.find(format_source).unwrap();
+
+    for (level, has_annotations) in [
+        (crate::ExtractionLevel::Symbols, false),
+        (crate::ExtractionLevel::Facts, false),
+        (crate::ExtractionLevel::References, true),
+        (crate::ExtractionLevel::Full, true),
+    ] {
+        let results = crate::pipeline::extract_canonical_at(
+            "src/Worker.vue",
+            source,
+            std::path::Path::new("/tmp/test"),
+            level,
+        )
+        .expect("canonical Vue extraction should succeed");
+        assert!(
+            results.parse_diagnostics.is_empty(),
+            "{:#?}",
+            results.parse_diagnostics
+        );
+
+        let component = results
+            .symbols
+            .iter()
+            .find(|symbol| is_vue_component(symbol))
+            .expect("Vue component symbol should exist");
+        let format = results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == "format" && symbol.kind == SymbolKind::Function)
+            .expect("format function should exist");
+        let component_keys = if has_annotations {
+            vec!["defineemits", "defineoptions", "defineprops"]
+        } else {
+            Vec::new()
+        };
+        let format_keys = if has_annotations {
+            vec!["defineexpose"]
+        } else {
+            Vec::new()
+        };
+
+        assert_eq!(annotation_keys(component), component_keys, "{level:?}");
+        assert_eq!(annotation_keys(format), format_keys, "{level:?}");
+        assert_eq!(format.start_byte as usize, format_start);
+        assert_eq!(
+            source.get(format.start_byte as usize..format.end_byte as usize),
+            Some(format_source)
+        );
+    }
 }

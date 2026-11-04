@@ -51,6 +51,76 @@ pub fn collect_source_regions(
     content: &str,
     symbols: &[Symbol],
 ) -> Vec<SourceRegion> {
+    let mut node_visits = SourceRegionNodeVisits::new();
+    collect_source_regions_with_visits(
+        language,
+        tree,
+        file_path,
+        content,
+        symbols,
+        &mut node_visits,
+    )
+}
+
+#[cfg(test)]
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct SourceRegionNodeVisits {
+    pub(crate) count: usize,
+}
+
+#[cfg(not(test))]
+#[derive(Default)]
+struct SourceRegionNodeVisits;
+
+impl SourceRegionNodeVisits {
+    fn new() -> Self {
+        #[cfg(test)]
+        {
+            Self::default()
+        }
+        #[cfg(not(test))]
+        {
+            Self
+        }
+    }
+
+    #[inline(always)]
+    fn visit(&mut self) {
+        #[cfg(test)]
+        {
+            self.count += 1;
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn collect_source_regions_counted(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    symbols: &[Symbol],
+) -> (Vec<SourceRegion>, usize) {
+    let mut node_visits = SourceRegionNodeVisits::new();
+    let regions = collect_source_regions_with_visits(
+        language,
+        tree,
+        file_path,
+        content,
+        symbols,
+        &mut node_visits,
+    );
+    (regions, node_visits.count)
+}
+
+fn collect_source_regions_with_visits(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    symbols: &[Symbol],
+    node_visits: &mut SourceRegionNodeVisits,
+) -> Vec<SourceRegion> {
     if language == "regex" {
         let mut regions: Vec<SourceRegion> = crate::regex::verbose_comment_ranges(content)
             .into_iter()
@@ -64,15 +134,21 @@ pub fn collect_source_regions(
         return Vec::new();
     };
     let mut regions = Vec::new();
-    collect_node(
-        tree.root_node(),
-        language,
-        file_path,
-        content,
-        config,
-        &mut regions,
-        0,
-    );
+    {
+        let mut collector = SourceRegionCollector {
+            language,
+            file_path,
+            content,
+            config,
+            regions: &mut regions,
+            node_visits,
+        };
+        collect_node(
+            tree.root_node(),
+            &mut collector,
+            RegionTraversalState::root(),
+        );
+    }
     if language == "gomod" {
         promote_gomod_doc_comments(&mut regions, tree, file_path, content);
     }
@@ -119,20 +195,94 @@ fn promote_gomod_doc_comments(
     }
 }
 
-fn collect_node(
-    node: Node<'_>,
-    language: &str,
-    file_path: &str,
-    content: &str,
+struct SourceRegionCollector<'a> {
+    language: &'a str,
+    file_path: &'a str,
+    content: &'a str,
     config: RegionLanguageConfig,
-    regions: &mut Vec<SourceRegion>,
+    regions: &'a mut Vec<SourceRegion>,
+    node_visits: &'a mut SourceRegionNodeVisits,
+}
+
+#[derive(Clone, Copy)]
+enum SwiftLiteralContext {
+    Code,
+    LiteralText,
+}
+
+#[derive(Clone, Copy)]
+struct RegionTraversalState {
     depth: u32,
-) {
-    if !should_visit_tree_depth(depth) {
-        return;
+    swift_literal: SwiftLiteralContext,
+}
+
+impl RegionTraversalState {
+    fn root() -> Self {
+        Self {
+            depth: 0,
+            swift_literal: SwiftLiteralContext::Code,
+        }
     }
 
+    fn entering_node(self, is_swift_language: bool, node_kind: &str) -> Self {
+        if is_swift_language
+            && matches!(
+                node_kind,
+                "interpolated_expression" | "raw_str_interpolation"
+            )
+        {
+            Self {
+                swift_literal: SwiftLiteralContext::Code,
+                ..self
+            }
+        } else {
+            self
+        }
+    }
+
+    fn after_child(
+        self,
+        is_swift_language: bool,
+        parent_is_swift_literal: bool,
+        child_kind: &str,
+    ) -> Self {
+        if !is_swift_language || !parent_is_swift_literal {
+            return self;
+        }
+        let swift_literal = match child_kind {
+            "\\(" => SwiftLiteralContext::Code,
+            ")" => SwiftLiteralContext::LiteralText,
+            _ => self.swift_literal,
+        };
+        Self {
+            swift_literal,
+            ..self
+        }
+    }
+}
+
+fn collect_node(
+    node: Node<'_>,
+    collector: &mut SourceRegionCollector<'_>,
+    traversal: RegionTraversalState,
+) {
+    if !should_visit_tree_depth(traversal.depth) {
+        return;
+    }
+    collector.node_visits.visit();
+
+    let language = collector.language;
+    let is_swift_language = language == "swift";
+    let file_path = collector.file_path;
+    let content = collector.content;
+    let config = collector.config;
+    let traversal = traversal.entering_node(is_swift_language, node.kind());
+    let inside_swift_literal_text =
+        matches!(traversal.swift_literal, SwiftLiteralContext::LiteralText);
+
     let node_kind = node.kind();
+    let is_swift_literal =
+        is_swift_language && config.string_literal_node_kinds.contains(&node_kind);
     let embedded_script = match language {
         "yaml" => crate::yaml::ci::embedded_script_language(file_path, content, node),
         "xml" => crate::xml::embedded_sql_language(file_path, content, node),
@@ -142,7 +292,9 @@ fn collect_node(
         .then(|| crate::markdown::blocks::embedded_body(content, node))
         .flatten();
     if language == "elixir" && node_kind == "sigil" {
-        regions.push(elixir_sigil_region(file_path, node, content));
+        collector
+            .regions
+            .push(elixir_sigil_region(file_path, node, content));
     } else if let Some((embedded_language, start, end)) = markdown_body {
         let metadata = HashMap::from([
             (
@@ -155,7 +307,7 @@ fn collect_node(
             ),
         ]);
         if let Some(span) = NormalizedSpan::from_content_range(content, start, end) {
-            regions.push(region_for_span(
+            collector.regions.push(region_for_span(
                 file_path,
                 language,
                 span,
@@ -174,7 +326,7 @@ fn collect_node(
                 serde_json::Value::String(embedded_language.to_string()),
             ),
         ]);
-        regions.push(region_for_node(
+        collector.regions.push(region_for_node(
             file_path,
             language,
             node,
@@ -182,14 +334,14 @@ fn collect_node(
             Some(metadata),
         ));
     } else if config.embedded_node_kinds.contains(&node_kind) {
-        regions.push(region_for_node(
+        collector.regions.push(region_for_node(
             file_path,
             language,
             node,
             SourceRegionKind::Embedded,
             embedded_metadata(node, content),
         ));
-    } else if config.comment_node_kinds.contains(&node_kind) {
+    } else if config.comment_node_kinds.contains(&node_kind) && !inside_swift_literal_text {
         let text = node_text(content, node);
         let kind = if language == "yaml" {
             if is_yaml_key_attached_comment(content, node) {
@@ -222,12 +374,14 @@ fn collect_node(
         } else {
             SourceRegionKind::Comment
         };
-        regions.push(region_for_node(file_path, language, node, kind, None));
+        collector
+            .regions
+            .push(region_for_node(file_path, language, node, kind, None));
     } else if config.html_comment_node_kinds.contains(&node_kind) {
         if let Some(text) = node_text(content, node)
             && is_html_comment(text)
         {
-            regions.push(region_for_node(
+            collector.regions.push(region_for_node(
                 file_path,
                 language,
                 node,
@@ -235,8 +389,11 @@ fn collect_node(
                 None,
             ));
         }
-    } else if config.string_literal_node_kinds.contains(&node_kind) && node.is_named() {
-        regions.push(region_for_node(
+    } else if config.string_literal_node_kinds.contains(&node_kind)
+        && node.is_named()
+        && !inside_swift_literal_text
+    {
+        collector.regions.push(region_for_node(
             file_path,
             language,
             node,
@@ -247,7 +404,7 @@ fn collect_node(
         && let Some(text) = node_text(content, node)
         && is_quoted_string_literal(text)
     {
-        regions.push(region_for_node(
+        collector.regions.push(region_for_node(
             file_path,
             language,
             node,
@@ -256,20 +413,26 @@ fn collect_node(
         ));
     }
 
-    let Some(child_depth) = child_tree_depth(depth) else {
+    let Some(child_depth) = child_tree_depth(traversal.depth) else {
         return;
+    };
+    let mut child_traversal = RegionTraversalState {
+        depth: child_depth,
+        swift_literal: if is_swift_literal {
+            SwiftLiteralContext::LiteralText
+        } else {
+            traversal.swift_literal
+        },
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         collect_node(
             child,
-            language,
-            file_path,
-            content,
-            config,
-            regions,
-            child_depth,
+            collector,
+            child_traversal.entering_node(is_swift_language, child.kind()),
         );
+        child_traversal =
+            child_traversal.after_child(is_swift_language, is_swift_literal, child.kind());
     }
 }
 
@@ -1001,7 +1164,7 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
         }),
         "powershell" => Some(RegionLanguageConfig {
             comment_node_kinds: &["comment"],
-            string_literal_node_kinds: &["string_literal", "expandable_string_literal"],
+            string_literal_node_kinds: &["string_literal"],
             quoted_string_literal_node_kinds: &[],
             html_comment_node_kinds: &[],
             embedded_node_kinds: &[],
@@ -1015,7 +1178,7 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
         }),
         "razor" => Some(RegionLanguageConfig {
             comment_node_kinds: &["razor_comment", "html_comment", "comment"],
-            string_literal_node_kinds: &["string_literal"],
+            string_literal_node_kinds: &["string_literal", "interpolated_string_expression"],
             quoted_string_literal_node_kinds: &[],
             html_comment_node_kinds: &[],
             embedded_node_kinds: &["razor_block"],

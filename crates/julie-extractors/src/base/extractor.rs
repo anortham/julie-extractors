@@ -5,6 +5,7 @@
 
 use md5;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use tracing::debug;
 use tree_sitter::Node;
 
@@ -25,6 +26,7 @@ pub struct BaseExtractor {
     /// Build a fresh extractor per file instead (the production pattern).
     pub content: String,
     line_starts: Vec<usize>,
+    body_hashes: OnceLock<super::syntax_body_hash::SyntaxBodyHashIndex>,
     pub relationships: Vec<Relationship>,
     pub pending_relationships: Vec<PendingRelationship>,
     pub structured_pending_relationships: Vec<StructuredPendingRelationship>,
@@ -71,6 +73,7 @@ impl BaseExtractor {
             file_path: relative_unix_path, // Phase 2: Store relative Unix-style path
             content,
             line_starts,
+            body_hashes: OnceLock::new(),
             relationships: Vec::new(),
             pending_relationships: Vec::new(),
             structured_pending_relationships: Vec::new(),
@@ -84,6 +87,53 @@ impl BaseExtractor {
 
     pub(crate) fn line_starts(&self) -> &[usize] {
         &self.line_starts
+    }
+
+    pub(crate) fn init_body_hashes(&self, root: Node<'_>) {
+        if self.body_hashes.get().is_some() || !self.uses_syntax_body_hashes() {
+            return;
+        }
+        self.body_hashes.get_or_init(|| {
+            let syntax = if matches!(self.language.as_str(), "csharp" | "razor") {
+                super::csharp_body_hash::collect_csharp_hash_syntax(
+                    root,
+                    &self.content,
+                    self.language == "razor",
+                )
+            } else {
+                super::body_hash_syntax::collect_hash_syntax(root, &self.content, &self.language)
+            };
+            super::syntax_body_hash::SyntaxBodyHashIndex::new(self.content.as_str(), syntax)
+        });
+    }
+
+    pub(crate) fn init_body_hash_syntax(&self, syntax: super::syntax_body_hash::HashSyntax) {
+        self.body_hashes.get_or_init(|| {
+            super::syntax_body_hash::SyntaxBodyHashIndex::new(self.content.as_str(), syntax)
+        });
+    }
+
+    pub(super) fn init_body_hashes_from_node(&self, mut node: Node<'_>) {
+        if self.body_hashes.get().is_some() || !self.uses_syntax_body_hashes() {
+            return;
+        }
+        while let Some(parent) = node.parent() {
+            node = parent;
+        }
+        self.init_body_hashes(node);
+    }
+
+    pub(crate) fn hash_body(&self, span: BodySpan) -> Option<String> {
+        match self.body_hashes.get() {
+            Some(index) => index.hash(span),
+            None if self.uses_syntax_body_hashes() => None,
+            None => super::body::body_hash(&self.content, span, &self.language),
+        }
+    }
+
+    fn uses_syntax_body_hashes(&self) -> bool {
+        matches!(self.language.as_str(), "csharp" | "razor")
+            || super::body_hash_syntax::supports(&self.language)
     }
 
     /// Record ordered/nested generic type arguments for a use-site identifier.

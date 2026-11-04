@@ -75,7 +75,7 @@ pub(super) fn extract_interface(
                         let member_name = extractor.base().get_node_text(&member_name_node);
                         if !member_name.is_empty() {
                             let signature = extractor.base().get_node_text(&child);
-                            let member_symbol = extractor.base_mut().create_symbol(
+                            let mut member_symbol = extractor.base_mut().create_symbol(
                                 &child,
                                 member_name,
                                 SymbolKind::Method,
@@ -84,6 +84,11 @@ pub(super) fn extract_interface(
                                     signature: Some(signature),
                                     ..Default::default()
                                 },
+                            );
+                            super::functions::set_symbol_body_from_callable(
+                                extractor,
+                                &mut member_symbol,
+                                child,
                             );
                             super::type_facts::record_return_type_fact(
                                 extractor.base_mut(),
@@ -391,7 +396,7 @@ pub(super) fn extract_property(
     metadata.insert("isStatic".to_string(), serde_json::json!(is_static));
     metadata.insert("isReadonly".to_string(), serde_json::json!(is_readonly));
 
-    let symbol = extractor.base_mut().create_symbol(
+    let mut symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Property,
@@ -404,6 +409,8 @@ pub(super) fn extract_property(
             annotations,
         },
     );
+    symbol.body_span = None;
+    symbol.body_hash = None;
     super::type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, node);
     if let Some(value) = node.child_by_field_name("value") {
         crate::javascript::type_facts::record_new_expression_fact(

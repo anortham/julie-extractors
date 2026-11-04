@@ -140,13 +140,13 @@
       "end_byte": 579,
       "body_span": {
         "start_line": 14,
-        "start_column": 7,
+        "start_column": 17,
         "end_line": 14,
-        "end_column": 22,
-        "start_byte": 563,
-        "end_byte": 578
+        "end_column": 21,
+        "start_byte": 573,
+        "end_byte": 577
       },
-      "body_hash": "0403d2c90d99508be62649b9ecba5e0c",
+      "body_hash": "a35fe7f7fe8217b4369a0af4244d1fca",
       "signature": "-define(TIMEOUT, 5000)",
       "doc_comment": null,
       "visibility": "Private",
@@ -193,15 +193,8 @@
       "end_column": 18,
       "start_byte": 449,
       "end_byte": 467,
-      "body_span": {
-        "start_line": 7,
-        "start_column": 7,
-        "end_line": 7,
-        "end_column": 17,
-        "start_byte": 456,
-        "end_byte": 466
-      },
-      "body_hash": "06452d807ed2c3aa9d4203ea5da9b197",
+      "body_span": null,
+      "body_hash": null,
       "signature": "-module(negative)",
       "doc_comment": "%% Reference-shaped Erlang: every construct below looks like an edge to a\n%% resolver. The golden proves the identifier and relationship tiers emit the\n%% RIGHT rows and no wrong ones - no module reference is invented for an\n%% auto-imported BIF or for a dynamic call through a variable, a fun reference\n%% stays distinct from a call to the same function and produces no call edge,\n%% and only queue/1 (defined here) resolves to a same-file target.",
       "visibility": "Public",
@@ -579,6 +572,177 @@
     }
   ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Fun:variable_ref:22:8",
+      "name": "Fun",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 22,
+      "start_column": 8,
+      "end_line": 22,
+      "end_column": 11,
+      "start_byte": 776,
+      "end_byte": 779,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Payload:variable_ref:19:63",
+      "name": "Payload",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 19,
+      "start_column": 63,
+      "end_line": 19,
+      "end_column": 70,
+      "start_byte": 699,
+      "end_byte": 706,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Payload:variable_ref:27:4",
+      "name": "Payload",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 27,
+      "start_column": 4,
+      "end_line": 27,
+      "end_column": 11,
+      "start_byte": 902,
+      "end_byte": 909,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:queue:26:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Queue:variable_ref:23:4",
+      "name": "Queue",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 9,
+      "start_byte": 794,
+      "end_byte": 799,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Queue:variable_ref:24:36",
+      "name": "Queue",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 24,
+      "start_column": 36,
+      "end_line": 24,
+      "end_column": 41,
+      "start_byte": 851,
+      "end_byte": 856,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Request:variable_ref:19:4",
+      "name": "Request",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 19,
+      "start_column": 4,
+      "end_line": 19,
+      "end_column": 11,
+      "start_byte": 640,
+      "end_byte": 647,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "write"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Request:variable_ref:21:21",
+      "name": "Request",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 21,
+      "start_column": 21,
+      "end_line": 21,
+      "end_column": 28,
+      "start_byte": 757,
+      "end_byte": 764,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Request:variable_ref:22:12",
+      "name": "Request",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 22,
+      "start_column": 12,
+      "end_line": 22,
+      "end_column": 19,
+      "start_byte": 780,
+      "end_byte": 787,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/negative/source.erl:Request:variable_ref:24:25",
+      "name": "Request",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "start_line": 24,
+      "start_column": 25,
+      "end_line": 24,
+      "end_column": 32,
+      "start_byte": 840,
+      "end_byte": 847,
+      "containing_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "read"
+      }
+    },
     {
       "key": "fixtures/extraction/erlang/negative/source.erl:TIMEOUT:variable_ref:20:17",
       "name": "TIMEOUT",

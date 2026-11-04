@@ -442,9 +442,7 @@ pub(super) fn extract_macro(
         },
     );
     symbol.body_span = macro_rules_body_span(&base.content, node);
-    symbol.body_hash = symbol
-        .body_span
-        .and_then(|span| crate::base::body::body_hash(&base.content, span, &base.language));
+    symbol.body_hash = symbol.body_span.and_then(|span| base.hash_body(span));
     Some(symbol)
 }
 

@@ -3,6 +3,8 @@ use std::path::Path;
 
 use crate::{SymbolKind, extract_canonical};
 
+mod source_regions;
+
 #[test]
 fn extensionless_qmldir_extracts_module_and_components() {
     let result = extract_canonical(

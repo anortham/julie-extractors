@@ -130,6 +130,9 @@ type Greeter(name: string) =
         body_text(code, symbol(&results, "Loud", SymbolKind::Property)),
         Some("name.ToUpper()")
     );
+    let speak = symbol(&results, "Speak", SymbolKind::Method);
+    assert_eq!(speak.body_span, None);
+    assert_eq!(speak.body_hash, None);
     let class_body = body_text(code, symbol(&results, "Greeter", SymbolKind::Class)).unwrap();
     assert!(class_body.starts_with("member _.Greet"), "{class_body:?}");
     let edited = extract(&code.replace("printfn \"%s\" text", "failwith text"));
@@ -381,6 +384,23 @@ let cache () = Dictionary<string, int>()
         .flat_map(|u| u.arguments.iter().map(|a| a.type_name.as_str()))
         .collect();
     assert_eq!(args, vec!["IClock", "SystemClock"]);
+}
+
+#[test]
+fn non_generic_calls_emit_no_type_argument_usages() {
+    let results = extract("module M\nlet show (value: string) = printfn \"%s\" value\n");
+    let printfn = results
+        .identifiers
+        .iter()
+        .find(|identifier| identifier.kind == IdentifierKind::Call && identifier.name == "printfn")
+        .expect("printfn call");
+
+    assert!(
+        !results
+            .type_argument_usages
+            .iter()
+            .any(|usage| usage.identifier_id == printfn.id)
+    );
 }
 
 #[test]

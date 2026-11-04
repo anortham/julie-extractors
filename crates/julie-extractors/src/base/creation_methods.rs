@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::body::{body_hash, infer_body_span};
+use super::body::infer_body_span;
 use super::containing_symbol_index::{
     ContainingSymbolIndex, IndexedSymbol, is_better_containing_symbol, symbol_contains_position,
     symbol_priority,
@@ -48,10 +48,18 @@ impl BaseExtractor {
         kind: SymbolKind,
         options: SymbolOptions,
     ) -> Symbol {
+        self.init_body_hashes_from_node(*node);
         let id = self.generate_id_for_span(&name, &span);
-        let body_span = match self.body_span_rule {
-            Some(rule) => rule(node, &self.content),
-            None => infer_body_span(
+        let is_parameter = options
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("role"))
+            .and_then(serde_json::Value::as_str)
+            == Some("parameter");
+        let body_span = match (is_parameter, self.body_span_rule) {
+            (true, _) => None,
+            (false, Some(rule)) => rule(node, &self.content),
+            (false, None) => infer_body_span(
                 node,
                 &self.content,
                 self.line_starts(),
@@ -59,9 +67,8 @@ impl BaseExtractor {
                 &self.language,
             ),
         };
-        let body_hash = body_span.and_then(|span| body_hash(&self.content, span, &self.language));
+        let body_hash = body_span.and_then(|span| self.hash_body(span));
 
-        // Mark markdown symbols as documentation
         let content_type = if self.language == "markdown" {
             Some("documentation".to_string())
         } else {
@@ -107,7 +114,7 @@ impl BaseExtractor {
     /// Replace the inferred body span with a grammar-derived span, or clear it.
     pub(crate) fn set_body_span(&self, symbol: &mut Symbol, span: Option<NormalizedSpan>) {
         symbol.body_span = span;
-        symbol.body_hash = span.and_then(|span| body_hash(&self.content, span, &self.language));
+        symbol.body_hash = span.and_then(|span| self.hash_body(span));
     }
 
     /// Create an identifier (reference/usage) - NEW for LSP-quality reference tracking

@@ -342,15 +342,8 @@
       "end_column": 25,
       "start_byte": 156,
       "end_byte": 181,
-      "body_span": {
-        "start_line": 7,
-        "start_column": 14,
-        "end_line": 7,
-        "end_column": 25,
-        "start_byte": 170,
-        "end_byte": 181
-      },
-      "body_hash": "9cb606a1f210093b3d71f61fad8fb35d",
+      "body_span": null,
+      "body_hash": null,
       "signature": "signal changed(slot: int)",
       "doc_comment": "## Emitted when a stack changes.",
       "visibility": "Public",

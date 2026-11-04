@@ -20,7 +20,7 @@
         "start_byte": 57,
         "end_byte": 380
       },
-      "body_hash": "8582ec018fdb86276c0fd0e5f0c47dbd",
+      "body_hash": "99f4cbae49f7615a3d89bf4d17fdfcec",
       "signature": "class UsersApp < Sinatra::Base",
       "doc_comment": null,
       "visibility": "Public",

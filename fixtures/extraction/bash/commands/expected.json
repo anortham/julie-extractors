@@ -435,7 +435,7 @@
         "start_byte": 233,
         "end_byte": 340
       },
-      "body_hash": "340343890a7157b58c5a64ba4af846b1",
+      "body_hash": "bedc2474f9086328dc5f395bf35260ba",
       "signature": "function render()",
       "doc_comment": null,
       "visibility": "Public",

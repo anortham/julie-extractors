@@ -45,3 +45,43 @@ username = "admin"
         Some("database.credentials.username")
     );
 }
+
+#[test]
+fn toml_config_literals_keep_string_values_and_exclude_keys_and_comments() {
+    let toml = r#"# "comment value" is not a TOML string value
+[worker]
+name = "fixture"
+api_url = "https://api.example.com/workers"
+config_path = "./config/worker.toml"
+
+[[steps]]
+name = "compile"
+command = "cargo test"
+"#;
+    let literals = capture_literals(toml);
+    let expected = [
+        ("fixture", "worker.name", "\"fixture\""),
+        (
+            "https://api.example.com/workers",
+            "worker.api_url",
+            "\"https://api.example.com/workers\"",
+        ),
+        (
+            "./config/worker.toml",
+            "worker.config_path",
+            "\"./config/worker.toml\"",
+        ),
+        ("compile", "steps.name", "\"compile\""),
+        ("cargo test", "steps.command", "\"cargo test\""),
+    ];
+
+    assert_eq!(literals.len(), expected.len());
+    for (literal, (text, carrier, token)) in literals.iter().zip(expected) {
+        assert_eq!(literal.literal_text, text);
+        assert_eq!(literal.carrier.as_deref(), Some(carrier));
+        assert_eq!(
+            toml.get(literal.start_byte as usize..literal.end_byte as usize),
+            Some(token)
+        );
+    }
+}

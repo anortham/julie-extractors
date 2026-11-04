@@ -265,4 +265,83 @@ CREATE PROCEDURE [edr].[RefreshItems] AS BEGIN SELECT 1; END;
             .expect("column constraint literal");
         assert_eq!(literal.carrier.as_deref(), Some("Status"));
     }
+
+    #[test]
+    fn tsql_system_time_period_does_not_create_a_column() {
+        let source = include_str!(
+            "../../../../../fixtures/extraction/sql/tsql_coverage_regressions/source.sql"
+        );
+        let symbols = extract_symbols(source);
+        let table = symbols
+            .iter()
+            .find(|symbol| symbol.name == "T" && symbol.kind == SymbolKind::Class)
+            .expect("temporal table T");
+        let columns = symbols
+            .iter()
+            .filter(|symbol| {
+                symbol.kind == SymbolKind::Field
+                    && symbol.parent_id.as_deref() == Some(table.id.as_str())
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            columns
+                .iter()
+                .map(|column| column.name.as_str())
+                .collect::<Vec<_>>(),
+            ["Id", "ValidFrom", "ValidTo"]
+        );
+        for (column, data_type) in columns.iter().zip(["int", "datetime2", "datetime2"]) {
+            assert!(
+                column
+                    .signature
+                    .as_deref()
+                    .is_some_and(|signature| signature.starts_with(data_type))
+            );
+            assert!(
+                source[column.start_byte as usize..column.end_byte as usize].contains(&column.name)
+            );
+        }
+    }
+
+    #[test]
+    fn tsql_bracketed_table_constraints_are_named_children() {
+        let source = include_str!(
+            "../../../../../fixtures/extraction/sql/tsql_coverage_regressions/source.sql"
+        );
+        let symbols = extract_symbols(source);
+        let table = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Cities" && symbol.kind == SymbolKind::Class)
+            .expect("Cities table");
+        let constraints = symbols
+            .iter()
+            .filter(|symbol| {
+                symbol.kind == SymbolKind::Interface
+                    && symbol.parent_id.as_deref() == Some(table.id.as_str())
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            constraints
+                .iter()
+                .map(|constraint| constraint.name.as_str())
+                .collect::<Vec<_>>(),
+            ["PK_Cities", "FK_Cities_StateProvince"]
+        );
+        assert_eq!(
+            constraints[0].signature.as_deref(),
+            Some("CONSTRAINT PRIMARY_KEY")
+        );
+        assert_eq!(
+            constraints[1].signature.as_deref(),
+            Some("CONSTRAINT FOREIGN_KEY")
+        );
+        for constraint in constraints {
+            assert!(
+                source[constraint.start_byte as usize..constraint.end_byte as usize]
+                    .contains(&format!("[{}]", constraint.name))
+            );
+        }
+    }
 }

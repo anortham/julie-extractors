@@ -292,12 +292,12 @@
       "start_line": 121,
       "start_column": 0,
       "end_line": 121,
-      "end_column": 39,
+      "end_column": 54,
       "start_byte": 2196,
-      "end_byte": 2235,
+      "end_byte": 2250,
       "body_span": null,
       "body_hash": null,
-      "signature": "Export-ModuleMember -function Get-First",
+      "signature": "Export-ModuleMember -function Get-First, Update-Config",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -329,7 +329,7 @@
         "start_byte": 1323,
         "end_byte": 1474
       },
-      "body_hash": "ec1f99e6d47199befb378cb280a2bd72",
+      "body_hash": "6ac200cccd3f7bc7fd343b12068c29f2",
       "signature": "[CmdletBinding()] function Get-First()",
       "doc_comment": "<#\n    .SYNOPSIS\n    Returns the first item.\n    #>",
       "visibility": "Public",
@@ -736,6 +736,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/powershell/basic/source.ps1:Update-Config:121:0",
+      "name": "Update-Config",
+      "kind": "export",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 121,
+      "start_column": 0,
+      "end_line": 121,
+      "end_column": 54,
+      "start_byte": 2196,
+      "end_byte": 2250,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Export-ModuleMember -function Get-First, Update-Config",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "export_kind": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Use-Arrays:75:0",
       "name": "Use-Arrays",
       "kind": "function",
@@ -991,15 +1017,8 @@
       "end_column": 56,
       "start_byte": 621,
       "end_byte": 677,
-      "body_span": {
-        "start_line": 34,
-        "start_column": 54,
-        "end_line": 34,
-        "end_column": 56,
-        "start_byte": 675,
-        "end_byte": 677
-      },
-      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "body_span": null,
+      "body_hash": null,
       "signature": "[Dictionary[string, List[int]]]$script:WorkerIndex = @{}",
       "doc_comment": null,
       "visibility": "Private",
@@ -1170,15 +1189,8 @@
       "end_column": 57,
       "start_byte": 1098,
       "end_byte": 1151,
-      "body_span": {
-        "start_line": 69,
-        "start_column": 55,
-        "end_line": 69,
-        "end_column": 57,
-        "start_byte": 1149,
-        "end_byte": 1151
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "[System.Collections.Generic.List[string]]$items = @()",
       "doc_comment": null,
       "visibility": "Private",
@@ -1249,15 +1261,8 @@
       "end_column": 26,
       "start_byte": 1252,
       "end_byte": 1274,
-      "body_span": {
-        "start_line": 76,
-        "start_column": 24,
-        "end_line": 76,
-        "end_column": 26,
-        "start_byte": 1272,
-        "end_byte": 1274
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "[string[]]$names = @()",
       "doc_comment": null,
       "visibility": "Private",
@@ -1304,15 +1309,8 @@
       "end_column": 24,
       "start_byte": 1156,
       "end_byte": 1176,
-      "body_span": {
-        "start_line": 70,
-        "start_column": 22,
-        "end_line": 70,
-        "end_column": 24,
-        "start_byte": 1174,
-        "end_byte": 1176
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "$w = [Widget]::new()",
       "doc_comment": null,
       "visibility": "Private",
@@ -3274,26 +3272,7 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": [
-    {
-      "kind": "Error",
-      "start_line": 121,
-      "start_column": 0,
-      "end_line": 122,
-      "end_column": 0,
-      "start_byte": 2196,
-      "end_byte": 2251
-    },
-    {
-      "kind": "Error",
-      "start_line": 121,
-      "start_column": 54,
-      "end_line": 122,
-      "end_column": 0,
-      "start_byte": 2250,
-      "end_byte": 2251
-    }
-  ],
+  "parse_diagnostics": [],
   "structural_facts": [
     {
       "pattern_id": "powershell.class_definition.v1",
@@ -3958,6 +3937,22 @@
       "end_column": 29,
       "start_byte": 112,
       "end_byte": 127,
+      "containing_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "Update-Config",
+      "kind": "other",
+      "carrier": "Export-ModuleMember",
+      "arg_position": 3,
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 121,
+      "start_column": 41,
+      "end_line": 121,
+      "end_column": 54,
+      "start_byte": 2237,
+      "end_byte": 2250,
       "containing_key": null,
       "confidence": "1.000"
     },
