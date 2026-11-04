@@ -2,7 +2,7 @@
 
 **Date / reviewed baseline:** 2026-11-03; `main` at `f9a1b6cfbd6c51e9aecad39a19610695f210ad05`, the recorded v3.11.0 publication.
 
-**Status:** Implementation in progress under the active goal. Tasks 1, 2, and 4 began in parallel from `837b9796` in the existing plan worktree. Push and release remain outside the authorized scope.
+**Status:** Implementation in progress. Tasks 1–2 are reviewed and locally committed; the Task 3 validator component is verified, four language-audit groups are active, and the pinned corpus is in progress. Performance and final integration acceptance remain open. Push and release remain outside the authorized scope.
 
 **Goal:** Make the existing 42-language coverage claims demonstrably accurate, close every locally actionable defect found by the bounded audit below, and install repeatable correctness and performance checks that prevent those defects from returning.
 

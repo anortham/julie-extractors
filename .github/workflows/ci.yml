@@ -51,6 +51,9 @@ jobs:
       - name: Test language data quality report
         run: node --test scripts/language-data-quality-report.test.mjs
 
+      - name: Test coverage matrix validator
+        run: node --test scripts/check-language-coverage-matrix.test.mjs
+
       - name: Check language applicability
         run: node scripts/language-data-quality-report.mjs --strict --check-applicability
 

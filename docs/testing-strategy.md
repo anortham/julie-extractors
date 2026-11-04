@@ -334,3 +334,13 @@ Run the report's Node regression tests when changing fixture classification
 or proof predicates. Both commands above run in regular CI. The
 [coverage evidence decision](decisions/2026-11-03-language-coverage-evidence.md)
 records the manifest/schema representation boundaries.
+
+The matrix validator's fast mutation tests run with
+`node --test scripts/check-language-coverage-matrix.test.mjs` and enter regular
+CI independently of corpus extraction. The validator imports the report's
+canonical observed-domain list. It checks evidence pointers, actual Rust test
+declarations, source spans, fixture registrations, retained boundaries, and
+local-defect dispositions. The complete audit uses
+`node scripts/check-language-coverage-matrix.mjs`; it fails closed until every
+required matrix cell exists. Its optional `--markdown <path>` writes a
+deterministic view only after successful validation.

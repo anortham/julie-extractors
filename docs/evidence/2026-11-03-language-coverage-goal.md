@@ -83,3 +83,31 @@ The lead reviewed the report and CI changes, requested per-unit proof and useful
 | Task 2 | `node scripts/language-data-quality-report.mjs --strict` | 2026-11-04 00:58 | same source | Existing strict checks pass | SDD `task-2-strict-final.log` |
 
 The reviewed digest covers ordered paths and bytes of the report, its Node tests and CI workflow. Body hashes are recomputed by the Rust capability guard; Node additionally rejects malformed/mismatched spans and missing proof. No generic type/relationship rows are inferred from unrelated structural facts.
+
+## Task 3 audit dispatch
+
+Tasks 1–2 are locally committed and reviewed. The audit is divided into non-overlapping language groups, with source/test/fixture fixes assigned per reproduction before any edits. Each group owns a private JSON fragment and report; the lead owns canonical matrix integration, shared manifests and final verification.
+
+Twenty pinned source diagnostic probes are retained in `fixtures/real-world/coverage/diagnostic-probes.json`. Candidate triage includes C macro-qualified function pointers, Roslyn VB syntax, PowerShell product scripts, existing Erlang telemetry, and SQL Server DDL/procedure syntax. Clean corpus alternatives do not dispose of these probes. Their current status is candidate investigation, not a verified local-defect classification.
+
+### Task 3 web annotation-level evidence assignment
+
+The web audit confirmed that four-level annotation assertions currently cover Rust only. Baseline CLI probes prove the intended Vue/Razor behavior, but those probes do not replace permanent assertions. Assigned the web worker exact test ownership of `crates/julie-extractors/src/tests/vue/annotations.rs` and `crates/julie-extractors/src/tests/razor/annotations.rs`. Add canonical extraction checks with exact annotation-key sets and zero diagnostics at all four levels, preserving existing direct-language tests. This is characterization of existing correct behavior; no production correction is indicated by the probes.
+
+## Task 3 validator component
+
+The independent checker/renderer component is reviewed; the real language audit remains open. Worker tests cover missing/duplicate/unknown cells; malformed/foreign-family proof; named tests hidden in strings/comments; source bytes/coordinates/ownership; observed-only families; exact retained IDs; unresolved defects; and safe deterministic Markdown output. The checker shares the report's 15-domain export.
+
+Lead review additionally reproduced an invalid access proof: a `call`/`type_usage` row carrying `access=read` was accepted as variable access. The new selected mutation failed before the fix; `hasVariableAccess` now requires `variable_ref` or `member_access`. The same test preserves positive variable/member cases. Focused and final whole checks pass: 1 and 31 tests respectively, zero failures. Final logs are `/tmp/julie-matrix-access-red.log`, `/tmp/julie-matrix-access-green.log`, and `/tmp/julie-matrix-final-tests.log`; worker lexical-declaration logs are in SDD `logs/`. Reviewed checker/test source digest is `cfad95ab0326275e39fb74ccc2c9ecc9d72f6859650bd49b7179de4f87e82ca7` on top of `59c8df54`. `check_edit` reports no changed callable shapes.
+
+The default real-matrix command still fails for a missing `validation-matrix.json`, intentionally. Only fast validator mutation tests are added to CI at this stage. Canonical data, final 630-cell validation and its CI gate remain Task 3 acceptance work.
+
+### Task 3 native assignment: C-TYPEDEF-BODY-SPAN
+
+The native audit reproduced an extra body kind in the registered C declarator golden: pointer alias `FooPtr` (`type`) inherits the inline struct's body bytes 380..390 and hash. The source helper chooses the type-definition body's span without checking whether the declarator owns it. Assigned exact production/test/fixture ownership to the native worker: `crates/julie-extractors/src/c/mod.rs`, `crates/julie-extractors/src/tests/c/declarators.rs`, and `fixtures/extraction/c/declarators/expected.json`. Prove the no-body pointer-alias regression before fixing it, preserve real named/anonymous struct/union/enum declaration bodies, and regenerate only the assigned golden. Lead owns marker/ledger declaration.
+
+### Task 3 scripting diagnostic reproductions
+
+The scripting audit replayed the PowerShell variable-path argument diagnostics and Erlang documentation/catch macro diagnostics. Assigned only `crates/julie-extractors/src/tests/powershell/import_source.rs` for a minimal valid argument-mode path reproduction. Production/parser ownership remains pending source and official-syntax analysis. Erlang macro cases require further triage before any new boundary or fix is asserted; preserve positive recovered facts and uncertainty.
+
+The web worker also owns `crates/julie-extractors/src/tests/qml/wave2_gaps.rs` for canonical annotation-level characterization. Existing direct QML attachment tests remain; the new test must assert exact keys at all levels, zero diagnostics and declaration source slices. No production QML correction is assumed.
