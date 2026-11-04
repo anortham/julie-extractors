@@ -76,6 +76,12 @@
       "source": "final workflow observation",
       "artifact": "workflow-observation.json",
       "raw_sha256": "ab0423da07ded37cc934d9a0ebdac8007ec5fcf1e69d410fd9163a111457a3b2"
+    },
+    {
+      "source": "target/coverage-approved-ci-run-terminal.json",
+      "artifact": "workflow-terminal.json.gz",
+      "raw_sha256": "08d8ce685edb3b91c1349b36b3e0eec73ff262b9a01101cf9a665eb13fda9826",
+      "gzip_sha256": "531be35083f89bbae79ffa030db375786b22923907746d6d6e34e9d410752bc0"
     }
   ]
 }

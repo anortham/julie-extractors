@@ -84,11 +84,14 @@ artifacts and both dumps for inspection), `--max-diff-rows <n>`.
 In CI, the `Extractor Compatibility` job downloads the latest published release for
 `x86_64-unknown-linux-gnu` and runs the same command.
 
-## Unreleased language coverage correction
+## 3.12.0
 
-The working source keeps the package version at 3.11.0 while the coverage goal
-is in progress. This section distinguishes the pending correction from the
-published 3.11.0 behavior below; it is not a release announcement.
+classification: compatible
+
+The language-coverage corrections below change source-local facts, body fields
+and normalized hashes. Existing readers retain the same table and column
+contracts. Refresh an existing artifact with `julie-extract scan --root
+<project> --db <artifact.db> --force` before incremental use with 3.12.0.
 
 ### `html-external-script-body-v1`
 
@@ -187,8 +190,8 @@ reparsing each emitted row. Unaffected token framing is retained; corrected
 bodies receive new hashes.
 
 These markers do not change SQLite schema 8, report schema 3, extraction
-contract v4, identity epoch 10, or the package version. Refresh existing
-artifacts before incremental use. Consumers should accept corrected nullable
+contract v4, or identity epoch 10. The package version advances to 3.12.0.
+Refresh existing artifacts before incremental use. Consumers should accept corrected nullable
 body fields, new source-local fact rows and revised hash values; no consumer
 resolver or extra context input is introduced.
 

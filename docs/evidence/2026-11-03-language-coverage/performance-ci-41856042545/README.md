@@ -69,3 +69,10 @@ evidence beyond GitHub's artifact-retention period.
 [Final workflow observation](workflow-observation.json) preserves the exact
 status and timestamp. The original goal requires the actual comparison and
 acceptance gates to pass; it does not add a terminal REST callback as a gate.
+
+## Aggregate status finalized
+
+GitHub subsequently reported the run `completed` with conclusion `success`,
+updated at `2026-11-04T16:26:45Z`. The [terminal API record](workflow-terminal.json.gz)
+is indexed with checksums. The earlier observation remains intact; no
+cancellation or rerun was required.
