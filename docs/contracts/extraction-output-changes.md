@@ -90,7 +90,9 @@ The working source keeps the package version at 3.11.0 while the coverage goal
 is in progress. This section distinguishes the pending correction from the
 published 3.11.0 behavior below; it is not a release announcement.
 
-`html-external-script-body-v1`: HTML Import symbols produced by external
+### `html-external-script-body-v1`
+
+HTML Import symbols produced by external
 `<script src="...">` tags now have null body spans and hashes even when the
 tag contains inline text. An empty `src` still identifies an external script;
 a `data-src` attribute does not. Attribute matching is case-insensitive, so
@@ -104,7 +106,9 @@ The registered `html/external_script_body` fixture and HTML regression test
 prove the correction. Consumers should refresh an existing artifact before
 incremental use with the changed extraction-contract marker.
 
-`declaration-body-ownership-v1`: C pointer, array and function-pointer typedef
+### `declaration-body-ownership-v1`
+
+C pointer, array and function-pointer typedef
 aliases no longer inherit their inline aggregate's body span or hash. Actual
 struct, union and enum declarations retain their bodies. Go parameters and
 ordinary variable initializers no longer claim function-type parentheses or
@@ -116,7 +120,9 @@ declaration ownership. Registered C declarator, Go declaration/test and Swift
 declaration goldens record the corrected rows. Refresh existing artifacts
 before incremental use with this marker.
 
-`programming-parameter-body-v1`: symbols with metadata `role: "parameter"`
+### `programming-parameter-body-v1`
+
+Symbols with metadata `role: "parameter"`
 have null body spans and hashes. A parameter's function type, object type,
 generic type arguments and decorator arguments are declaration syntax, not
 its own body. Callable declarations retain their bodies, and QML type-info
@@ -125,8 +131,9 @@ Zig, TypeScript, TSX and Vue fixtures record the corrected parameter rows.
 Only body fields change; parameter symbols, annotations and type facts are
 preserved. Refresh existing artifacts before incremental use with this marker.
 
-`language-coverage-corrections-v1` records the integrated source-local audit
-corrections:
+### `language-coverage-corrections-v1`
+
+The integrated source-local audit corrects these facts:
 
 - Vendored PowerShell, Erlang, VB.NET and T-SQL grammars parse the pinned
   argument-mode paths, catch macro heads, adjacent parameter attributes and
@@ -141,6 +148,8 @@ corrections:
   optional `AS` does not replace a declared type. Temporal periods do not become
   columns, bracketed constraints retain actual names, procedural blocks do not
   become transactions and valid schemas are not labeled as parser recovery.
+  `NEXT VALUE FOR` is sequence-value syntax; its `NEXT` keyword no longer
+  becomes a false member-access identifier or reference row.
 - Body spans come from the construct that owns them. This includes the
   ECMAScript import/value and TS/TSX signature corrections, Scala abstract
   signatures, Kotlin constructor-property initializers, Lua optional statement
@@ -163,8 +172,10 @@ covered-byte metadata from an invented body to the real declaration. The
 canonical validation matrix records each fixed defect and its exact fixture or
 regression assertions.
 
-`syntax-aware-body-hash-v1` records normalized hashing through one cached
-syntax index per source/grammar coordinate space. Code comments and formatting
+### `syntax-aware-body-hash-v1`
+
+Body hashes use one cached syntax index per source/grammar coordinate space.
+Code comments and formatting
 inside interpolation no longer alter hashes. F# line/block comments,
 PowerShell block comments, nested Rust block comments and Lua long-bracket
 comments are normalized through their actual syntax nodes. Rust label and

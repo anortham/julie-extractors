@@ -22274,10 +22274,31 @@
           "name": "insert_and_merge_target_columns_are_member_accesses",
           "role": "boundary",
           "assertion": "INSERT/MERGE targets are member accesses with the target-table receiver."
+        },
+        {
+          "kind": "test",
+          "path": "crates/julie-extractors/src/tests/sql/identifier_extraction.rs",
+          "name": "tsql_sequence_expression_keeps_column_reference_without_keyword_identifiers",
+          "assertion": "Sequence-value keywords NEXT/VALUE/FOR are not identifiers; the actual selected OrderReference column remains a read MemberAccess and the parse has no errors.",
+          "role": "boundary"
         }
       ],
       "rationale": "Calls, type usages, variable refs and column member accesses retain grammar-specific categories and owners.",
-      "local_defects": [],
+      "local_defects": [
+        {
+          "id": "SQL-SEQUENCE-KEYWORD-IDENTIFIER",
+          "status": "fixed",
+          "fix": "The corrected next_value_expression grammar treats NEXT VALUE FOR as keywords, removing the old false NEXT member-access identifier/reference.",
+          "verification": [
+            {
+              "kind": "test",
+              "path": "crates/julie-extractors/src/tests/sql/identifier_extraction.rs",
+              "name": "tsql_sequence_expression_keeps_column_reference_without_keyword_identifiers",
+              "assertion": "Sequence-value keywords NEXT/VALUE/FOR are not identifiers; the actual selected OrderReference column remains a read MemberAccess and the parse has no errors."
+            }
+          ]
+        }
+      ],
       "retained_gap_ids": []
     },
     {

@@ -331,10 +331,11 @@ both 15% and 32 MiB; artifact size fails above both 10% and 1 MiB. A sample is
 inconclusive when its spread exceeds the greater of 10% of its median or 20 ms.
 Unexplained semantic row changes fail. `--allowlist <path>` allows exact
 versioned row changes tied to `docs/contracts/extraction-output-changes.md`.
-Each entry pins the canonical row, hash, count, source state, unique ID, and
-ledger marker. The comparison records the allowlist and ledger hashes and
-rejects unused entries. The dispatch workflow also requires the expected
-allowlist hash. Optional budget approvals require both
+Each entry pins the canonical row, hash, count, unique ID, ledger marker, and
+optional language, level and workload scope. The manifest and baseline receipt
+pin the source states checked by the comparison. The comparison records the
+allowlist and ledger hashes and rejects unused entries. The dispatch workflow
+also requires the expected allowlist hash. Optional budget approvals require both
 `--budget-approvals <path>` and `--budget-approvals-sha256 <sha256>`. Each
 approval pins its owner, evidence hash, binary hashes, manifest, language,
 level, workload, metric, and exact added rows.

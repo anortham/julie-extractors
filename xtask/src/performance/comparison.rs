@@ -4832,7 +4832,8 @@ mod unit_tests {
         fs::write(&path, bytes).expect("write versioned allowlist");
         let loaded = load_allowlist(dir.path(), Some(Path::new("row-allowlist.json")))
             .expect("load versioned allowlist");
-        assert_eq!(loaded.path.as_deref(), Some(path.as_path()));
+        let canonical_path = fs::canonicalize(&path).expect("canonicalize versioned allowlist");
+        assert_eq!(loaded.path.as_deref(), Some(canonical_path.as_path()));
         assert_eq!(loaded.sha256.as_deref(), Some(sha256(bytes).as_str()));
         assert!(loaded.entries.is_empty());
     }
@@ -4881,7 +4882,9 @@ mod unit_tests {
 
         let loaded = load_build_metadata(dir.path(), &binary, None, &sha256(&bytes))
             .expect("load hash-pinned build sidecar");
-        assert_eq!(loaded.path, metadata_path);
+        let canonical_metadata_path =
+            fs::canonicalize(&metadata_path).expect("canonicalize build sidecar");
+        assert_eq!(loaded.path, canonical_metadata_path);
         assert_eq!(loaded.sha256, sha256(&bytes));
 
         let error = load_build_metadata(dir.path(), &binary, None, &"d".repeat(64))

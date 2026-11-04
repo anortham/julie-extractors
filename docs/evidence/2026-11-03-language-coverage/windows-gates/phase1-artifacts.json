@@ -1,0 +1,105 @@
+{
+  "format_version": 1,
+  "guest_source_commit": "4aac8d123434167ccbe20b06ac4ea21ed7e493a8",
+  "pending": "Two canonical-path expectations are fixed on the host; Windows xtask rerun waits for clean follow-up sync.",
+  "artifacts": [
+    {
+      "gate": "identity",
+      "source_log": "target/coverage-windows-identity.log",
+      "artifact": "identity.log.gz",
+      "raw_sha256": "e978cf4624bc6a53cef224c565a982d2437ffffd9f0a197a984f3d1aad64aef7",
+      "gzip_sha256": "c238fc087975f21b1a7a61cf801c20e00dfa07c6e15d148d269206bbec913f53"
+    },
+    {
+      "gate": "sync",
+      "source_log": "target/coverage-windows-sync.log",
+      "artifact": "sync.log.gz",
+      "raw_sha256": "5e8555c917e267c4b31e5ad0cbfd3eed34d5b18ad8134633a0db441e1f570dcc",
+      "gzip_sha256": "db88e4fb764301baa6560704cb4fbf41ec9a6b946fd1923b88e1feb7b0d7a12a"
+    },
+    {
+      "gate": "default-disk-full",
+      "source_log": "target/coverage-windows-default-disk-full.log",
+      "artifact": "default-disk-full.log.gz",
+      "raw_sha256": "0eba041b569ab83688be6675119e7745a09476694b3c8a9282d3e10540cb8f0f",
+      "gzip_sha256": "d59df69358b51775c7b1f88a9c051af46d15bdf504704d18ce1967c712ec128a"
+    },
+    {
+      "gate": "default",
+      "source_log": "target/coverage-windows-default.log",
+      "artifact": "default.log.gz",
+      "raw_sha256": "797915d6d92c37bac0fcd982d2dd6cc9a1742ecb109275e1e883d2c824e8d381",
+      "gzip_sha256": "559a1bcf0a7633f52edecc1e5140f73b8f3c61037b524ee175d1709caacf4e97"
+    },
+    {
+      "gate": "xtask-tests",
+      "source_log": "target/coverage-windows-xtask-tests.log",
+      "artifact": "xtask-tests.log.gz",
+      "raw_sha256": "661f966be9699eddfc73c464ce27a953f327cdfe8658067f74c7b16e6a6a33bb",
+      "gzip_sha256": "f72cd9dcbf25444b94c9f610f382e4d3117f62e091b215f69c629148942d53db"
+    },
+    {
+      "gate": "cli-focused",
+      "source_log": "target/coverage-windows-cli-focused.log",
+      "artifact": "cli-focused.log.gz",
+      "raw_sha256": "3455e664b375bb22a3477e0dd7701e659c8db8fbaa1355f0a6f410d7d5975854",
+      "gzip_sha256": "9b1344e9af2eac64d346cd9c8920e9d1ec0cd4e4a0797ef5bc40aea795858a87"
+    },
+    {
+      "gate": "capability",
+      "source_log": "target/coverage-windows-capability.log",
+      "artifact": "capability.log.gz",
+      "raw_sha256": "c7d1a8f3821c875c5154dace3a3852ea34be454cc78887e76db6e7dbfdac0820",
+      "gzip_sha256": "b28deafa644081e51043f47cd89eceadac8a0f4455973e717c2daa114f1a47b1"
+    },
+    {
+      "gate": "golden",
+      "source_log": "target/coverage-windows-golden.log",
+      "artifact": "golden.log.gz",
+      "raw_sha256": "c1f98be861240ad8472cc64cd21e61e7dc2501b1c6afa4d84dcb6c41565d4e59",
+      "gzip_sha256": "1f073f4d2b65869c02157af9921d9a096264da055a9b730a8e3aa3740258e84c"
+    },
+    {
+      "gate": "coverage-all",
+      "source_log": "target/coverage-windows-coverage-all.log",
+      "artifact": "coverage-all.log.gz",
+      "raw_sha256": "dba83210df8de4ca55438e0f76c70e721da8dbb73e8eb9ce14c7606366f98cfe",
+      "gzip_sha256": "d4fcd7f80192490f9884da24376b9db159480108c6bf8e6125daffe416bd1a75"
+    },
+    {
+      "gate": "target-inventory",
+      "source_log": "target/coverage-windows-target-inventory.log",
+      "artifact": "target-inventory.log.gz",
+      "raw_sha256": "c4afcf7f9d5c6df929a0690cfa584d97be4562e437fa00bd6507b9b71b89fb87",
+      "gzip_sha256": "f2da29e6e3df55c3895606cb973e9e50298a12f2228555a9408733dfa328d300"
+    },
+    {
+      "gate": "target-cleanup",
+      "source_log": "target/coverage-windows-target-cleanup.log",
+      "artifact": "target-cleanup.log.gz",
+      "raw_sha256": "39a69e24e0c8d50662f08d5df956de10097a596e1d5b1e0f8d7fbd8a6f89ba7e",
+      "gzip_sha256": "21bdb6aa3000d8d59fbbaea6e46c821a3416c299b4f7447e5adad2a12037aba6"
+    },
+    {
+      "gate": "drives",
+      "source_log": "target/coverage-windows-drives.log",
+      "artifact": "drives.log.gz",
+      "raw_sha256": "ce9143be30b4955c347bbe8632f05ca99ce1023e56f959de34962a206f6627ae",
+      "gzip_sha256": "344564cb040ee61b4c0ed7ac66eb23d9b53e18e03d3877c3652c2e13c43bbaed"
+    },
+    {
+      "gate": "test-binary-inventory",
+      "source_log": "target/coverage-windows-test-binary-inventory.log",
+      "artifact": "test-binary-inventory.log.gz",
+      "raw_sha256": "d7be4137ed0f4db6a89de4af481f6a54f6ecbbcb76f5fb60ea673090daddccf6",
+      "gzip_sha256": "243313f175ce38b899c4d9ce11a502a26d6069746c65c0c343ff878d159fdf71"
+    },
+    {
+      "gate": "test-binary-cleanup",
+      "source_log": "target/coverage-windows-test-binary-cleanup.log",
+      "artifact": "test-binary-cleanup.log.gz",
+      "raw_sha256": "471e7afe61f4e2dde6398c93f6a9f54873f3f285288b6adac2c527626fb74d92",
+      "gzip_sha256": "18a5a7d5a6277999bda098f7871c8b39006b93d19e76d199d966520cd00416c6"
+    }
+  ]
+}

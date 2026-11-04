@@ -363,4 +363,53 @@ END
             Some("write")
         );
     }
+
+    #[test]
+    fn tsql_sequence_expression_keeps_column_reference_without_keyword_identifiers() {
+        let sql_code = "SELECT OrderReference, NEXT VALUE FOR Sequences.OrderID FROM @Orders;";
+        let mut parser = init_test_parser();
+        let tree = parser.parse(sql_code, None).unwrap();
+        assert!(!tree.root_node().has_error());
+
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = SqlExtractor::new(
+            "sql".to_string(),
+            "test.sql".to_string(),
+            sql_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let sequence_expression = "NEXT VALUE FOR Sequences.OrderID";
+        let select_start = sql_code
+            .find(format!("SELECT OrderReference, {sequence_expression}").as_str())
+            .expect("sequence expression");
+        let order_reference_start = select_start + "SELECT ".len();
+        let order_reference = identifiers
+            .iter()
+            .find(|identifier| identifier.start_byte == order_reference_start as u32)
+            .expect("selected OrderReference column");
+        assert_eq!(order_reference.name, "OrderReference");
+        assert_eq!(order_reference.kind, IdentifierKind::MemberAccess);
+        assert_eq!(
+            order_reference
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("access"))
+                .and_then(serde_json::Value::as_str),
+            Some("read")
+        );
+
+        let sequence_start = select_start + "SELECT OrderReference, ".len();
+        for keyword in ["NEXT", "VALUE", "FOR"] {
+            let start_byte = (sequence_start + sequence_expression.find(keyword).unwrap()) as u32;
+            assert!(
+                !identifiers.iter().any(|identifier| {
+                    identifier.start_byte == start_byte && identifier.name == keyword
+                }),
+                "{keyword} is a T-SQL sequence keyword, not an identifier"
+            );
+        }
+    }
 }
