@@ -1,1 +1,3 @@
 * text=auto eol=lf
+fixtures/extraction/html/external_script_body/source.html -text whitespace=cr-at-eol
+fixtures/real-world/coverage/** -text whitespace=-blank-at-eol,-blank-at-eof,cr-at-eol

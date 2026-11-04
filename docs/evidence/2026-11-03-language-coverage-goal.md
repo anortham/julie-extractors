@@ -65,3 +65,9 @@ Reviewed source digest (SHA-256 over ordered path + NUL + bytes + NUL for the ex
 | Task 1 | Token-sensitive hashes and Unicode/CRLF offsets | `cargo test -p julie-extractors body_hash -- --nocapture`; `cargo test -p julie-extractors indexed_content_range_matches_prefix_scan -- --nocapture` | 2026-11-04 00:45:31 | 12 hash + 1 offset check passed | SDD `task-1-verification-logs/body-normalization.log` |
 
 The SDD workspace is `.razorback/sdd/2026-11-03-language-coverage-goal-54245db20e09`. Captured negative mutations fail when case-insensitive source detection, registered-source checking, or declaration containment is removed; restored source passes the final scopes above. Task 1 is ready for its local commit. This does not close Task 3 or final Windows/performance acceptance.
+
+## Source-byte preservation correction
+
+Task 1 landed locally as `bdb5039c`. The staging warning exposed a real checkout defect: the verified HTML fixture had 354 bytes and one CRLF, while Git's `* text=auto eol=lf` stored 353 bytes without CRLF. An exact working-source/committed-blob assertion failed. The source and golden were correct together, but a fresh checkout would not retain that source identity.
+
+Added `-text` for the exact HTML source and `fixtures/real-world/coverage/**` so pinned corpus hashes also survive staging/checkouts. The already-tracked fixture required `git add --renormalize` after the attribute change; an ordinary add reused its cached clean state. Exact staged-byte comparison now passes (354 bytes, one CRLF). `JULIE_GOLDEN_LANGUAGE=html cargo test -p julie-extractors --features test-golden --lib golden_fixtures_match_canonical_extraction` selects one test and passes; its source bytes equal the staged blob. Log: `/tmp/julie-html-preserved-bytes-golden.txt`. This follow-up corrects the local commit without rewriting history.
