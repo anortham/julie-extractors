@@ -1,3 +1,5 @@
+use crate::base::NormalizedSpan;
+use crate::base::body::body_hash;
 use crate::base::complexity_metrics::complexity_metric_scopes_for_language;
 use crate::base::structural_facts::structural_fact_pattern_ids_for_language;
 use crate::extract_canonical;
@@ -7,7 +9,7 @@ use crate::registry::{capabilities_for_language, supported_languages};
 use crate::{IdentifierKind, RelationshipKind, SymbolKind};
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -1445,6 +1447,403 @@ fn capability_matrix_supported_kind_claims_have_fixture_evidence() {
     assert!(errors.is_empty(), "{}", errors.join("\n"));
 }
 
+#[test]
+fn capability_matrix_body_span_claims_require_non_null_span_and_hash() {
+    let root = workspace_root();
+    let matrix = load_matrix(&root);
+    let html = matrix
+        .languages
+        .iter()
+        .find(|row| row.language == "html")
+        .expect("HTML must be registered");
+
+    let observed = observed_kind_coverage(&root, html);
+
+    assert!(
+        !observed.body_spans.contains("import"),
+        "HTML import symbols have no body span or hash"
+    );
+}
+
+#[test]
+fn capability_matrix_body_span_coverage_rejects_invalid_proofs() {
+    let valid_span = serde_json::json!({
+        "start_line": 1,
+        "start_column": 7,
+        "end_line": 1,
+        "end_column": 9,
+        "start_byte": 7,
+        "end_byte": 9
+    });
+    let valid_hash = serde_json::json!("a1a42f00d5428b4218da76a480474865");
+    let cases = [
+        ("missing span", None, Some(valid_hash.clone())),
+        (
+            "null span",
+            Some(serde_json::Value::Null),
+            Some(valid_hash.clone()),
+        ),
+        (
+            "missing span fields",
+            Some(serde_json::json!({"start_byte": 7, "end_byte": 9})),
+            Some(valid_hash.clone()),
+        ),
+        (
+            "reversed range",
+            Some(serde_json::json!({
+                "start_line": 1,
+                "start_column": 9,
+                "end_line": 1,
+                "end_column": 7,
+                "start_byte": 9,
+                "end_byte": 7
+            })),
+            Some(valid_hash.clone()),
+        ),
+        (
+            "empty range",
+            Some(serde_json::json!({
+                "start_line": 1,
+                "start_column": 7,
+                "end_line": 1,
+                "end_column": 7,
+                "start_byte": 7,
+                "end_byte": 7
+            })),
+            Some(valid_hash.clone()),
+        ),
+        (
+            "range beyond source",
+            Some(serde_json::json!({
+                "start_line": 1,
+                "start_column": 7,
+                "end_line": 1,
+                "end_column": 100,
+                "start_byte": 7,
+                "end_byte": 100
+            })),
+            Some(valid_hash.clone()),
+        ),
+        (
+            "inconsistent line and column",
+            Some(serde_json::json!({
+                "start_line": 2,
+                "start_column": 0,
+                "end_line": 2,
+                "end_column": 2,
+                "start_byte": 7,
+                "end_byte": 9
+            })),
+            Some(valid_hash.clone()),
+        ),
+        ("missing hash", Some(valid_span.clone()), None),
+        (
+            "null hash",
+            Some(valid_span.clone()),
+            Some(serde_json::Value::Null),
+        ),
+        (
+            "empty hash",
+            Some(valid_span.clone()),
+            Some(serde_json::json!("")),
+        ),
+        (
+            "hash does not match source",
+            Some(valid_span.clone()),
+            Some(serde_json::json!("00000000000000000000000000000000")),
+        ),
+    ];
+
+    for (name, span, hash) in cases {
+        assert!(
+            !observed_body_span_kinds("fn f() {}\n", span, hash).contains("function"),
+            "{name} must not support a body span claim"
+        );
+    }
+
+    assert!(
+        observed_body_span_kinds("fn f() {}\n", Some(valid_span), Some(valid_hash))
+            .contains("function")
+    );
+}
+
+#[test]
+fn capability_matrix_body_span_evidence_accepts_unicode_crlf_offsets() {
+    let source = "fn β() {\r\n    let value = 1;\r\n}\r\n";
+    let span = serde_json::json!({
+        "start_line": 1,
+        "start_column": 8,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 8,
+        "end_byte": 32
+    });
+    let hash = serde_json::json!("32f60826f5a8280e0c670b3cf4cf2cd7");
+
+    assert!(observed_body_span_kinds(source, Some(span), Some(hash)).contains("function"));
+}
+
+#[test]
+fn capability_matrix_body_span_evidence_requires_registered_source() {
+    let source = "fn f() {}\n";
+    let span = serde_json::json!({
+        "start_line": 1,
+        "start_column": 7,
+        "end_line": 1,
+        "end_column": 9,
+        "start_byte": 7,
+        "end_byte": 9
+    });
+    let hash = serde_json::json!("a1a42f00d5428b4218da76a480474865");
+
+    assert!(
+        !observed_body_span_kinds_with_proof(
+            source,
+            Some(span.clone()),
+            Some(hash.clone()),
+            "other.rs",
+            &["source.rs"],
+            (0, source.len()),
+        )
+        .contains("function"),
+        "an unregistered source path must not prove body coverage"
+    );
+    assert!(
+        observed_body_span_kinds_with_proof(
+            source,
+            Some(span),
+            Some(hash),
+            "source.rs",
+            &["source.rs"],
+            (0, source.len()),
+        )
+        .contains("function")
+    );
+}
+
+#[test]
+fn capability_matrix_body_span_evidence_requires_rooted_source_and_declaration_containment() {
+    let source = "fn f() {}\n";
+    let span = serde_json::json!({
+        "start_line": 1,
+        "start_column": 7,
+        "end_line": 1,
+        "end_column": 9,
+        "start_byte": 7,
+        "end_byte": 9
+    });
+    let hash = serde_json::json!("a1a42f00d5428b4218da76a480474865");
+
+    assert!(
+        !observed_body_span_kinds_with_proof(
+            source,
+            Some(span.clone()),
+            Some(hash.clone()),
+            "../outside.rs",
+            &["source.rs", "../outside.rs"],
+            (0, source.len()),
+        )
+        .contains("function"),
+        "a path outside the fixture root must not prove body coverage"
+    );
+    assert!(
+        !observed_body_span_kinds_with_proof(
+            source,
+            Some(span.clone()),
+            Some(hash.clone()),
+            "source.rs",
+            &["source.rs"],
+            (0, 7),
+        )
+        .contains("function"),
+        "a body outside its declared symbol span must not prove body coverage"
+    );
+    assert!(
+        !observed_body_span_kinds_with_proof(
+            source,
+            Some(span.clone()),
+            Some(hash.clone()),
+            "source.rs",
+            &["source.rs"],
+            (7, 7),
+        )
+        .contains("function"),
+        "an invalid declared symbol span must not prove body coverage"
+    );
+    assert!(
+        observed_body_span_kinds_with_proof(
+            source,
+            Some(span),
+            Some(hash),
+            "source.rs",
+            &["source.rs"],
+            (0, source.len()),
+        )
+        .contains("function")
+    );
+}
+
+#[test]
+fn capability_matrix_last_body_span_evidence_row_is_required_by_claim_validation() {
+    let source = "fn f() {}\n";
+    let span = serde_json::json!({
+        "start_line": 1,
+        "start_column": 7,
+        "end_line": 1,
+        "end_column": 9,
+        "start_byte": 7,
+        "end_byte": 9
+    });
+    let hash = serde_json::json!("a1a42f00d5428b4218da76a480474865");
+    let observed = observed_body_span_kinds(source, Some(span), Some(hash));
+    assert!(observed.contains("function"));
+
+    let flags = || CapabilityFlags {
+        symbols: false,
+        relationships: false,
+        pending_relationships: false,
+        identifiers: false,
+        types: false,
+    };
+    let row = CapabilityRow {
+        language: "rust".to_string(),
+        parser_crate: String::new(),
+        extensions: Vec::new(),
+        dependency_status: "current".to_string(),
+        target_capabilities: flags(),
+        capabilities: flags(),
+        kind_coverage: CapabilityKindCoverage::default(),
+        fixtures: Vec::new(),
+        capability_gaps: Vec::new(),
+    };
+    let coverage = KindCoverage {
+        supported: vec!["function".to_string()],
+        ..KindCoverage::default()
+    };
+    let mut errors = Vec::new();
+
+    assert_supported_kind_claims(
+        &mut errors,
+        &row,
+        "body_spans",
+        false,
+        &coverage,
+        &observed,
+        SymbolKind::try_from_string,
+    );
+    assert!(errors.is_empty());
+
+    let mut without_last_supporting_row = observed;
+    without_last_supporting_row.remove("function");
+    assert_supported_kind_claims(
+        &mut errors,
+        &row,
+        "body_spans",
+        false,
+        &coverage,
+        &without_last_supporting_row,
+        SymbolKind::try_from_string,
+    );
+    assert_eq!(
+        errors,
+        ["rust claims supported body_spans kind `function` but no golden fixture emits it"]
+    );
+}
+
+fn observed_body_span_kinds(
+    source: &str,
+    body_span: Option<serde_json::Value>,
+    body_hash: Option<serde_json::Value>,
+) -> BTreeSet<String> {
+    observed_body_span_kinds_with_proof(
+        source,
+        body_span,
+        body_hash,
+        "source.rs",
+        &["source.rs"],
+        (0, source.len()),
+    )
+}
+
+fn observed_body_span_kinds_with_proof(
+    source: &str,
+    body_span: Option<serde_json::Value>,
+    body_hash: Option<serde_json::Value>,
+    file_path: &str,
+    registered_sources: &[&str],
+    declaration_range: (usize, usize),
+) -> BTreeSet<String> {
+    let workspace = tempfile::tempdir().expect("temporary fixture directory");
+    let root = workspace.path().join("fixture");
+    fs::create_dir(&root).expect("fixture root");
+    fs::write(root.join("source.rs"), source).expect("fixture source");
+    let candidate_path = root.join(file_path);
+    if let Some(parent) = candidate_path.parent() {
+        fs::create_dir_all(parent).expect("candidate source parent");
+    }
+    fs::write(candidate_path, source).expect("candidate source");
+    let declaration =
+        NormalizedSpan::from_content_range(source, declaration_range.0, declaration_range.1)
+            .expect("valid declaration range");
+    let mut symbol = serde_json::json!({
+        "kind": "function",
+        "language": "rust",
+        "file_path": file_path,
+        "start_line": declaration.start_line,
+        "start_column": declaration.start_column,
+        "end_line": declaration.end_line,
+        "end_column": declaration.end_column,
+        "start_byte": declaration.start_byte,
+        "end_byte": declaration.end_byte
+    });
+    if let Some(body_span) = body_span {
+        symbol
+            .as_object_mut()
+            .expect("symbol is a JSON object")
+            .insert("body_span".to_string(), body_span);
+    }
+    if let Some(body_hash) = body_hash {
+        symbol
+            .as_object_mut()
+            .expect("symbol is a JSON object")
+            .insert("body_hash".to_string(), body_hash);
+    }
+    fs::write(
+        root.join("expected.json"),
+        serde_json::json!({"symbols": [symbol]}).to_string(),
+    )
+    .expect("expected fixture");
+
+    let flags = || CapabilityFlags {
+        symbols: false,
+        relationships: false,
+        pending_relationships: false,
+        identifiers: false,
+        types: false,
+    };
+    let row = CapabilityRow {
+        language: "rust".to_string(),
+        parser_crate: String::new(),
+        extensions: Vec::new(),
+        dependency_status: "current".to_string(),
+        target_capabilities: flags(),
+        capabilities: flags(),
+        kind_coverage: CapabilityKindCoverage::default(),
+        fixtures: vec![FixtureRow {
+            name: "body span proof".to_string(),
+            source: "source.rs".to_string(),
+            expected: "expected.json".to_string(),
+            sources: registered_sources
+                .iter()
+                .map(|path| (*path).to_string())
+                .collect(),
+        }],
+        capability_gaps: Vec::new(),
+    };
+
+    observed_kind_coverage(&root, &row).body_spans
+}
+
 // Plan-doc stronger versions: per-language coverage instead of global totals.
 
 #[test]
@@ -1666,18 +2065,27 @@ struct ObservedKindCoverage {
 
 fn observed_kind_coverage(root: &Path, row: &CapabilityRow) -> ObservedKindCoverage {
     let mut observed = ObservedKindCoverage::default();
+    let mut source_cache = HashMap::new();
+    let canonical_root = root.canonicalize().ok();
     for fixture in &row.fixtures {
         let expected = load_expected_fixture(root, fixture);
         collect_kinds(&mut observed.symbols, &expected, &["symbols"], |item| {
             item.get("kind")
         });
-        collect_kinds(&mut observed.body_spans, &expected, &["symbols"], |item| {
-            if item.get("body_span").is_some() && item.get("body_hash").is_some() {
-                item.get("kind")
-            } else {
-                None
+        let source_paths = fixture.source_paths();
+        for item in golden_items(&expected, "symbols") {
+            if body_span_hash_matches_source(
+                root,
+                canonical_root.as_deref(),
+                &source_paths,
+                item,
+                &mut source_cache,
+            ) {
+                if let Some(kind) = item.get("kind").and_then(Value::as_str) {
+                    observed.body_spans.insert(kind.to_string());
+                }
             }
-        });
+        }
         collect_kinds(
             &mut observed.relationships,
             &expected,
@@ -1698,6 +2106,73 @@ fn observed_kind_coverage(root: &Path, row: &CapabilityRow) -> ObservedKindCover
         );
     }
     observed
+}
+
+fn body_span_hash_matches_source(
+    root: &Path,
+    canonical_root: Option<&Path>,
+    registered_source_paths: &[&str],
+    item: &Value,
+    source_cache: &mut HashMap<String, String>,
+) -> bool {
+    let Some(canonical_root) = canonical_root else {
+        return false;
+    };
+    let Some(file_path) = item.get("file_path").and_then(Value::as_str) else {
+        return false;
+    };
+    if !registered_source_paths.contains(&file_path) {
+        return false;
+    }
+    let Some(canonical_source_path) = root.join(file_path).canonicalize().ok() else {
+        return false;
+    };
+    if !canonical_source_path.starts_with(canonical_root) {
+        return false;
+    }
+    let source = source_cache
+        .entry(file_path.to_string())
+        .or_insert_with(|| fs::read_to_string(canonical_source_path).unwrap_or_default());
+    let Ok(span) = serde_json::from_value::<NormalizedSpan>(item["body_span"].clone()) else {
+        return false;
+    };
+    let start = span.start_byte as usize;
+    let end = span.end_byte as usize;
+    if start >= end || end > source.len() {
+        return false;
+    }
+    let Some(source_span) = NormalizedSpan::from_content_range(source, start, end) else {
+        return false;
+    };
+    if source_span != span {
+        return false;
+    }
+    let Ok(declaration_span) = serde_json::from_value::<NormalizedSpan>(item.clone()) else {
+        return false;
+    };
+    let declaration_start = declaration_span.start_byte as usize;
+    let declaration_end = declaration_span.end_byte as usize;
+    if declaration_start >= declaration_end
+        || declaration_end > source.len()
+        || start < declaration_start
+        || end > declaration_end
+        || NormalizedSpan::from_content_range(source, declaration_start, declaration_end)
+            != Some(declaration_span)
+    {
+        return false;
+    }
+    let Some(language) = item.get("language").and_then(Value::as_str) else {
+        return false;
+    };
+    let Some(expected_hash) = item
+        .get("body_hash")
+        .and_then(Value::as_str)
+        .filter(|hash| !hash.trim().is_empty())
+    else {
+        return false;
+    };
+
+    body_hash(source, span, language).as_deref() == Some(expected_hash)
 }
 
 fn observed_structural_fact_patterns(root: &Path, row: &Value) -> BTreeSet<String> {

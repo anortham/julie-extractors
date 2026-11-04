@@ -84,6 +84,26 @@ artifacts and both dumps for inspection), `--max-diff-rows <n>`.
 In CI, the `Extractor Compatibility` job downloads the latest published release for
 `x86_64-unknown-linux-gnu` and runs the same command.
 
+## Unreleased language coverage correction
+
+The working source keeps the package version at 3.11.0 while the coverage goal
+is in progress. This section distinguishes the pending correction from the
+published 3.11.0 behavior below; it is not a release announcement.
+
+`html-external-script-body-v1`: HTML Import symbols produced by external
+`<script src="...">` tags now have null body spans and hashes even when the
+tag contains inline text. An empty `src` still identifies an external script;
+a `data-src` attribute does not. Attribute matching is case-insensitive, so
+`SRC`/`SrC` now also produce Import symbols with `isInline=false` and do not
+extract their inline text as a JavaScript program. True inline scripts keep
+their interior body spans and normalized hashes. Lowercase external-script
+changes affect body fields only; mixed-case forms also correct symbol kind,
+inline metadata, and any facts previously extracted from ignored inline text.
+No fact table, column, schema, report, or extraction-level contract changes.
+The registered `html/external_script_body` fixture and HTML regression test
+prove the correction. Consumers should refresh an existing artifact before
+incremental use with the changed extraction-contract marker.
+
 ## Declared changes
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.

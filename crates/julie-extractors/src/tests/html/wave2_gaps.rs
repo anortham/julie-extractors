@@ -130,6 +130,52 @@ fn pending_rows_come_from_the_element_that_carries_the_attribute() {
 }
 
 #[test]
+fn external_script_imports_have_no_body_while_inline_scripts_keep_their_body() {
+    let code = concat!(
+        "<script src=\"external.js\">inlineText()</script>\n",
+        "<script src=\"\">emptySourceFallback()</script>\n",
+        "<script SRC=\"upper.js\">upperFallback()</script>\n",
+        "<script SrC=\"mixed.js\">mixedCaseFallback()</script>\n",
+        "<script type=\"text/template\">template body</script>\n",
+    );
+    let result = extract(code);
+    let imports: Vec<_> = result
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Import)
+        .collect();
+
+    assert_eq!(imports.len(), 4);
+    assert!(
+        imports
+            .iter()
+            .all(|symbol| { symbol.body_span.is_none() && symbol.body_hash.is_none() })
+    );
+
+    let inline = result
+        .symbols
+        .iter()
+        .find(|symbol| {
+            symbol.kind == SymbolKind::Variable
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("scriptType"))
+                    == Some(&serde_json::Value::String("text/template".to_string()))
+        })
+        .expect("inline template script should remain a variable symbol");
+    let span = inline
+        .body_span
+        .expect("inline script should retain its body span");
+
+    assert_eq!(
+        &code[span.start_byte as usize..span.end_byte as usize],
+        "template body"
+    );
+    assert!(inline.body_hash.is_some());
+}
+
+#[test]
 fn element_body_span_is_the_content_between_its_tags() {
     let code = "<div id=\"menu\" x-data=\"{ open: false }\">\n  <button>Toggle</button>\n</div>\n<input name=\"q\" oninput=\"search(this.value)\">\n<main id=\"content\"><p>Hello {{ user.name }}</p></main>\n";
     let result = extract(code);

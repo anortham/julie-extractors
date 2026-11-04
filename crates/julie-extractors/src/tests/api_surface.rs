@@ -86,6 +86,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "ruby-sub-test-case-v1",
         "annotations-at-references-v1",
         "variable-write-sites-v1",
+        "html-external-script-body-v1",
     ] {
         assert!(
             version.contains(marker),

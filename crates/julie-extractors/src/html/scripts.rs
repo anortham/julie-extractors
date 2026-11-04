@@ -22,6 +22,9 @@ impl ScriptStyleExtractor {
     ) -> Vec<Symbol> {
         let attributes = HTMLHelpers::extract_attributes(base, node);
         let content = HTMLHelpers::extract_text_content(base, node);
+        let has_src = attributes
+            .keys()
+            .any(|name| name.eq_ignore_ascii_case("src"));
 
         // Only delegate to the embedded JS extractor when the script type is
         // actually JavaScript.  Non-JS types (e.g. application/ld+json,
@@ -29,7 +32,7 @@ impl ScriptStyleExtractor {
         // attributes like `type` are preserved in the symbol's signature.
         let is_javascript = is_javascript_script_type(&attributes);
 
-        if !attributes.contains_key("src")
+        if !has_src
             && is_javascript
             && let Some(mut results) =
                 extract_embedded_block(base, node, script_block_language(&attributes))
@@ -48,8 +51,7 @@ impl ScriptStyleExtractor {
         let signature =
             AttributeHandler::build_element_signature("script", &attributes, content.as_deref());
 
-        // Determine symbol kind based on src attribute
-        let symbol_kind = if attributes.contains_key("src") {
+        let symbol_kind = if has_src {
             SymbolKind::Import
         } else {
             SymbolKind::Variable
@@ -60,10 +62,7 @@ impl ScriptStyleExtractor {
             "type".to_string(),
             serde_json::Value::String("script-element".to_string()),
         );
-        metadata.insert(
-            "isInline".to_string(),
-            serde_json::Value::Bool(!attributes.contains_key("src")),
-        );
+        metadata.insert("isInline".to_string(), serde_json::Value::Bool(!has_src));
 
         if !attributes.is_empty() {
             metadata.insert(
@@ -106,7 +105,8 @@ impl ScriptStyleExtractor {
                 annotations: Vec::new(),
             },
         );
-        base.set_body_span(&mut symbol, element_body_span(base, node));
+        let body_span = (!has_src).then(|| element_body_span(base, node)).flatten();
+        base.set_body_span(&mut symbol, body_span);
         vec![symbol]
     }
 

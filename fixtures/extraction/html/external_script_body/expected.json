@@ -1,0 +1,812 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/html/external_script_body/source.html:DOCTYPE:1:0",
+      "name": "DOCTYPE",
+      "kind": "namespace",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 0,
+      "end_byte": 15,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "<!doctype html>",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "declaration": "<!doctype html>",
+        "type": "doctype"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/external_script_body/source.html:inlineFunction:7:8",
+      "name": "inlineFunction",
+      "kind": "function",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 7,
+      "start_column": 8,
+      "end_line": 7,
+      "end_column": 53,
+      "start_byte": 297,
+      "end_byte": 342,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 34,
+        "end_line": 7,
+        "end_column": 53,
+        "start_byte": 323,
+        "end_byte": 342
+      },
+      "body_hash": "22982a251a014f15a9cd379722c95c4b",
+      "signature": "function inlineFunction()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isArrowFunction": false,
+        "isAsync": false,
+        "isExpression": false,
+        "isGenerator": false,
+        "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/external_script_body/source.html:script:2:0",
+      "name": "script",
+      "kind": "import",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 47,
+      "start_byte": 16,
+      "end_byte": 63,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "<script src=\"external.js\">inlineText()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "attributes": {
+          "src": "external.js"
+        },
+        "content": "inlineText()",
+        "isInline": false,
+        "scriptType": "text/javascript",
+        "type": "script-element"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/external_script_body/source.html:script:3:0",
+      "name": "script",
+      "kind": "import",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 45,
+      "start_byte": 64,
+      "end_byte": 109,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "<script src>emptySourceFallback()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "attributes": {
+          "src": ""
+        },
+        "content": "emptySourceFallback()",
+        "isInline": false,
+        "scriptType": "text/javascript",
+        "type": "script-element"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/external_script_body/source.html:script:4:0",
+      "name": "script",
+      "kind": "import",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 47,
+      "start_byte": 110,
+      "end_byte": 157,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "<script src=\"upper.js\">upperFallback()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "attributes": {
+          "src": "upper.js"
+        },
+        "content": "upperFallback()",
+        "isInline": false,
+        "scriptType": "text/javascript",
+        "type": "script-element"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/external_script_body/source.html:script:5:0",
+      "name": "script",
+      "kind": "import",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 51,
+      "start_byte": 158,
+      "end_byte": 209,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "<script>mixedCaseFallback()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "attributes": {
+          "SrC": "mixed.js"
+        },
+        "content": "mixedCaseFallback()",
+        "isInline": false,
+        "scriptType": "text/javascript",
+        "type": "script-element"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/external_script_body/source.html:script:6:0",
+      "name": "script",
+      "kind": "variable",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 78,
+      "start_byte": 210,
+      "end_byte": 288,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 52,
+        "end_line": 6,
+        "end_column": 69,
+        "start_byte": 262,
+        "end_byte": 279
+      },
+      "body_hash": "989ce8f2db052dbf61098cb1725891db",
+      "signature": "<script type=\"text/template\" data-src=\"external.js\">confusable inline",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "attributes": {
+          "data-src": "external.js",
+          "type": "text/template"
+        },
+        "content": "confusable inline",
+        "isInline": true,
+        "scriptType": "text/template",
+        "type": "script-element"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/html/external_script_body/source.html:script:2:0",
+      "callee_name": "external.js",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "line_number": 2,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/html/external_script_body/source.html:script:4:0",
+      "callee_name": "upper.js",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "line_number": 4,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/html/external_script_body/source.html:script:2:0",
+        "callee_name": "external.js",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/html/external_script_body/source.html",
+        "line_number": 2,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "external.js",
+        "terminal_name": "external.js",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "html-script-src"
+      },
+      "caller_scope_key": "fixtures/extraction/html/external_script_body/source.html:script:2:0",
+      "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/html/external_script_body/source.html:script:4:0",
+        "callee_name": "upper.js",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/html/external_script_body/source.html",
+        "line_number": 4,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "upper.js",
+        "terminal_name": "upper.js",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "html-script-src"
+      },
+      "caller_scope_key": "fixtures/extraction/html/external_script_body/source.html:script:4:0",
+      "span": null
+    }
+  ],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/html/external_script_body/source.html:DOCTYPE:1:0",
+      "resolved_type": "doctype",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/html/external_script_body/source.html:script:2:0",
+      "resolved_type": "script-element",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/html/external_script_body/source.html:script:3:0",
+      "resolved_type": "script-element",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/html/external_script_body/source.html:script:4:0",
+      "resolved_type": "script-element",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/html/external_script_body/source.html:script:5:0",
+      "resolved_type": "script-element",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/html/external_script_body/source.html:script:6:0",
+      "resolved_type": "script-element",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:2:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 47,
+      "start_byte": 16,
+      "end_byte": 63,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": false,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "src": "external.js",
+        "tag_name": "script"
+      }
+    },
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:3:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 45,
+      "start_byte": 64,
+      "end_byte": 109,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": false,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "tag_name": "script"
+      }
+    },
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:4:0",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 47,
+      "start_byte": 110,
+      "end_byte": 157,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": false,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "src": "upper.js",
+        "tag_name": "script"
+      }
+    },
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:5:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 51,
+      "start_byte": 158,
+      "end_byte": 209,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": false,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "src": "mixed.js",
+        "tag_name": "script"
+      }
+    },
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:6:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 78,
+      "start_byte": 210,
+      "end_byte": 288,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": true,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "tag_name": "script",
+        "type": "text/template"
+      }
+    },
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": null,
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 9,
+      "start_byte": 289,
+      "end_byte": 352,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": true,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "tag_name": "script"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "covered_lines": 2,
+      "covered_bytes": 46,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 7,
+      "start_column": 8,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 297,
+      "end_byte": 343,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/external_script_body/source.html:inlineFunction:7:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "covered_lines": 1,
+      "covered_bytes": 19,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 34,
+      "end_line": 7,
+      "end_column": 53,
+      "start_byte": 323,
+      "end_byte": 342,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "external.js",
+      "kind": "other",
+      "carrier": "script.data-src",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 6,
+      "start_column": 17,
+      "end_line": 6,
+      "end_column": 30,
+      "start_byte": 227,
+      "end_byte": 240,
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "external.js",
+      "kind": "other",
+      "carrier": "script.src",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 2,
+      "start_column": 12,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 28,
+      "end_byte": 41,
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:2:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "mixed.js",
+      "kind": "other",
+      "carrier": "script.src",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 5,
+      "start_column": 12,
+      "end_line": 5,
+      "end_column": 22,
+      "start_byte": 170,
+      "end_byte": 180,
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:5:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "text/template",
+      "kind": "other",
+      "carrier": "script.type",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 6,
+      "start_column": 36,
+      "end_line": 6,
+      "end_column": 51,
+      "start_byte": 246,
+      "end_byte": 261,
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "upper.js",
+      "kind": "other",
+      "carrier": "script.src",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "start_line": 4,
+      "start_column": 12,
+      "end_line": 4,
+      "end_column": 22,
+      "start_byte": 122,
+      "end_byte": 132,
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:4:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 47,
+      "start_byte": 16,
+      "end_byte": 63,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "src": "external.js"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 45,
+      "start_byte": 64,
+      "end_byte": 109,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element",
+        "host_tag": "script"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 47,
+      "start_byte": 110,
+      "end_byte": 157,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "src": "upper.js"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 51,
+      "start_byte": 158,
+      "end_byte": 209,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "src": "mixed.js"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 78,
+      "start_byte": 210,
+      "end_byte": 288,
+      "metadata": {
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "type": "text/template"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": null,
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 9,
+      "start_byte": 289,
+      "end_byte": 352,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element",
+        "host_tag": "script"
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:2:0",
+      "start_line": 2,
+      "start_column": 12,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 28,
+      "end_byte": 41,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:3:0",
+      "start_line": 3,
+      "start_column": 12,
+      "end_line": 3,
+      "end_column": 14,
+      "start_byte": 76,
+      "end_byte": 78,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:4:0",
+      "start_line": 4,
+      "start_column": 12,
+      "end_line": 4,
+      "end_column": 22,
+      "start_byte": 122,
+      "end_byte": 132,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:5:0",
+      "start_line": 5,
+      "start_column": 12,
+      "end_line": 5,
+      "end_column": 22,
+      "start_byte": 170,
+      "end_byte": 180,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:6:0",
+      "start_line": 6,
+      "start_column": 17,
+      "end_line": 6,
+      "end_column": 30,
+      "start_byte": 227,
+      "end_byte": 240,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:script:6:0",
+      "start_line": 6,
+      "start_column": 36,
+      "end_line": 6,
+      "end_column": 51,
+      "start_byte": 246,
+      "end_byte": 261,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/external_script_body/source.html",
+      "containing_key": "fixtures/extraction/html/external_script_body/source.html:inlineFunction:7:8",
+      "start_line": 7,
+      "start_column": 43,
+      "end_line": 7,
+      "end_column": 50,
+      "start_byte": 332,
+      "end_byte": 339,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

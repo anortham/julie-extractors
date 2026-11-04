@@ -2,7 +2,7 @@
 
 **Date / reviewed baseline:** 2026-11-03; `main` at `f9a1b6cfbd6c51e9aecad39a19610695f210ad05`, the recorded v3.11.0 publication.
 
-**Status:** Reviewed implementation plan, not an implementation-completion report. All task checkboxes start open. The user requested this plan and intends to use it as a goal; execution, push, and release have not been requested in this conversation.
+**Status:** Implementation in progress under the active goal. Tasks 1, 2, and 4 began in parallel from `837b9796` in the existing plan worktree. Push and release remain outside the authorized scope.
 
 **Goal:** Make the existing 42-language coverage claims demonstrably accurate, close every locally actionable defect found by the bounded audit below, and install repeatable correctness and performance checks that prevent those defects from returning.
 
@@ -176,10 +176,10 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 
 **What to build:** A validator that rejects missing, null, malformed and empty proof, plus correct dispositions for all five kinds. **Approach:** Tighten `observed_kind_coverage`, use the existing supported-kind test, and verify the affected constructs against actual syntax and extraction. Require valid in-source spans, not just an arbitrary object.
 
-- [ ] Null span/hash, malformed/reversed/out-of-source spans, empty hash, and removal of the last supporting row fail; a valid pair passes.
-- [ ] All five claims have a source-backed fixture or a documented genuine N/A classification; applicable missing bodies are implemented and tested.
-- [ ] Existing valid span/hash evidence survives; body-only edits change the hash while permitted formatting/comment edits preserve it.
-- [ ] Affected language tiers and capability checks pass; hand the verified diff to the lead.
+- [x] Null span/hash, malformed/reversed/out-of-source spans, empty hash, and removal of the last supporting row fail; a valid pair passes.
+- [x] All five claims have a source-backed fixture or a documented genuine N/A classification; applicable missing bodies are implemented and tested.
+- [x] Existing valid span/hash evidence survives; body-only edits change the hash while permitted formatting/comment edits preserve it.
+- [x] Affected language tiers and capability checks pass; hand the verified diff to the lead.
 
 ### Task 2: Close applicability accounting and prevent drift
 
@@ -249,6 +249,6 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 
 ## Goal execution handoff
 
-Use this document as the goal's acceptance contract, not merely its task list. On execution, first verify current source/worktrees and re-run the strict report: the reviewed baseline can drift. Preserve completed work, update evidence with the new baseline, and execute through final verification without stopping at intermediate tasks. The user has authorized this review and plan only; an instruction to execute the goal authorizes local implementation, not push or publication.
+Use this document as the goal's acceptance contract, not merely its task list. On execution, first verify current source/worktrees and re-run the strict report: the reviewed baseline can drift. Preserve completed work, update evidence with the new baseline, and execute through final verification without stopping at intermediate tasks. The active goal authorizes local implementation and commits, not push or publication.
 
 The plan itself is saved in `/home/murphy/source/julie-extractors/.worktrees/language-coverage-plan` on `docs/language-coverage-plan`, based on `f9a1b6cf`. Keep related edits together and reconcile this documentation branch when choosing the implementation worktree.

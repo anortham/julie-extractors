@@ -2544,6 +2544,11 @@
           "name": "documents_and_templates",
           "source": "fixtures/extraction/html/documents_and_templates/source.html",
           "expected": "fixtures/extraction/html/documents_and_templates/expected.json"
+        },
+        {
+          "name": "external_script_body",
+          "source": "fixtures/extraction/html/external_script_body/source.html",
+          "expected": "fixtures/extraction/html/external_script_body/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2590,10 +2595,11 @@
             "class",
             "field",
             "function",
-            "import",
             "namespace"
           ],
-          "not_applicable": [],
+          "not_applicable": [
+            "import"
+          ],
           "open_gaps": []
         },
         "structural_facts": {
@@ -2773,12 +2779,13 @@
         "body_spans": {
           "supported": [
             "function",
-            "import",
             "namespace",
-            "property",
+            "property"
+          ],
+          "not_applicable": [
+            "import",
             "variable"
           ],
-          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -6474,11 +6481,11 @@
           "open_gaps": []
         },
         "body_spans": {
-          "supported": [
+          "supported": [],
+          "not_applicable": [
             "export",
             "module"
           ],
-          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
