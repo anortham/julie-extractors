@@ -2,7 +2,7 @@
 
 **Date / reviewed baseline:** 2026-11-03; `main` at `f9a1b6cfbd6c51e9aecad39a19610695f210ad05`, the recorded v3.11.0 publication.
 
-**Status:** Implementation in progress. Tasks 1–2 are reviewed and locally committed. All eight audit fragments are integrated into the validated 630-cell canonical matrix, with 47 fixed extraction defects. Shared hash corrections, all 465 goldens, the default and contract tiers, exact formatting/Clippy, parser certification and the 42-language candidate corpus pass. The comparison harness and original-baseline receipt are implemented. The real-world release tier also passes after source-backed review of eight additional Erlang facts and the removal of 45 parse diagnostics. Final clean candidate provenance, performance, Windows and integration acceptance remain open. Push and release remain outside the authorized scope.
+**Status:** Tasks 1–4 are implemented, reviewed and locally committed: the validated 630-cell matrix records 47 fixed extraction defects, 465 goldens pass, and all 42 languages have pinned CLI corpus evidence. Branch, certification, real-world, rebind and native Windows checks pass on recorded source states. Three warm default runs have a 32.053799-second median; writer batching passes. Exact row accounting is complete. Task 5 remains open: the second controlled comparison passes five of six workloads, but references update timing is inconclusive after its permitted repeat. Both failed campaigns are retained; a reviewed fixed calibration margin is being implemented without changing acceptance budgets. Final controlled performance and integration closure remain open. Push and release are outside scope.
 
 **Goal:** Make the existing 42-language coverage claims demonstrably accurate, close every locally actionable defect found by the bounded audit below, and install repeatable correctness and performance checks that prevent those defects from returning.
 
@@ -241,9 +241,9 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 
 - [x] New fast contract tests are routed explicitly; convention tests prove corpus, certification and timed stress gates stay outside default. Retain narrow language commands.
 - [x] Public capability snapshots, docs and contract markers agree with the result; docs point to schema v8/extraction v4 and the SQLite-only product. No unsolicited version bump or release.
-- [ ] Compatibility against the pinned 3.11.0 binary accounts for every intended row change. Reuse `crates/julie-extract-cli/tests/rebind_equivalence.rs` to check add/edit/delete/rename/malformed-to-valid/no-change against fresh scans with all fact tables and multiplicities.
+- [x] Compatibility against the pinned 3.11.0 binary accounts for every intended row change. Reuse `crates/julie-extract-cli/tests/rebind_equivalence.rs` to check add/edit/delete/rename/malformed-to-valid/no-change against fresh scans with all fact tables and multiplicities.
 - [ ] Run the final branch gate, real-world tiers, all-language corpus, controlled performance comparison and escalation gates. Native Windows runs cover changed platform-sensitive paths and incremental/file lifecycle behavior; log exact commands and source identity.
-- [ ] Record three warm default runs with min/median/max and repair a median above 180 seconds. Retain broad coverage rather than hiding expensive tests in ad hoc exclusions.
+- [x] Record three warm default runs with min/median/max and repair a median above 180 seconds. Retain broad coverage rather than hiding expensive tests in ad hoc exclusions.
 - [ ] Review each success checkbox against evidence; record final counts and all 11 retained boundary dispositions. Reconcile worktree states and commit the scoped source/docs/memory locally.
 - [ ] Mark this plan complete only after every required outcome is met. If a gate or access boundary blocks completion, leave it open and identify the smallest concrete missing action.
 

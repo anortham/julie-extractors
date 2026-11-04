@@ -323,10 +323,13 @@ The comparison runs at `references` and `full` levels for fresh scans,
 no-change scans, and single-file updates. Each workload gets one warm-up and
 five paired samples. Small workloads are batched to at least two seconds, up to
 4,096 operations. A count is accepted only after two consecutive baseline
-calibration probes both reach two seconds and satisfy the existing spread
-limit. Otherwise the count doubles within the cap; measured baseline samples
-still have to meet the floor and spread checks. Comparison summary format v2
-records every calibration round and probe time, including rejected counts.
+calibration probes both reach the fixed four-second setup target and satisfy
+the existing spread limit. Otherwise the count doubles within the cap. Each
+attempt freezes its count for both binaries; the one permitted retry starts
+at the previous count. Measured baseline samples still have to meet the
+two-second acceptance floor and spread checks. Comparison summary format v3 records
+the setup target, retry policy, every calibration round and raw probe time,
+including rejected counts.
 Baseline receipts, build sidecars and row allowlists retain format v1. It records binary, build, manifest, host, storage, cache, and
 RSS measurement provenance. Baseline and candidate must use matching toolchain,
 profile, operating system, CPU, storage, cache policy, jobs, and memory.

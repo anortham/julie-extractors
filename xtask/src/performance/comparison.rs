@@ -14,12 +14,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-const SUMMARY_FORMAT_VERSION: u32 = 2;
+const SUMMARY_FORMAT_VERSION: u32 = 3;
 const ALLOWLIST_FORMAT_VERSION: u32 = 1;
 const WARMUP_RUNS_PER_BINARY: usize = 1;
 const SAMPLE_COUNT: usize = 5;
 const CALIBRATION_PROBE_COUNT: usize = 2;
 const MIN_BATCH_DURATION_MS: u128 = 2_000;
+const CALIBRATION_TARGET_MS: u128 = 4_000;
+const INITIAL_CALIBRATION_OPERATIONS: usize = 1;
 const MAX_BATCH_OPERATIONS: usize = 4_096;
 const MAX_SAMPLE_SPREAD_PERCENT: u128 = 10;
 const MIN_SAMPLE_SPREAD_MS: u128 = 20;
@@ -262,6 +264,8 @@ pub struct ComparisonPolicy {
     pub paired_samples_per_workload: usize,
     pub baseline_calibration_probe_count: usize,
     pub minimum_baseline_batch_ms: u128,
+    pub baseline_calibration_target_ms: u128,
+    pub retry_calibration_operation_floor: String,
     pub maximum_calibration_operations: usize,
     pub maximum_sample_spread_percent: u128,
     pub minimum_sample_spread_ms: u128,
@@ -1398,7 +1402,7 @@ fn calibration_probes_are_conclusive(samples: &[u128]) -> bool {
     samples.len() == CALIBRATION_PROBE_COUNT
         && samples
             .iter()
-            .all(|elapsed_ms| *elapsed_ms >= MIN_BATCH_DURATION_MS)
+            .all(|elapsed_ms| *elapsed_ms >= CALIBRATION_TARGET_MS)
         && sample_spread_within_tolerance(samples)
 }
 
@@ -3322,6 +3326,9 @@ fn comparison_policy() -> ComparisonPolicy {
         paired_samples_per_workload: SAMPLE_COUNT,
         baseline_calibration_probe_count: CALIBRATION_PROBE_COUNT,
         minimum_baseline_batch_ms: MIN_BATCH_DURATION_MS,
+        baseline_calibration_target_ms: CALIBRATION_TARGET_MS,
+        retry_calibration_operation_floor:
+            "previous_attempt.baseline.calibration_operations".to_string(),
         maximum_calibration_operations: MAX_BATCH_OPERATIONS,
         maximum_sample_spread_percent: MAX_SAMPLE_SPREAD_PERCENT,
         minimum_sample_spread_ms: MIN_SAMPLE_SPREAD_MS,
@@ -3341,7 +3348,7 @@ fn comparison_policy() -> ComparisonPolicy {
             vec!["indexed_at".to_string(), "last_revision_id".to_string()],
         )]),
         timed_interval: "sum of wall-clock durations around each /usr/bin/time-wrapped scan process; process startup and collector overhead included; source staging, fresh-equivalence scans, semantic checks, and artifact preparation are outside the timed intervals".to_string(),
-        workload_preparation: "baseline calibration selects a fixed operation count only after two consecutive baseline calibration probes at that count meet the minimum duration and spread limits. fresh_scan clears the database before each timed scan; no_change_scan prepares the database before timing; single_file_update prepares the original state and changes one staged source before each timed scan. Both binaries receive the same warm-up and validation-scan cache treatment; operating-system page cache is not dropped".to_string(),
+        workload_preparation: "baseline calibration selects a fixed operation count only after two consecutive baseline calibration probes at that count each reach the calibration target and meet the spread limits. A retry starts at the previous attempt's calibrated operation count and can only increase it. Each attempt uses that count for all five paired samples. fresh_scan clears the database before each timed scan; no_change_scan prepares the database before timing; single_file_update prepares the original state and changes one staged source before each timed scan. Both binaries receive the same warm-up and validation-scan cache treatment; operating-system page cache is not dropped".to_string(),
     }
 }
 
@@ -3466,13 +3473,14 @@ fn measure_workload(comparison: WorkloadComparison<'_>) -> Result<WorkloadResult
     let workload = comparison.identity.workload;
     let allowlist = comparison.verification.allowlist;
     let ledger = comparison.verification.ledger;
-    let first_attempt = measure_attempt(&comparison)?;
+    let first_attempt = measure_attempt(&comparison, INITIAL_CALIBRATION_OPERATIONS)?;
     let first_evaluation = evaluate_attempt(&first_attempt, &comparison);
     let repeatable = should_retry_measurement(&first_evaluation.gate_failures);
 
     let (final_attempt, gate_failures, previous_attempt, repeat_attempted, approved_budget_ids) =
         if repeatable {
-            let repeated = measure_attempt(&comparison)?;
+            let repeated =
+                measure_attempt(&comparison, first_attempt.baseline.calibration_operations)?;
             let repeated_evaluation = evaluate_attempt(&repeated, &comparison);
             let prior = PreviousAttempt {
                 baseline: first_attempt.baseline.clone(),
@@ -3548,6 +3556,7 @@ fn measure_workload(comparison: WorkloadComparison<'_>) -> Result<WorkloadResult
 
 fn measure_attempt(
     comparison: &WorkloadComparison<'_>,
+    minimum_calibration_operations: usize,
 ) -> Result<MeasurementAttempt, ComparisonError> {
     let level = comparison.identity.level;
     let workload = comparison.identity.workload;
@@ -3584,18 +3593,19 @@ fn measure_attempt(
         );
     }
 
-    let calibration = calibrate_baseline_batch(workload, |operations| {
-        let output = run_batch(
-            baseline_binary,
-            baseline_stage,
-            level,
-            workload,
-            operations,
-            baseline_expectation,
-        )?;
-        baseline_preflight_failures.extend(output.runtime_failures.iter().cloned());
-        Ok(output)
-    })?;
+    let calibration =
+        calibrate_baseline_batch(workload, minimum_calibration_operations, |operations| {
+            let output = run_batch(
+                baseline_binary,
+                baseline_stage,
+                level,
+                workload,
+                operations,
+                baseline_expectation,
+            )?;
+            baseline_preflight_failures.extend(output.runtime_failures.iter().cloned());
+            Ok(output)
+        })?;
     let BaselineCalibration {
         operation_count: calibration_operations,
         output: calibration_output,
@@ -3743,9 +3753,15 @@ struct BaselineCalibration {
 
 fn calibrate_baseline_batch(
     workload: WorkloadKind,
+    minimum_operation_count: usize,
     mut run_probe: impl FnMut(usize) -> Result<BatchOutput, ComparisonError>,
 ) -> Result<BaselineCalibration, ComparisonError> {
-    let mut operation_count = 1usize;
+    if !(1..=MAX_BATCH_OPERATIONS).contains(&minimum_operation_count) {
+        return Err(ComparisonError::environment(format!(
+            "{workload:?} baseline calibration floor {minimum_operation_count} is outside 1..={MAX_BATCH_OPERATIONS}"
+        )));
+    }
+    let mut operation_count = minimum_operation_count;
     let mut rounds = Vec::new();
     loop {
         let mut outputs = Vec::with_capacity(CALIBRATION_PROBE_COUNT);
@@ -3790,10 +3806,10 @@ fn calibrate_baseline_batch(
         }
         if operation_count >= MAX_BATCH_OPERATIONS {
             return Err(ComparisonError::environment(format!(
-                "{workload:?} baseline batch did not reach a stable two-second calibration by {MAX_BATCH_OPERATIONS} operations; observed rounds: {rounds:?}"
+                "{workload:?} baseline batch did not reach a stable {CALIBRATION_TARGET_MS}ms calibration by {MAX_BATCH_OPERATIONS} operations; observed rounds: {rounds:?}"
             )));
         }
-        operation_count = operation_count.saturating_mul(2);
+        operation_count = operation_count.saturating_mul(2).min(MAX_BATCH_OPERATIONS);
     }
 }
 
@@ -4770,12 +4786,16 @@ mod unit_tests {
         let mut durations = durations.into_iter();
         let mut operations = Vec::new();
 
-        let calibration = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
-            operations.push(operation_count);
-            Ok(sample_batch_output_with_duration(
-                durations.next().expect("provide each probe duration"),
-            ))
-        })
+        let calibration = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            INITIAL_CALIBRATION_OPERATIONS,
+            |operation_count| {
+                operations.push(operation_count);
+                Ok(sample_batch_output_with_duration(
+                    durations.next().expect("provide each probe duration"),
+                ))
+            },
+        )
         .expect("stable calibration probe pair");
 
         assert_eq!(operations, [1, 2, 4, 4, 8, 8]);
@@ -4808,17 +4828,21 @@ mod unit_tests {
     }
 
     #[test]
-    fn calibration_accepts_two_stable_batches_above_the_duration_floor() {
-        let durations = [900, 1_600, 2_203, 2_183];
+    fn calibration_accepts_two_stable_batches_at_the_target() {
+        let durations = [900, 1_600, 4_203, 4_183];
         let mut durations = durations.into_iter();
         let mut operations = Vec::new();
 
-        let calibration = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
-            operations.push(operation_count);
-            Ok(sample_batch_output_with_duration(
-                durations.next().expect("provide each probe duration"),
-            ))
-        })
+        let calibration = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            INITIAL_CALIBRATION_OPERATIONS,
+            |operation_count| {
+                operations.push(operation_count);
+                Ok(sample_batch_output_with_duration(
+                    durations.next().expect("provide each probe duration"),
+                ))
+            },
+        )
         .expect("stable calibration probe pair");
 
         assert_eq!(operations, [1, 2, 4, 4]);
@@ -4830,17 +4854,97 @@ mod unit_tests {
     }
 
     #[test]
+    fn calibration_rejects_stable_2060ms_probes_below_the_target() {
+        let durations = [2_060, 2_065, 4_400, 4_410];
+        let mut durations = durations.into_iter();
+        let mut operations = Vec::new();
+
+        let calibration = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            INITIAL_CALIBRATION_OPERATIONS,
+            |operation_count| {
+                operations.push(operation_count);
+                Ok(sample_batch_output_with_duration(
+                    durations.next().expect("provide each probe duration"),
+                ))
+            },
+        )
+        .expect("calibration eventually reaches its target");
+
+        assert_eq!(operations, [1, 1, 2, 2]);
+        assert_eq!(calibration.operation_count, 2);
+        assert_eq!(
+            calibration.rounds,
+            [
+                BaselineCalibrationRound {
+                    operation_count: 1,
+                    elapsed_ms: vec![2_060, 2_065],
+                    accepted: false,
+                },
+                BaselineCalibrationRound {
+                    operation_count: 2,
+                    elapsed_ms: vec![4_400, 4_410],
+                    accepted: true,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn retry_calibration_cannot_reduce_the_previous_operation_count() {
+        let first_durations = [900, 1_600, 4_203, 4_700, 8_400, 8_410];
+        let mut first_durations = first_durations.into_iter();
+        let mut first_operations = Vec::new();
+        let first = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            INITIAL_CALIBRATION_OPERATIONS,
+            |operation_count| {
+                first_operations.push(operation_count);
+                Ok(sample_batch_output_with_duration(
+                    first_durations
+                        .next()
+                        .expect("provide each first-attempt probe"),
+                ))
+            },
+        )
+        .expect("first attempt reaches a stable calibration");
+
+        assert_eq!(first_operations, [1, 2, 4, 4, 8, 8]);
+        let retry_durations = [2_060, 2_065, 4_400, 4_410];
+        let mut retry_durations = retry_durations.into_iter();
+        let mut retry_operations = Vec::new();
+        let retry = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            first.operation_count,
+            |operation_count| {
+                retry_operations.push(operation_count);
+                Ok(sample_batch_output_with_duration(
+                    retry_durations.next().expect("provide each retry probe"),
+                ))
+            },
+        )
+        .expect("retry reaches a stable calibration");
+
+        assert_eq!(retry_operations, [8, 8, 16, 16]);
+        assert!(retry.operation_count >= first.operation_count);
+    }
+
+    #[test]
     fn calibration_rejects_excessive_probe_spread_and_doubles_operations() {
         let durations = [900, 1_600, 2_203, 2_500, 4_400, 4_410];
         let mut durations = durations.into_iter();
         let mut operations = Vec::new();
 
-        let calibration = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
-            operations.push(operation_count);
-            Ok(sample_batch_output_with_duration(
-                durations.next().expect("provide each probe duration"),
-            ))
-        })
+        let calibration = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            INITIAL_CALIBRATION_OPERATIONS,
+            |operation_count| {
+                operations.push(operation_count);
+                Ok(sample_batch_output_with_duration(
+                    durations.next().expect("provide each probe duration"),
+                ))
+            },
+        )
         .expect("stable calibration probe pair");
 
         assert_eq!(operations, [1, 2, 4, 4, 8, 8]);
@@ -4854,13 +4958,17 @@ mod unit_tests {
         let mut durations = durations.into_iter();
         let mut operations = Vec::new();
 
-        let error = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
-            operations.push(operation_count);
-            match durations.next() {
-                Some(duration) => Ok(sample_batch_output_with_duration(duration)),
-                None => Err(ComparisonError::environment("controlled probe failure")),
-            }
-        })
+        let error = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            INITIAL_CALIBRATION_OPERATIONS,
+            |operation_count| {
+                operations.push(operation_count);
+                match durations.next() {
+                    Some(duration) => Ok(sample_batch_output_with_duration(duration)),
+                    None => Err(ComparisonError::environment("controlled probe failure")),
+                }
+            },
+        )
         .expect_err("probe failures report the samples already captured");
 
         assert_eq!(operations, [1, 2, 4, 4]);
@@ -4871,25 +4979,29 @@ mod unit_tests {
     fn calibration_fails_after_unstable_probes_reach_the_operation_cap() {
         let mut operations = Vec::new();
 
-        let error = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
-            operations.push(operation_count);
-            let elapsed_ms = if operation_count < MAX_BATCH_OPERATIONS {
-                1_000
-            } else if operations
-                .iter()
-                .filter(|count| **count == MAX_BATCH_OPERATIONS)
-                .count()
-                == 1
-            {
-                2_000
-            } else {
-                3_000
-            };
-            Ok(sample_batch_output_with_duration(elapsed_ms))
-        })
+        let error = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            INITIAL_CALIBRATION_OPERATIONS,
+            |operation_count| {
+                operations.push(operation_count);
+                let elapsed_ms = if operation_count < MAX_BATCH_OPERATIONS {
+                    1_000
+                } else if operations
+                    .iter()
+                    .filter(|count| **count == MAX_BATCH_OPERATIONS)
+                    .count()
+                    == 1
+                {
+                    2_000
+                } else {
+                    3_000
+                };
+                Ok(sample_batch_output_with_duration(elapsed_ms))
+            },
+        )
         .expect_err("unstable calibration cannot exceed the operation cap");
 
-        assert!(error.message.contains("stable two-second calibration"));
+        assert!(error.message.contains("stable 4000ms calibration"));
         assert!(error.message.contains("elapsed_ms: [2000, 3000]"));
         assert_eq!(
             operations,
@@ -5045,12 +5157,39 @@ mod unit_tests {
     }
 
     #[test]
+    fn calibration_fails_closed_when_cap_probes_are_stable_below_the_target() {
+        let mut operations = Vec::new();
+
+        let error = calibrate_baseline_batch(
+            WorkloadKind::FreshScan,
+            MAX_BATCH_OPERATIONS,
+            |operation_count| {
+                operations.push(operation_count);
+                Ok(sample_batch_output_with_duration(2_060))
+            },
+        )
+        .expect_err("stable probes below the calibration target do not pass at the cap");
+
+        assert!(error.message.contains("stable 4000ms calibration"));
+        assert_eq!(operations, [MAX_BATCH_OPERATIONS, MAX_BATCH_OPERATIONS]);
+    }
+
+    #[test]
     fn comparison_summary_policy_records_the_acceptance_thresholds() {
         let policy = comparison_policy();
+        assert_eq!(SUMMARY_FORMAT_VERSION, 3);
         assert_eq!(policy.warmup_runs_per_binary, 1);
         assert_eq!(policy.paired_samples_per_workload, 5);
         assert_eq!(policy.baseline_calibration_probe_count, 2);
         assert_eq!(policy.minimum_baseline_batch_ms, 2_000);
+        assert_eq!(policy.maximum_sample_spread_percent, 10);
+        assert_eq!(policy.minimum_sample_spread_ms, 20);
+        let serialized_policy = serde_json::to_value(&policy).expect("serialize policy");
+        assert_eq!(serialized_policy["baseline_calibration_target_ms"], 4_000);
+        assert_eq!(
+            serialized_policy["retry_calibration_operation_floor"],
+            "previous_attempt.baseline.calibration_operations"
+        );
         assert_eq!(policy.maximum_calibration_operations, 4_096);
         assert_eq!(policy.elapsed_growth_percent, 10);
         assert_eq!(policy.elapsed_growth_ms, 100);

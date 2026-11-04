@@ -362,3 +362,61 @@ formats, budgets, final sample checks and retry limits remain unchanged.
 Focused comparison unit tests (21), comparison contract tests (33), full xtask,
 formatting and xtask Clippy pass. The corrected controlled run remains pending.
 See the [calibration decision](../decisions/2026-11-04-performance-calibration.md).
+
+
+## Final-source verification and remaining timing blocker
+
+On `bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56`, native Windows full xtask
+passes 36 unit tests and every target; the focused SQL sequence-keyword
+regression also passes. The guest is shut off. The follow-up preserves the
+failed disk-full link and the passing retry; only verified generated task
+outputs were removed to recover disk space. Raw reports and logs are retained
+in the [final gate index](2026-11-03-language-coverage/final-gates/artifacts.json).
+
+One unmeasured default warm-up and three measured warm runs all pass. Measured
+min/median/max are 31.876381 / 32.053799 / 42.817533 seconds, below the
+180-second median limit. The writer floor passes. The current-schema writer
+commits 1.22 million extraction rows plus 10,000 revision-change rows in one transaction: 10,834 ms, 112,605.3778 rows/second,
+378,384,384 artifact bytes. Exact commands and raw summaries are in that index.
+These results remain reusable for unchanged default-tier and writer inputs.
+
+The second controlled comparison, using the recorded clean `bd7369f0` build,
+passes five of six workloads. All row, diagnostic, health, memory, artifact-size
+and latency-budget checks pass. References single-file-update remains
+inconclusive after the permitted repeat: accepted 32-operation probes took
+2,064 and 2,065 ms, but later baseline samples took 1,943, 2,071, 2,066, 1,772
+and 2,522 ms. The under-two-second samples and 750 ms spread fail the gate.
+The repeat is exhausted; the
+[complete second run](2026-11-03-language-coverage/performance-attempt-2/artifacts.json)
+is retained and is not counted as a pass.
+
+Source review confirms fresh artifacts per batch, update/revert work within
+each batch, and no persistent extraction-result cache. Private baseline
+profiles record changed=1 and unchanged=43 for every scan. Their fsync costs
+explain much of each operation's wall time, without proving the cause of every
+batch outlier. An isolated NOCOW experiment improved median time by only about
+4%; it is not adopted for official measurements. These are
+[diagnostic records](2026-11-03-language-coverage/update-timing-diagnostics/artifacts.json),
+not accepted gate samples. A fixed calibration margin and nondecreasing retry
+count are justified in the
+[calibration decision](../decisions/2026-11-04-performance-calibration.md).
+The controlled performance outcome and overall goal remain open.
+
+
+## Fixed calibration margin review
+
+The focused red tests reproduce acceptance of stable 2,060/2,065 ms probes,
+retry calibration restarting below the previous count, and absent setup-policy
+fields. The correction sets a uniform 4,000 ms calibration target while leaving
+the 2,000 ms paired-sample floor and every spread/budget/correctness check
+unchanged. A retry starts at the previous calibrated count. Both binaries use
+one fixed count for all five pairs in each attempt. Summary format v3 records
+the target and retry rule; all input schemas remain v1.
+
+All eight calibration tests and all 24 comparison unit tests pass. The tests
+retain rejection of short/noisy samples, cap exhaustion, and correctness
+failures that must not be retried. Lead source review and code-kb check_edit
+confirm the changed call sites are updated. Full xtask passes 39 unit tests
+and all package targets, including 33 comparison contracts. Exact all-workspace
+formatting and xtask all-target Clippy with warnings denied pass. Raw red/green
+and final checks are in the [calibration margin gate index](2026-11-03-language-coverage/calibration-margin-gates/artifacts.json).

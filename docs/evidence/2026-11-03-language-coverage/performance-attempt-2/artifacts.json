@@ -1,0 +1,72 @@
+{
+  "artifacts": [
+    {
+      "archive_gzip_path": "artifacts/comparison.json.gz",
+      "archive_raw_path": null,
+      "gzip_bytes": 487044,
+      "gzip_sha256": "cf166f1fbd42bb03039aac21d14cc1bcc386bf0d61f250e661a65bfdd1643c72",
+      "identical_source_aliases": [],
+      "raw_bytes": 4517953,
+      "raw_sha256": "9ca8b46294cfd0254393e847bead36a31691eea6562cd8e26c6cd3cd427013c7",
+      "source_link_from_archive": "../../../../target/performance-compare-task5-calibrated-bd7369f0/comparison.json",
+      "source_repo_relative_path": "target/performance-compare-task5-calibrated-bd7369f0/comparison.json"
+    },
+    {
+      "archive_gzip_path": "artifacts/coverage-final-performance-calibrated.log.gz",
+      "archive_raw_path": null,
+      "gzip_bytes": 575,
+      "gzip_sha256": "98b2aec0fb12899a3a6e4daeebd72714b9896b84a40eae95c3daa9a39c4aed90",
+      "identical_source_aliases": [],
+      "raw_bytes": 1258,
+      "raw_sha256": "ff899be93bdf8744790de6a4e691a1b4b2b64448806e177bc1c0cfdccf64b627",
+      "source_link_from_archive": "../../../../target/coverage-final-performance-calibrated.log",
+      "source_repo_relative_path": "target/coverage-final-performance-calibrated.log"
+    },
+    {
+      "archive_gzip_path": null,
+      "archive_raw_path": "artifacts/coverage-final-performance-calibrated.exit",
+      "gzip_bytes": null,
+      "gzip_sha256": null,
+      "identical_source_aliases": [],
+      "raw_bytes": 2,
+      "raw_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "source_link_from_archive": "../../../../target/coverage-final-performance-calibrated.exit",
+      "source_repo_relative_path": "target/coverage-final-performance-calibrated.exit"
+    },
+    {
+      "archive_gzip_path": "provenance/candidate-build.json.gz",
+      "archive_raw_path": null,
+      "gzip_bytes": 2125,
+      "gzip_sha256": "e7e0dc9aed6ddd3626e67127d29e034e639539ade970af5f1f9d5bb38a4d14d5",
+      "identical_source_aliases": [],
+      "raw_bytes": 8926,
+      "raw_sha256": "fc4aaa61fbaa9fb29e9c9f44234f1052bd337004b1aa2277950afa264762f73c",
+      "source_link_from_archive": "../candidate-build.json",
+      "source_repo_relative_path": "docs/evidence/2026-11-03-language-coverage/candidate-build.json"
+    },
+    {
+      "archive_gzip_path": null,
+      "archive_raw_path": "provenance/candidate-build-record.md",
+      "gzip_bytes": null,
+      "gzip_sha256": null,
+      "identical_source_aliases": [
+        {
+          "link_from_archive": "../../../../target/coverage-candidate-build-record.md",
+          "repo_relative_path": "target/coverage-candidate-build-record.md"
+        }
+      ],
+      "raw_bytes": 1773,
+      "raw_sha256": "a07c3e0033c69924b34dc15d4bd1cd33cbea875438900f0666187a054dca5642",
+      "source_link_from_archive": "../candidate-build-record.md",
+      "source_repo_relative_path": "docs/evidence/2026-11-03-language-coverage/candidate-build-record.md"
+    }
+  ],
+  "compression": "gzip with mtime=0 and no original filename",
+  "format_version": 1,
+  "hash_algorithm": "sha256",
+  "raw_digest_semantics": "raw_bytes and raw_sha256 identify the original uncompressed source bytes; archive_raw_path is null when only the gzip copy is retained.",
+  "source_branch": "docs/language-coverage-plan",
+  "source_commit": "bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56",
+  "source_link_semantics": "Source links are historical repository path locators from archive creation. Later edits at a linked path do not change the archived bytes; use the recorded digests to identify those bytes.",
+  "source_worktree": "/home/murphy/source/julie-extractors/.worktrees/language-coverage-plan"
+}

@@ -4,7 +4,7 @@
 
 The exact row allowlist covers only deltas observed in untimed semantic preflight against the pinned original binary and final candidate binary. The comparison primitive retained all durable SQLite tables, typed columns, row multiplicity, owners, arrays, reference rows, diagnostics, and metadata. It omitted only the harness contract’s documented scan-history tables and volatile file columns.
 
-No latency, peak-RSS, artifact-size, or retry measurements were run. The final controlled measurement remains with the lead after the Windows run and host/build activity finish.
+This untimed preflight contains no latency, peak-RSS, artifact-size or retry measurements. Two controlled campaigns remain archived as inconclusive in performance-attempt-1 and performance-attempt-2. The second passes five of six workloads; its references update repeat still violates the timing floor and spread. A fixed calibration margin is documented separately, with all acceptance budgets retained.
 
 ## Provenance pins
 
@@ -14,15 +14,15 @@ No latency, peak-RSS, artifact-size, or retry measurements were run. The final c
 | Baseline build metadata | docs/evidence/2026-11-03-language-coverage/baseline-build.json | d8e35488379f897a6b334343349184398d5f9f52af54386f28522ece5bd2d1c7 |
 | Frozen baseline expectations | docs/evidence/2026-11-03-language-coverage/baseline-receipt/baseline-expectations.json | ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e |
 | Candidate binary | target/release/julie-extract | c236e36111785c9ac6bcab6220f07403ad7ad54d02b00590fbe27f6358e40dcc |
-| Candidate build metadata | docs/evidence/2026-11-03-language-coverage/candidate-build.json | 9df82e4bcb3ba7ce22cce9d5c92639474188d32832cec1a3533ebee45dab5c63 |
-| Candidate build record | docs/evidence/2026-11-03-language-coverage/candidate-build-record.md | ef11e9d3af69e1027f867df599a06d12224ee948c8c1d356da634713a52c5645 |
+| Candidate build metadata | docs/evidence/2026-11-03-language-coverage/candidate-build.json | fc4aaa61fbaa9fb29e9c9f44234f1052bd337004b1aa2277950afa264762f73c |
+| Candidate build record | docs/evidence/2026-11-03-language-coverage/candidate-build-record.md | a07c3e0033c69924b34dc15d4bd1cd33cbea875438900f0666187a054dca5642 |
 | Coverage manifest | fixtures/real-world/coverage-manifest.json | fb6e6a8a286acd8900094023d5d8c2b110695eb459c35b52bdfb642fd1a58ec6 |
 | Output change ledger | docs/contracts/extraction-output-changes.md | aad2a8341fa8ca888b785c9de9161b008af372ff8e3ab1bc4ccda00e22063ecb |
 | Untimed preflight | docs/evidence/2026-11-03-language-coverage/performance-comparison-preflight.json | 7f49d81364498dec9c521b95333b75a2f2672a25f4aa15759cee25c26d4d1205 |
 | Exact row allowlist | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-allowlist.json | 578ae07fa522f8c0785ef08b86b3215421947ad8f56957c899d8815859cefacb |
-| Per-entry state evidence | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-evidence.json | 87390a265873c9d67cf11b7838b971c73d4680e85f8e6ebae65e1e425cb74bfb |
+| Per-entry state evidence | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-evidence.json | 4d1bdae79b2f8a78783408a2aac9b538eb881a11b8784bc55ba04ce65d6c6e26 |
 
-The candidate metadata was produced by a clean release build at source commit c4b630d16f31ae1c82d046323f452a4c053f26f7 with source tree SHA-256 b07c4a4f1ede4bc9b56cb0fa65fe3abc8ab4164eff9955565047eb3fe6aea7f9. The current uncommitted changes after that build are documentation and evidence; the binary and build sidecar hashes still match the preflight.
+The candidate metadata was produced by a clean release build at source commit bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56 with source tree SHA-256 bd8794bd18e2c9ba771592d0ef4e3f187768123781101cce5ed6ae374a149262. The CLI binary is byte-identical to the untimed preflight candidate. Subsequent calibration-harness, test and evidence changes do not change its extraction rows.
 
 The manifest stages 42 languages and 2 controls (44 inputs). The original state SHA-256 is cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6. The update state SHA-256 is 586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700; it appends one newline to zig/isnan.zig. The two states produce identical row-delta multisets for references and full.
 
@@ -143,13 +143,13 @@ Run only after the lead confirms the host is idle and the Windows run has finish
       --baseline-build-metadata docs/evidence/2026-11-03-language-coverage/baseline-build.json \
       --baseline-build-metadata-sha256 d8e35488379f897a6b334343349184398d5f9f52af54386f28522ece5bd2d1c7 \
       --candidate-build-metadata docs/evidence/2026-11-03-language-coverage/candidate-build.json \
-      --candidate-build-metadata-sha256 9df82e4bcb3ba7ce22cce9d5c92639474188d32832cec1a3533ebee45dab5c63 \
+      --candidate-build-metadata-sha256 fc4aaa61fbaa9fb29e9c9f44234f1052bd337004b1aa2277950afa264762f73c \
       --manifest fixtures/real-world/coverage-manifest.json \
       --allowlist docs/evidence/2026-11-03-language-coverage/performance-comparison-row-allowlist.json \
       --profile release \
-      --out-dir target/performance-compare-task5-final-c4b630d1
+      --out-dir target/performance-compare-task5-calibrated-bd7369f0
 
-The final binary and sidecar hashes matched the untimed preflight. The manual harness validation supplied the full pinned command above but used existing target as the output directory. It exited with the expected “output directory must be new” error after binary/build/manifest/receipt/allowlist/ledger preflight and before creating workload stages or running scans. Log: target/task5-row-allowlist-harness-preflight.log.
+The final binary is byte-identical to the untimed preflight binary; its source-bound build sidecar was refreshed after the calibration correction. The manual harness validation supplied the full pinned command above but used existing target as the output directory. It exited with the expected “output directory must be new” error after binary/build/manifest/receipt/allowlist/ledger preflight and before creating workload stages or running scans. Log: target/task5-calibration-harness-preflight.log.
 
 ## Verification and remaining work
 

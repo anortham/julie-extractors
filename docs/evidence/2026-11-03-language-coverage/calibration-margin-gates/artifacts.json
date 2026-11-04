@@ -1,0 +1,71 @@
+{
+  "format_version": 1,
+  "base_commit": "bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56",
+  "scope": "Reviewed fixed4s calibration target, unchanged2s acceptance floor and budgets, nondecreasing sole retry, summaryv3/inputv1. Red tests precede implementation; focused/full xtask, fmt and scoped clippy follow.",
+  "source_file_sha256": "5b59fae62df1c0b655a1e93dec110967bbdd1246c5906fb112ce267ff6bc531c",
+  "artifacts": [
+    {
+      "source": "target/coverage-margin-calibration-green.log",
+      "artifact": "coverage-margin-calibration-green.log.gz",
+      "raw_sha256": "44c8e3fd5c66b4814751fc74c94564e6017c047c49d363cc959a246c4306150e",
+      "gzip_sha256": "0077e5b3f4a328047f446b9f6240bff4bdc5780080e31fc8fe834c1baef2b2aa"
+    },
+    {
+      "source": "target/coverage-margin-clippy.log",
+      "artifact": "coverage-margin-clippy.log.gz",
+      "raw_sha256": "d338c9f0eaf8a0ec68697abf9c82d6d6bd965f04cff184e5152b92e4ed228c80",
+      "gzip_sha256": "9c859dead5fa4ae50953a9dcc1c193b52a7095742b8afa4a841f74a2d86e2afd"
+    },
+    {
+      "source": "target/coverage-margin-fmt.log",
+      "artifact": "coverage-margin-fmt.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source": "target/coverage-margin-module-green.log",
+      "artifact": "coverage-margin-module-green.log.gz",
+      "raw_sha256": "b519733c83115745b48ace11e41edb095e8f9cd367652dcb5c029cc46d7b7da8",
+      "gzip_sha256": "3a9b2579be23cd5675400252e296ee8d037297e400d10be6cb23cb03805ed0c1"
+    },
+    {
+      "source": "target/coverage-margin-policy-red.log",
+      "artifact": "coverage-margin-policy-red.log.gz",
+      "raw_sha256": "de1a1c0d1da9d95c5e802caa254c96e154a93730e8000caa275dfd21526cc18e",
+      "gzip_sha256": "1f33bfed92f3ea7a37c345ccff4c052d947ed43c73352d5ec5abaf7a0fa56ded"
+    },
+    {
+      "source": "target/coverage-margin-red.log",
+      "artifact": "coverage-margin-red.log.gz",
+      "raw_sha256": "653aa90afe781a0f1a8c36dcfe360dd9c76595a5aaa24d4055b6d5d99cfe8951",
+      "gzip_sha256": "427ecf487d3762c183bc1f130e15ff37a1902088fb8a375b7f10d5d907c3c390"
+    },
+    {
+      "source": "target/coverage-margin-retry-red.log",
+      "artifact": "coverage-margin-retry-red.log.gz",
+      "raw_sha256": "da2f8ef2a0bcbdfdaf5c23e24f5ac49184eb6b3f477c5a7ffe280151143f3eba",
+      "gzip_sha256": "b6bb12efa80711b6104975f3ca32f44bdf732d32c1e17c04982978acbf260a59"
+    },
+    {
+      "source": "target/coverage-margin-xtask.log",
+      "artifact": "coverage-margin-xtask.log.gz",
+      "raw_sha256": "4b5032c74df1bca8f7e89257158801a4ca943a91e0e5de24f0b55a75f0476135",
+      "gzip_sha256": "7334c7a80e75302702802f2e6aeb2267deef17cf40bda59b41f506bffdcdc875"
+    },
+    {
+      "source": "target/coverage-margin-clippy.exit",
+      "artifact": "coverage-margin-clippy.exit",
+      "raw_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "source": "target/coverage-margin-fmt.exit",
+      "artifact": "coverage-margin-fmt.exit",
+      "raw_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "source": "target/coverage-margin-xtask.exit",
+      "artifact": "coverage-margin-xtask.exit",
+      "raw_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "format_version": 1,
+  "diagnostic_only": true,
+  "gate_result": "not_evaluated",
+  "base_commit": "bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56",
+  "base_source_note": "Copy captured a dirty source file containing a new test; production calibration remained v2/two-second target. Diff against recorded HEAD reconstructs the private comparison module. Private paths/filter/instrumentation differ from official harness. No product source change or SQLite durability pragma change.",
+  "helper_binary_sha256": "af3dff70e21af3a975e2a951a499c1dd369740ee7527d5c64c5f8ae0f2d21b5b",
+  "source_sha256": {
+    "target/performance-update-timing-diagnostic-20261104/src/comparison.rs": "7d3002e68c4f622afc907074cbdc18efea4e79db403b4d1294b9a8518a466950",
+    "target/performance-update-timing-diagnostic-20261104/src/compat.rs": "e45a182018a110be7289fae09ddcf82e53fe1bffabfbef38945ee44f26e47de1",
+    "target/performance-update-timing-diagnostic-20261104/src/coverage.rs": "a98b842481931b426a4f8a03d5cba16a4e7247f4cc462f57afafc5a8c6497fde",
+    "target/performance-update-timing-diagnostic-20261104/src/main.rs": "06c76918e82fa878f9fe86663abbaab6fa2e0c66e5c6bd181c7ad4152780909a"
+  },
+  "exit_code": 0,
+  "artifacts": [
+    {
+      "source": "target/performance-update-timing-diagnostic-20261104/run-all-refs-single-update/comparison.json",
+      "artifact": "comparison.json.gz",
+      "raw_sha256": "b2ecb571e05893d8f92382a9eb3f304dd6247ad8b4fdab354c3f6a0a4d239efe",
+      "gzip_sha256": "1f8a8d47a7b1ba04a5b3347a2d31f371d438f5fbda601f772bece0a62309f0b3"
+    },
+    {
+      "source": "target/performance-update-timing-diagnostic-20261104/run-all-refs-single-update/run-scan-diagnostic.json",
+      "artifact": "run-scan-diagnostic.json.gz",
+      "raw_sha256": "63c7da58092b9d6af3e43ed7754d4ffc04b6cd5ac2df780b5b1d0fbf82fc8671",
+      "gzip_sha256": "f31b1a03b013225e082c548e7df450473957507fbb523bc3278d67b3f31e4964"
+    },
+    {
+      "source": "target/performance-update-timing-diagnostic-20261104/run-all-refs-single-update.log",
+      "artifact": "run-all-refs-single-update.log.gz",
+      "raw_sha256": "7499b631c9d8b377dddb95aab855c16fda71e50c6479df9eb5005e897d1e5191",
+      "gzip_sha256": "f8c1158525787eb6e847c8eb8d4e17b144521a23ac3fa6da75f4eb4091a9e7f3"
+    },
+    {
+      "source": "target/performance-update-timing-diagnostic-20261104/run-all-refs-single-update.exit",
+      "artifact": "run-all-refs-single-update.exit.gz",
+      "raw_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "gzip_sha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+    },
+    {
+      "source": "target/performance-update-timing-diagnostic-20261104/README.md",
+      "artifact": "README.md.gz",
+      "raw_sha256": "4eb1beb860f4c2609b2658fe15640db7bc664a804fab62d9ac8ab9fd9361d9de",
+      "gzip_sha256": "54c6b9e4c70f9da3fe0d5240c476bc09882f17df7e70330c7756f05a24bfa59d"
+    },
+    {
+      "source": "target/performance-update-timing-diagnostic-20261104/Cargo.toml",
+      "artifact": "Cargo.toml.gz",
+      "raw_sha256": "dab08dc8c8137304292baab75b9c7a5a0049cd6a238b3b97913d22933f98209e",
+      "gzip_sha256": "f82cb2408a29ee956ec187e59ea8ff547ddf78349d62fa0924f77914b9d1f4e4"
+    },
+    {
+      "source": "target/performance-update-timing-diagnostic-20261104/Cargo.lock",
+      "artifact": "Cargo.lock.gz",
+      "raw_sha256": "347c2d2477067ca0bb449d555980d5f5c4eb02d8f6bb50dfefaab40ca9fde283",
+      "gzip_sha256": "2c96d401c8813efb54df3bf38ec48076b4f1520b4a6bcef3082948025aff5021"
+    },
+    {
+      "source": "target/coverage-update-diagnostic-helper.diff",
+      "artifact": "coverage-update-diagnostic-helper.diff.gz",
+      "raw_sha256": "1b410a4be2544186f4fffaf3257ccad55c4355eb99ff631223f9ffc9b68f3544",
+      "gzip_sha256": "aa094f6f03dc024f1b0fa2caf4775a1231e425e399db1f55166cef701057e120"
+    }
+  ]
+}

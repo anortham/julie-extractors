@@ -1,0 +1,437 @@
+{
+  "format_version": 1,
+  "source_commit": "bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56",
+  "scope": "Private diagnostics, not accepted performance-gate samples. Exact pinned 44-input corpus; baseline binary79eb21fa. Each update/restore reported changed1/unchanged43. Isolated NOCOW was tested only in an owned empty diagnostic directory; it was not adopted for official comparison. No durability settings changed.",
+  "gnu_time_fields": [
+    "wall_seconds",
+    "user_seconds",
+    "system_seconds",
+    "voluntary_context_switches",
+    "involuntary_context_switches",
+    "filesystem_inputs",
+    "filesystem_outputs",
+    "peak_rss_kib"
+  ],
+  "artifacts": [
+    {
+      "source": "target/calibration-update-diagnostic/baseline-update-sync.json",
+      "artifact": "baseline-update-sync.json.gz",
+      "raw_sha256": "71a51b81394381863eb401426b160c41b1c937431c39ac9511c28a0c9599b28b",
+      "gzip_sha256": "2b668f1f0729d0a4c53b0b8aa60577f20c05fba9dca0131e83e1d280b77b74e4"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/baseline-update-sync.trace",
+      "artifact": "baseline-update-sync.trace.gz",
+      "raw_sha256": "004bcd8cb1fb5da71678f6176d00362f1be64fd10334f96cdcd4ad46404e9128",
+      "gzip_sha256": "a7673a50a242a87d0f1d09f05ef145775c8c567b43e1026d285f6e85ce82b82a"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/corpus/json/package.json",
+      "artifact": "corpus--json--package.json.gz",
+      "raw_sha256": "dff53fdd95c9ab8e6e536626ad1236b6df1d9b5dab184c9902f7f05d5b19eb71",
+      "gzip_sha256": "132b1e217ed94d04685736714da44cd8dccf6436d51f6377486e351c920b4408"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-0-restored.json",
+      "artifact": "fresh_template_each_round-0-restored.json.gz",
+      "raw_sha256": "58051e4e8a2f35757dc72a0025cf577574a1f8b5f3e8849e1ec55e2ff908bc9f",
+      "gzip_sha256": "2c315e5bb906b24eae051fcefad85353b5cdeb1de6bdeeaba6ba80e664bf83e1"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-0-restored.time",
+      "artifact": "fresh_template_each_round-0-restored.time.gz",
+      "raw_sha256": "6e1f1c929a5d4fb23459e547965e9beeca5dd555ce54551f6887ff25b6702c6d",
+      "gzip_sha256": "1f551eb3118358b60a07deea16f46d617c90ba457f427f9f325aebd3b1c54261"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-0-updated.json",
+      "artifact": "fresh_template_each_round-0-updated.json.gz",
+      "raw_sha256": "382649c940fd901948b2215af9d77fef858e34efd103a94c656e3abd41ed3dd3",
+      "gzip_sha256": "52bc6166308571096cb48c37c656621d239dac1f2b185ef331f1dba2462d1464"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-0-updated.time",
+      "artifact": "fresh_template_each_round-0-updated.time.gz",
+      "raw_sha256": "c95726fc922e5460d9484f1e493ebdc645a372e4e281ea29394da7cf9349e774",
+      "gzip_sha256": "e33bf148cdfd3ae133e6454ffc91c507b36cb65983ac9f9bf5df739ace2dc4d7"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-1-restored.json",
+      "artifact": "fresh_template_each_round-1-restored.json.gz",
+      "raw_sha256": "cb1adf249aa29ff4ec2f6f97dd8aed9ecd82f995ae9d2f1f0684d3ad9de6fd86",
+      "gzip_sha256": "c40c191a405676f014a5ca0c2257a8e763f815b3868cc81201db8362e960cbe2"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-1-restored.time",
+      "artifact": "fresh_template_each_round-1-restored.time.gz",
+      "raw_sha256": "8eba5f0db6d8747d99b8124a2caa2ed3df135187ee45497d6fb178c2d5fd4337",
+      "gzip_sha256": "f9f946ea4b6eb55126c1f2a8edf51db702f24f6969a9a5f6c6a00c6f6229130a"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-1-updated.json",
+      "artifact": "fresh_template_each_round-1-updated.json.gz",
+      "raw_sha256": "6634be7f66397fe547c07f16e0ef854a7c642fadab677095c7243a1db886c62e",
+      "gzip_sha256": "4be807c4d7f3aac62c9a512034a464b8eab71d694ef9ea07da1a4701299c9841"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-1-updated.time",
+      "artifact": "fresh_template_each_round-1-updated.time.gz",
+      "raw_sha256": "164bd60efb5551dfa50ffb4443eb2e6028adfd236446b3c696b6f73a15563d52",
+      "gzip_sha256": "c9a76612d50de24e77a6231e4800e0fda903ee6cb58fd566f93fccf4bc54144d"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-2-restored.json",
+      "artifact": "fresh_template_each_round-2-restored.json.gz",
+      "raw_sha256": "b5e0c8ea718b1d0070064f53793e0c3858b72b27fe15329e2078561e8a12b8ad",
+      "gzip_sha256": "1b8022e29db7faaa0ba795ebff1a92333b4bca533d8302025e99bebc827ef169"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-2-restored.time",
+      "artifact": "fresh_template_each_round-2-restored.time.gz",
+      "raw_sha256": "d73d94237dd3e6e86bc1f7665ae1df8774e2ec7c507ffc3c00e2822f0cc5a488",
+      "gzip_sha256": "3ff7a40e8a2773f4d65f923394258ec532f1581c974e15b7262c5343dccc89b9"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-2-updated.json",
+      "artifact": "fresh_template_each_round-2-updated.json.gz",
+      "raw_sha256": "c5ae72beef3b525e942688da9726cac203f50850ef771414069f4d489d7753da",
+      "gzip_sha256": "e44a2962890d292a3330de3ff2253e122979e730985be1e9c8a8980d4f1780bf"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-2-updated.time",
+      "artifact": "fresh_template_each_round-2-updated.time.gz",
+      "raw_sha256": "df80499fe982610871c2fb6793d7b96f4f3f9bd3852b6e2bc9765aa9e5c2ecd0",
+      "gzip_sha256": "cd8dac14378e719db6d0e11fe5a0671cafe23131d3761a3cf6d23a23bf3c44d8"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-3-restored.json",
+      "artifact": "fresh_template_each_round-3-restored.json.gz",
+      "raw_sha256": "1ff5112fc5f2c257fdef80ed086d5e6bad9a101e016168a364665d45efad5d43",
+      "gzip_sha256": "7f6460a520095e3d051ca9e194167518f245f754df1ee6935a3581f2568d58f1"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-3-restored.time",
+      "artifact": "fresh_template_each_round-3-restored.time.gz",
+      "raw_sha256": "f8e487a22896db125261611452a8dcf1f99164217d33e5cf417019ffb9316883",
+      "gzip_sha256": "77e63b8a5d76727aebdf3bbb7f898df690a87475844be283b7be9abd9f04ce10"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-3-updated.json",
+      "artifact": "fresh_template_each_round-3-updated.json.gz",
+      "raw_sha256": "3d958c844cedf2cdc39e851146adecee992f40bddd17c4a245adaa9cbe0d60bb",
+      "gzip_sha256": "a9f4a4083564dacfcbf5dd660d0a6515eb4ad1a256c3f8752f2dbb1bc6dfdfd1"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-3-updated.time",
+      "artifact": "fresh_template_each_round-3-updated.time.gz",
+      "raw_sha256": "b7dfd65ec43e825900fdee8078d747108594fa40d353149ce6ad166e844ae92f",
+      "gzip_sha256": "2c3e7b018bdd045dd4fd6afef325a86bc4ad8ab03eb29148ea28dce32ad85357"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-4-restored.json",
+      "artifact": "fresh_template_each_round-4-restored.json.gz",
+      "raw_sha256": "84b606aaa965629cd135f3270c66e3564eb518540503783da74f2fac7e362a85",
+      "gzip_sha256": "80b5570314a42452c4d6b5a2b9d47999692ed59b770fe6935d9fd429b8c9c50c"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-4-restored.time",
+      "artifact": "fresh_template_each_round-4-restored.time.gz",
+      "raw_sha256": "ee100993f71c66f65191194e5bca866e325ef029638e5fe9618e9f7f5bf827af",
+      "gzip_sha256": "0f3a7829572a5d57796bd2c8b9f6e667fe4a2e11d6397eaa613c6595b727a716"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-4-updated.json",
+      "artifact": "fresh_template_each_round-4-updated.json.gz",
+      "raw_sha256": "dfef963009c480c6a9030965300f4e9e197cc5dbc91e90475de2800f5716c107",
+      "gzip_sha256": "df96eb5201aeedebbbc67a5b13ce25029f4d5a7d4cefa96f841ef5cac7e805db"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-4-updated.time",
+      "artifact": "fresh_template_each_round-4-updated.time.gz",
+      "raw_sha256": "49baae6a649647d56cc130b35af9495947d0ad39b1b9d7de0be1e674b5d540fa",
+      "gzip_sha256": "cbf53aba8ca46d7f95984f82b525c1e25c186ce89d853403f0bebe1f904eaf3e"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-5-restored.json",
+      "artifact": "fresh_template_each_round-5-restored.json.gz",
+      "raw_sha256": "37c27e877bb39fafbda7f30f3928e69d43766576dfd19d34272ec5b868aab3ba",
+      "gzip_sha256": "c30e5d489023adf58cf9b11773e538261441f224287297dc0a2927c9fd56dcba"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-5-restored.time",
+      "artifact": "fresh_template_each_round-5-restored.time.gz",
+      "raw_sha256": "b0985f96e14dcb3aaee30c0648ee5437ad181f3f1c7624b73d60a602d0ad4266",
+      "gzip_sha256": "d2c81fa7f80b033eb80578427ea0e02a182cdfd15d0eb3f25d6e1aa07dc352e4"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-5-updated.json",
+      "artifact": "fresh_template_each_round-5-updated.json.gz",
+      "raw_sha256": "8723ce1188a73cec95de8255aa64a0a5c7b3969eca5aa916f8256b0a41acd9ba",
+      "gzip_sha256": "118070ac4b02c6ed73b27383f7a4edcf13655af3f9a5cab0be58ee9578d69ad9"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-5-updated.time",
+      "artifact": "fresh_template_each_round-5-updated.time.gz",
+      "raw_sha256": "097a7920515812f2eb6d663e032363a89f7d4498447118a1d818adfea7c6bb54",
+      "gzip_sha256": "a6ece2178123c22fb845be74c4d5e98014e1ffe9e8942c112bc8c9b036a0d91b"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-6-restored.json",
+      "artifact": "fresh_template_each_round-6-restored.json.gz",
+      "raw_sha256": "3bb271d33e56d3b457eb92d93d53940bf0de0a054b5082abc41f4956bdc1a2fc",
+      "gzip_sha256": "b98d6a695fa351635e8135072f8c3a51cace1a8912909563b037111d5d4e60d8"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-6-restored.time",
+      "artifact": "fresh_template_each_round-6-restored.time.gz",
+      "raw_sha256": "d5df08fb41b84ea536fa086b0595a86ffac4719cab5a3c53d90c153433fd83ea",
+      "gzip_sha256": "793548c1d256be9adc4a3ae927d9a682a1cc350e607e90b65eb158e23a549d3c"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-6-updated.json",
+      "artifact": "fresh_template_each_round-6-updated.json.gz",
+      "raw_sha256": "00885334edbccecaba60da91ad328bcfc2e042d18cf2a7e746c4678694c46f2f",
+      "gzip_sha256": "c650fb4aee45bc8a3699a56bd247ae4da9d196ee9f26ed53c802e283c4e84b55"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-6-updated.time",
+      "artifact": "fresh_template_each_round-6-updated.time.gz",
+      "raw_sha256": "ed132a4ff5fecee29961d5e14934eaaca5c19bdecab388d5000851864023245d",
+      "gzip_sha256": "9413b647dc7533d96175115d68e2c8b42f45fe187330e7d6b42926fce3a0e749"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-7-restored.json",
+      "artifact": "fresh_template_each_round-7-restored.json.gz",
+      "raw_sha256": "9548889b35095d9ad39da108d2f3716db18830334061a543832334b62a5092ce",
+      "gzip_sha256": "9180ab8d31540757d8cf9fd5736045db7d13c1472a5e636a3b1102ea8a4a88b7"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-7-restored.time",
+      "artifact": "fresh_template_each_round-7-restored.time.gz",
+      "raw_sha256": "cefb0a47c7977c036228f96adb2277acbbfc972a76b215347baaa9e0c552016a",
+      "gzip_sha256": "b81172b33203a3a90d9e1a4208c3eca3ca0d281f70864e49ad85c66a1c5efc46"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-7-updated.json",
+      "artifact": "fresh_template_each_round-7-updated.json.gz",
+      "raw_sha256": "9be3d6b3f43947bef8b2a748803f697e121317aaab7af915320c95d87eb6afda",
+      "gzip_sha256": "22455a353223b6cefac484f4d69115f96d3480f9af00ad07db9c326137cc30f8"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/fresh_template_each_round-7-updated.time",
+      "artifact": "fresh_template_each_round-7-updated.time.gz",
+      "raw_sha256": "0a7624270cb5281cfa19139da1d01b285093cee9c9c0175dac3779db9b68cb15",
+      "gzip_sha256": "5b6b10851eacbd84f682246d6263e919fe5da491fe0a748db6cc6d2556147272"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/nocow-operation-profile.json",
+      "artifact": "nocow-operation-profile.json.gz",
+      "raw_sha256": "2306247bb4aae7c9cf67f64bf3ab0866994d9e51455bdacda6411331d2763609",
+      "gzip_sha256": "ba0de848689e6c0f244b6ebe5ffe0df3c2de9112205972c3574da7aaec473de4"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/operation-profile.json",
+      "artifact": "operation-profile.json.gz",
+      "raw_sha256": "881b9c692bc2b5cfb4ad47ceee4428b609110db946bfe5acfbda09b64ee3367e",
+      "gzip_sha256": "6f43f649ada6865672fa421159cd9ce86145e5f24f05fe26a9f5f7ce453341a3"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-0-restored.json",
+      "artifact": "retained_artifact-0-restored.json.gz",
+      "raw_sha256": "f2d0a8882a1da8a99bc2a1c4809c2961d79dd92c2e49c28cf68dc109d55d9d78",
+      "gzip_sha256": "7b648ff81121841236dac4779805397fa067f0887398b9ef3964f3ab94ec6d6c"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-0-restored.time",
+      "artifact": "retained_artifact-0-restored.time.gz",
+      "raw_sha256": "f4952b380489e5acaec8793c88f7e66d42fe857dd560907afe8255d169ed384d",
+      "gzip_sha256": "606e1b4b33c645d7d226b92ffc4a7498832d18a4a71644b84236650bae46b363"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-0-updated.json",
+      "artifact": "retained_artifact-0-updated.json.gz",
+      "raw_sha256": "2f774ad04a39177d18cf849b8562601fc0aa337276952e2d2dbc7e332ac59054",
+      "gzip_sha256": "3950c9b89693b0bb56b023e4e2ba9dbb9933d20650b2b9bd1d7060707f08e138"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-0-updated.time",
+      "artifact": "retained_artifact-0-updated.time.gz",
+      "raw_sha256": "029ac0262a699158111f4e4d50303174a711c1e0b9693a881ba0e1c963dcf0aa",
+      "gzip_sha256": "d437f9f9695eb2553a0c91b4c4052771ae8b723ab753401e2d760c1c8dd04fa5"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-1-restored.json",
+      "artifact": "retained_artifact-1-restored.json.gz",
+      "raw_sha256": "fe92c37ced4cd49ce66f54f6846a4d0238eec2359a3edc613b976f418da16039",
+      "gzip_sha256": "f20fabb976f77f8add157a91af6fda5176bb26368696c77455e546dd906a0323"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-1-restored.time",
+      "artifact": "retained_artifact-1-restored.time.gz",
+      "raw_sha256": "e19de79250c19b4f628a00f86aa722771267eba99761ed9fdd55c3d0c64ea21c",
+      "gzip_sha256": "a0dbb8f8e8dadb915cb099313c2f17826e73b580b85d9e848e8d1d418743d17b"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-1-updated.json",
+      "artifact": "retained_artifact-1-updated.json.gz",
+      "raw_sha256": "00e859a816f4e890a7367d14c86630ed21890784970bfa93f5c9159b0acd8579",
+      "gzip_sha256": "b7ffcc3317cb9c006cbe8fcd764a96f1ca2cbbeb2b72400acb827fdbd948f1ca"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-1-updated.time",
+      "artifact": "retained_artifact-1-updated.time.gz",
+      "raw_sha256": "5dd8d89981a794d1c14c13abd6ebd0b0db5b6fcf0e0c042a5dc079deb97aed9e",
+      "gzip_sha256": "3364ebc2a0d090cb1e222ec4ffcc3524f78eb1e5ce7ae345f9acb9ef30ad5330"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-2-restored.json",
+      "artifact": "retained_artifact-2-restored.json.gz",
+      "raw_sha256": "a4f630f9817d2eeb4a6c719d653a9acc6861496024e48a694afc0a4b5bc492d4",
+      "gzip_sha256": "58ab2a159487dba0824d04af8d6e5a7518727a8d787a3faaf03cce87d2d61c57"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-2-restored.time",
+      "artifact": "retained_artifact-2-restored.time.gz",
+      "raw_sha256": "a02df5f8bbbf255e353f27d59eed11ab4fc5b8672d9a163f698adb2cbce81eb6",
+      "gzip_sha256": "8d2e81cca078470747dc302a069b491adfa5914c9841b8ba1ca989e6855ec330"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-2-updated.json",
+      "artifact": "retained_artifact-2-updated.json.gz",
+      "raw_sha256": "973cdf1fb227c5bf5575176b03903015c875614488d5ee4c788dee7994f2b034",
+      "gzip_sha256": "1533741ab9d99975e300eace50122565fea3af77c6d44d4364219116317ddffb"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-2-updated.time",
+      "artifact": "retained_artifact-2-updated.time.gz",
+      "raw_sha256": "63e30d73f83f795156f136b088aecfbf731f013a6469c1908088156e4604e474",
+      "gzip_sha256": "e7ce1a9f4c98b3240e2ce5637414ea5d3bd3c8f142e6c19ed3a8fd676af404d5"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-3-restored.json",
+      "artifact": "retained_artifact-3-restored.json.gz",
+      "raw_sha256": "91f3069b8b4b5e58abaebc34626459f04b6a19472f15faab552b8db249eff43f",
+      "gzip_sha256": "3301342ceea695c1dc10ced0bafeea9a668b806bf32429c194aff8abbacb8f89"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-3-restored.time",
+      "artifact": "retained_artifact-3-restored.time.gz",
+      "raw_sha256": "77a2701697eba176803bc6f3a98457f57df09886ab9f96a4021b71736b552780",
+      "gzip_sha256": "9a6c1efd757c98da05f052e41d6ddfd024477d9f785ea07a9e809493e39ad576"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-3-updated.json",
+      "artifact": "retained_artifact-3-updated.json.gz",
+      "raw_sha256": "6951f83d54cf3edf80d88acad642d257a1566a13c9139943b951f2b945e011d3",
+      "gzip_sha256": "1e48cdfd091d6159adba9222459b0e9a8faf49eed27a779fbb15dc645f164a4b"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-3-updated.time",
+      "artifact": "retained_artifact-3-updated.time.gz",
+      "raw_sha256": "1ac8f2c7f81ebe686388f1316cbbf764805e4abff9bc164fbb7c91d74cc36493",
+      "gzip_sha256": "2427158aa0cee5ef4a3abcee5d0343778bc850175586b8662180a5cea6e53a38"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-4-restored.json",
+      "artifact": "retained_artifact-4-restored.json.gz",
+      "raw_sha256": "02974b86f3e34d9d8a9bc02eb5a6352b6c9595b21720cced6e9889144a08f88f",
+      "gzip_sha256": "6e60a59b773377c3a56a008a8601b0a0a394ebe7e94b8c4dbd0f559bf0039f70"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-4-restored.time",
+      "artifact": "retained_artifact-4-restored.time.gz",
+      "raw_sha256": "6245d205507f2f11e3e3c3d4209e1d158a941428a6c303f7c83d581d76795c11",
+      "gzip_sha256": "13225b42f5c4c45759d2d35fdbc03fdfd1c64adcd2f67f00f9eaecf627ba52ac"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-4-updated.json",
+      "artifact": "retained_artifact-4-updated.json.gz",
+      "raw_sha256": "9e3ddb49f8145c1fb3f57066f935b3f74e626d7ea23b988f40d6f896529958b8",
+      "gzip_sha256": "6dc436bf783597647699845809911a6644a226f92328d4d4cade27e20d5214d9"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-4-updated.time",
+      "artifact": "retained_artifact-4-updated.time.gz",
+      "raw_sha256": "6acaf452e19061a10f31a40f125b3c83ff14b9bf2c97b5f9af24d6980f0b2613",
+      "gzip_sha256": "9b0d5458e8b5eab97ecbaa8e7411fd9e232a4169dd4950fa18118bf3d0802cdc"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-5-restored.json",
+      "artifact": "retained_artifact-5-restored.json.gz",
+      "raw_sha256": "e5e90546252fe890b7b055dd6b61adb4fe2927c4cb0b2e86bd92b655fbfeed11",
+      "gzip_sha256": "e11d0cd80cbb3c1ea795143b939f5922d102507b01969b0aaca75d4178060222"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-5-restored.time",
+      "artifact": "retained_artifact-5-restored.time.gz",
+      "raw_sha256": "6fecfc288cb290761ed00fa8955b9b0ae1755e97b41530fb3ff38f7dcf4187fa",
+      "gzip_sha256": "597c66f92d09613495a6293de1e0bf70f0f14dee0ece4eca8cf5debf7a9079dd"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-5-updated.json",
+      "artifact": "retained_artifact-5-updated.json.gz",
+      "raw_sha256": "b0dd50f79e8ef27c4de2694022b1b14f005229dba9b4f2920c6577043697bab1",
+      "gzip_sha256": "f40fc726a04fb49c41949692f0000448ddffde3ed0818ae914a79598cdfefe6b"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-5-updated.time",
+      "artifact": "retained_artifact-5-updated.time.gz",
+      "raw_sha256": "b9192e51dfe1392295537cc635fa7228227cd30be338ff5fa97e4498c909f8f7",
+      "gzip_sha256": "b3bf0fdef8eea499a766a9820132b8ed9dd3f980bc1df9933cf457753e6081db"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-6-restored.json",
+      "artifact": "retained_artifact-6-restored.json.gz",
+      "raw_sha256": "b5fda1d4a7b2b76aba6016b2716b8df7a84b5c090ce479141b623d092cc7b61a",
+      "gzip_sha256": "85eab61777a7c44483b7726b7c51f66056f880e38b13050d33eb2186e094cb8b"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-6-restored.time",
+      "artifact": "retained_artifact-6-restored.time.gz",
+      "raw_sha256": "d0240fb081968654fec51e451a1c359ac7ead657730a68bcc2c38210cddfdb72",
+      "gzip_sha256": "dbbfbd78fdb62132d9e76c22ad3336e231d81030a381da4c10698657088e08d3"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-6-updated.json",
+      "artifact": "retained_artifact-6-updated.json.gz",
+      "raw_sha256": "bbe7598c5c8bc1ce40460c645842b228fe4f89c9a9823fe429091750d12fc20f",
+      "gzip_sha256": "e786dc2ae95bb1a1aa9a6d6ade54367e3ac3e2f5459b97675e67d3aa2bf4e37d"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-6-updated.time",
+      "artifact": "retained_artifact-6-updated.time.gz",
+      "raw_sha256": "a430ced6ca613d88566a717fc39da154e19ed581e0ce7ec46eb4cf03959fc775",
+      "gzip_sha256": "ebe9e5e21128d6a4b512838f9f6b2d7dc96c82aa53ef7791b6941338e4ccc094"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-7-restored.json",
+      "artifact": "retained_artifact-7-restored.json.gz",
+      "raw_sha256": "fc61032f6bec4079433af9c8e2b86bcc7c6425204d780ca5c4bc1c1bc6066c6c",
+      "gzip_sha256": "4f9d1fddd7108fb17bc78655d40b6206b2da937b663008df5d3aa8e192c02520"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-7-restored.time",
+      "artifact": "retained_artifact-7-restored.time.gz",
+      "raw_sha256": "54066b93dec783480c1462ee16f9e07e807c173be79cbc4ffea01de37bae5daf",
+      "gzip_sha256": "b7c3dd85233900df8d4e4b2bbb21149e7434fd2014179ba6129e1c3db7371999"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-7-updated.json",
+      "artifact": "retained_artifact-7-updated.json.gz",
+      "raw_sha256": "4761215e4070c99fa4a32a2ec4e1efeb710e12a768d40d5cd561678b34e6b6cc",
+      "gzip_sha256": "0f882fbc4054dde4adf2266ce1bc33b4914b422a392781efcd003a0a4130786f"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/retained_artifact-7-updated.time",
+      "artifact": "retained_artifact-7-updated.time.gz",
+      "raw_sha256": "7c2e7eae9d36f3e5ab22d8d73291df2adead7d133568905a5cf7749ddec690e7",
+      "gzip_sha256": "c59540ba0a8292686466117d46dbe9ecdf10fefa43f7b81b514dbda2bc3805bb"
+    },
+    {
+      "source": "target/calibration-update-diagnostic/template-report.json",
+      "artifact": "template-report.json.gz",
+      "raw_sha256": "adbc8543b314a71bcb344340994259afc9f3d51af42fba42d8c4b7a738888511",
+      "gzip_sha256": "96cb074ed8e9a580fcb298fbb15820fc9c59b62d95735bdd929c89d29be84185"
+    }
+  ]
+}

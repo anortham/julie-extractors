@@ -1,17 +1,17 @@
 {
   "format_version": 1,
-  "source_commit": "c4b630d16f31ae1c82d046323f452a4c053f26f7",
+  "source_commit": "bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56",
   "note": "The build sidecar is preserved byte-for-byte. Its evidence.reference names the original ignored build record; candidate-build-record.md is its identical durable archive.",
   "artifacts": [
     {
       "source": "target/release/julie-extract.build.json",
       "artifact": "candidate-build.json",
-      "raw_sha256": "9df82e4bcb3ba7ce22cce9d5c92639474188d32832cec1a3533ebee45dab5c63"
+      "raw_sha256": "fc4aaa61fbaa9fb29e9c9f44234f1052bd337004b1aa2277950afa264762f73c"
     },
     {
       "source": "target/coverage-candidate-build-record.md",
       "artifact": "candidate-build-record.md",
-      "raw_sha256": "ef11e9d3af69e1027f867df599a06d12224ee948c8c1d356da634713a52c5645"
+      "raw_sha256": "a07c3e0033c69924b34dc15d4bd1cd33cbea875438900f0666187a054dca5642"
     },
     {
       "source": "target/coverage-candidate-features.json",
@@ -25,10 +25,10 @@
       "gzip_sha256": "52cb87592fa1642b6f1b4e4a66602930d480e7cf2c5dd85f97799120e60e18a5"
     },
     {
-      "source": "target/coverage-final-pinned-build.log",
+      "source": "target/coverage-calibration-candidate-build.log",
       "artifact": "candidate-build.log.gz",
-      "raw_sha256": "05343ee5ff14de6d4900a2b6c6d434c95fc912a7f59bd7e6660903cd0f156fcf",
-      "gzip_sha256": "8bb6cb089829efec40281b79eb5f0c7ebff4a42966dbcb2bfbbbc0b62fcf0ede"
+      "raw_sha256": "a2e0c7ac8f1b623bae62b66b324c508334e55a410674c2bb52b835a5fe13accc",
+      "gzip_sha256": "7d1efaa25b71599b8555f055a2eed2020b2d70a4347abcf96e5c314e64162546"
     }
   ]
 }
