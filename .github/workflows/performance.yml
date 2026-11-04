@@ -8,6 +8,15 @@ on:
         type: boolean
         required: true
         default: false
+      build_from_sources:
+        description: Build both pinned source revisions and compare them
+        type: boolean
+        required: true
+        default: false
+      harness_source_commit:
+        description: Full harness source commit containing the comparison runner and evidence receipts
+        type: string
+        required: false
       baseline_run_id:
         description: Workflow run ID containing the pinned baseline binary artifact
         type: string
@@ -25,7 +34,7 @@ on:
         type: string
         required: false
       baseline_source_commit:
-        description: Full source commit recorded by the baseline build
+        description: Full baseline source commit to build or recorded in baseline metadata
         type: string
         required: false
       baseline_source_tree_sha256:
@@ -53,7 +62,7 @@ on:
         type: string
         required: false
       candidate_source_commit:
-        description: Full source commit recorded by the candidate build
+        description: Full candidate source commit to build or recorded in candidate metadata
         type: string
         required: false
       candidate_source_tree_sha256:
@@ -65,7 +74,7 @@ on:
         type: string
         required: false
       baseline_expectations_path:
-        description: Reviewed baseline semantic and diagnostic receipt path in the checkout
+        description: Reviewed baseline semantic and diagnostic receipt path in the harness checkout
         type: string
         required: false
       baseline_expectations_sha256:
@@ -77,11 +86,11 @@ on:
         type: string
         required: false
       allowlist_path:
-        description: Optional exact-row allowlist JSON path in the checked-out revision
+        description: Exact-row allowlist path; required for source-build comparisons
         type: string
         required: false
       allowlist_sha256:
-        description: Expected SHA-256 for the optional exact-row allowlist
+        description: Expected SHA-256 for the exact-row allowlist
         type: string
         required: false
       budget_approvals_path:
@@ -121,9 +130,9 @@ jobs:
 
   extractor-comparison:
     name: Pinned Extractor Comparison
-    if: ${{ inputs.run_comparison }}
+    if: ${{ inputs.run_comparison && !inputs.build_from_sources }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
@@ -309,3 +318,19 @@ jobs:
           name: performance-comparison-${{ github.run_id }}
           path: target/performance-compare/comparison.json
           if-no-files-found: warn
+
+  source-extractor-comparison:
+    name: Source Build Extractor Comparison
+    if: ${{ inputs.run_comparison && inputs.build_from_sources }}
+    uses: ./.github/workflows/source-performance-comparison.yml
+    permissions:
+      contents: read
+    with:
+      harness_source_commit: ${{ inputs.harness_source_commit }}
+      baseline_source_commit: ${{ inputs.baseline_source_commit }}
+      candidate_source_commit: ${{ inputs.candidate_source_commit }}
+      original_receipt_path: ${{ inputs.baseline_expectations_path }}
+      original_receipt_sha256: ${{ inputs.baseline_expectations_sha256 }}
+      manifest_sha256: ${{ inputs.manifest_sha256 }}
+      allowlist_path: ${{ inputs.allowlist_path }}
+      allowlist_sha256: ${{ inputs.allowlist_sha256 }}

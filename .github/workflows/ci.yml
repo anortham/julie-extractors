@@ -54,6 +54,9 @@ jobs:
       - name: Test coverage matrix validator
         run: node --test scripts/check-language-coverage-matrix.test.mjs
 
+      - name: Test source performance comparison runner
+        run: node --test scripts/source-performance-comparison.test.mjs
+
       - name: Check language coverage matrix
         run: |
           node scripts/check-language-coverage-matrix.mjs --markdown docs/findings/2026-11-03-language-coverage-matrix.md

@@ -482,3 +482,27 @@ node scripts/check-language-coverage-matrix.mjs \
   --matrix fixtures/extraction/validation-matrix.json \
   --markdown target/validation-matrix.md
 ```
+
+### Source builds on a new CI reference host
+
+The manual performance workflow has a `build_from_sources` mode. It requires
+full immutable baseline, candidate and harness commits, Rust 1.97.1, and the
+reviewed receipt, corpus and allowlist hashes. This mode builds both release
+binaries with one Cargo job and records their actual build identities.
+
+Before timing, `scripts/source-performance-comparison.mjs` captures a new
+baseline receipt and compares every snapshot against the original frozen
+receipt. Facts, source states, diagnostics, health, source identity and manifest
+must match. Only the rebuilt binary identity and snapshot ordering may differ.
+The original receipt is never overwritten. A mismatch stops before comparison.
+
+The script prepares builds and receipt proof by default. `--run-comparison`
+explicitly enables the unchanged six-workload comparator after preparation and
+filesystem synchronization; the OS cache is retained. Build caches stay outside
+the evidence directory. CI uploads binaries, sidecars, build logs, receipts and
+comparison evidence even when a gate fails. The overall job allows 120 minutes
+for preparation and measurement; extractor acceptance budgets are unchanged.
+
+Using this route for the current goal requires explicit approval to push the
+branch and accept new reference-host build hashes. See the
+[reference-build decision](decisions/2026-11-04-ci-reference-builds.md).

@@ -1,0 +1,144 @@
+name: Source Performance Comparison
+
+on:
+  workflow_call:
+    inputs:
+      harness_source_commit:
+        type: string
+        required: true
+      baseline_source_commit:
+        type: string
+        required: true
+      candidate_source_commit:
+        type: string
+        required: true
+      original_receipt_path:
+        type: string
+        required: true
+      original_receipt_sha256:
+        type: string
+        required: true
+      manifest_sha256:
+        type: string
+        required: true
+      allowlist_path:
+        type: string
+        required: true
+      allowlist_sha256:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-comparison:
+    name: Build and compare pinned source revisions
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Validate immutable source and evidence pins
+        env:
+          HARNESS_SOURCE_COMMIT: ${{ inputs.harness_source_commit }}
+          BASELINE_SOURCE_COMMIT: ${{ inputs.baseline_source_commit }}
+          CANDIDATE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          ORIGINAL_RECEIPT_PATH: ${{ inputs.original_receipt_path }}
+          ORIGINAL_RECEIPT_SHA256: ${{ inputs.original_receipt_sha256 }}
+          MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+          ALLOWLIST_PATH: ${{ inputs.allowlist_path }}
+          ALLOWLIST_SHA256: ${{ inputs.allowlist_sha256 }}
+        run: |
+          set -euo pipefail
+          validate_commit() {
+            local name="$1"
+            local value="$2"
+            [[ "$value" =~ ^[[:xdigit:]]{40}$ ]] || { printf '%s must contain a full 40-digit commit SHA\n' "$name" >&2; exit 2; }
+          }
+          validate_sha256() {
+            local name="$1"
+            local value="$2"
+            [[ "$value" =~ ^[[:xdigit:]]{64}$ ]] || { printf '%s must contain 64 hexadecimal digits\n' "$name" >&2; exit 2; }
+          }
+          validate_commit harness_source_commit "$HARNESS_SOURCE_COMMIT"
+          validate_commit baseline_source_commit "$BASELINE_SOURCE_COMMIT"
+          validate_commit candidate_source_commit "$CANDIDATE_SOURCE_COMMIT"
+          [[ -n "$ORIGINAL_RECEIPT_PATH" ]] || { printf 'original_receipt_path is required\n' >&2; exit 2; }
+          validate_sha256 original_receipt_sha256 "$ORIGINAL_RECEIPT_SHA256"
+          validate_sha256 manifest_sha256 "$MANIFEST_SHA256"
+          [[ -n "$ALLOWLIST_PATH" ]] || { printf 'allowlist_path is required\n' >&2; exit 2; }
+          validate_sha256 allowlist_sha256 "$ALLOWLIST_SHA256"
+
+      - name: Checkout harness source
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.harness_source_commit }}
+          path: harness
+          persist-credentials: false
+
+      - name: Checkout baseline source
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.baseline_source_commit }}
+          path: baseline
+          persist-credentials: false
+
+      - name: Checkout candidate source
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.candidate_source_commit }}
+          path: candidate
+          persist-credentials: false
+
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.1
+
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build sources and run pinned comparison
+        env:
+          BASELINE_SOURCE_COMMIT: ${{ inputs.baseline_source_commit }}
+          CANDIDATE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          HARNESS_SOURCE_COMMIT: ${{ inputs.harness_source_commit }}
+          ORIGINAL_RECEIPT_PATH: ${{ inputs.original_receipt_path }}
+          ORIGINAL_RECEIPT_SHA256: ${{ inputs.original_receipt_sha256 }}
+          MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+          ALLOWLIST_PATH: ${{ inputs.allowlist_path }}
+          ALLOWLIST_SHA256: ${{ inputs.allowlist_sha256 }}
+        working-directory: harness
+        run: |
+          set -euo pipefail
+          args=(
+            scripts/source-performance-comparison.mjs
+            --baseline-root "$GITHUB_WORKSPACE/baseline"
+            --candidate-root "$GITHUB_WORKSPACE/candidate"
+            --out-dir "$GITHUB_WORKSPACE/harness/target/source-performance-comparison"
+            --baseline-commit "$BASELINE_SOURCE_COMMIT"
+            --candidate-commit "$CANDIDATE_SOURCE_COMMIT"
+            --harness-commit "$HARNESS_SOURCE_COMMIT"
+            --original-receipt "$ORIGINAL_RECEIPT_PATH"
+            --original-receipt-sha256 "$ORIGINAL_RECEIPT_SHA256"
+            --manifest fixtures/real-world/coverage-manifest.json
+            --manifest-sha256 "$MANIFEST_SHA256"
+            --allowlist "$ALLOWLIST_PATH"
+            --allowlist-sha256 "$ALLOWLIST_SHA256"
+            --run-comparison
+          )
+          node "${args[@]}"
+
+      - name: Upload source comparison evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-performance-comparison-${{ github.run_id }}
+          path: harness/target/source-performance-comparison
+          if-no-files-found: warn
+          retention-days: 14

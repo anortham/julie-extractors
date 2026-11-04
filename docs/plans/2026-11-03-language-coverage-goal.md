@@ -252,3 +252,20 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 Use this document as the goal's acceptance contract, not merely its task list. On execution, first verify current source/worktrees and re-run the strict report: the reviewed baseline can drift. Preserve completed work, update evidence with the new baseline, and execute through final verification without stopping at intermediate tasks. The active goal authorizes local implementation and commits, not push or publication.
 
 The plan itself is saved in `/home/murphy/source/julie-extractors/.worktrees/language-coverage-plan` on `docs/language-coverage-plan`, based on `f9a1b6cf`. Keep related edits together and reconcile this documentation branch when choosing the implementation worktree.
+
+## CI reference-host preparation after local timing failure
+
+The resumed goal prepares an owner-approved CI route without another local
+measurement. Root owns `scripts/source-performance-comparison{,.test}.mjs` and
+the decision/evidence notes; the workflow worker owns
+`.github/workflows/{performance,source-performance-comparison,ci}.yml`.
+The source runner builds immutable revisions, records actual identities and
+requires all rebuilt baseline snapshots to match the original frozen semantic
+receipt before timing. Only binary identity and snapshot ordering may differ.
+The existing budgets, corpus, row allowance and repeat cap remain unchanged.
+
+Local preparation and verification do not authorize a push, workflow dispatch,
+or new reference-host build identities. The approval package is the workflow
+and runner diff, immutable revisions, frozen-receipt proof and exact dispatch
+command. Task 5's final comparison checkbox and overall goal remain open until
+an actual controlled run passes every required gate.
