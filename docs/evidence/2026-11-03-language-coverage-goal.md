@@ -1,5 +1,7 @@
 # Language coverage verification evidence
 
+**Current status:** Local implementation and source verification are complete. Required performance acceptance remains blocked: the final v3 comparison passes four workloads, while references fresh scans and updates remain inconclusive after their permitted repeats. A quieter Linux reference host is required; the goal and performance checkboxes remain open. [Raw final campaign](2026-11-03-language-coverage/performance-attempt-3/artifacts.json).
+
 Implementation begins from `837b9796` in `.worktrees/language-coverage-plan` on `docs/language-coverage-plan`. Baseline product source is `f9a1b6cf`. All fourteen worktrees were clean before implementation. The goal authorizes local changes and commits; push and publication remain outside scope.
 
 | Scope | Invariant | Command | Source | Result | Evidence |
@@ -483,3 +485,48 @@ storage, under the original six-workload correctness and resource budgets and
 single-repeat cap. Continued noise after that run's repeat requires a quieter
 reference host; no further batch/threshold/storage tuning is authorized by this
 measurement procedure.
+
+
+## Final controlled campaign: required gate remains inconclusive
+
+The v3 comparison ran for 2,513.437986 seconds on clean
+`e1d14ef1c7b3a2af01dcd06c8763dec0dad8c5c6`, whose code and manifests are
+identical to the clean `e1c18a1e` build. Both CLI binaries, the harness, build
+sidecars, manifest, baseline receipt and allowlist retained their pinned hashes
+before and after execution. The task checkout stayed clean through the run;
+all thirteen other worktrees were clean at the recorded inventory. Ordinary
+Btrfs directory attributes remained in use, with the Windows guest off and no
+concurrent builds or benchmarks.
+
+Four of six workloads pass. References-level fresh scans and updates remain
+inconclusive after their one permitted repeat. Every final baseline batch
+clears the two-second floor. No correctness, diagnostic/health, latency-budget,
+peak-RSS or artifact-size gate reports a failure. That does not turn the noisy
+workloads into performance passes. The command exits 1, as required.
+
+Elapsed values below are min / median / max milliseconds for the final attempt;
+the raw summary also retains every earlier attempt and calibration round.
+
+| Level | Workload | Operations per batch | Baseline ms | Candidate ms | Outcome |
+| --- | --- | ---: | --- | --- | --- |
+| references | fresh_scan | 16 | 4,411 / 4,450 / 8,868 | 4,390 / 4,446 / 8,880 | Inconclusive after repeat |
+| references | no_change_scan | 256 | 5,035 / 5,136 / 5,167 | 4,658 / 4,716 / 4,744 | Pass |
+| references | single_file_update | 256 | 15,306 / 15,507 / 24,510 | 14,164 / 14,217 / 14,363 | Inconclusive after repeat |
+| full | fresh_scan | 16 | 4,672 / 4,708 / 4,719 | 4,632 / 4,643 / 4,659 | Pass after repeat |
+| full | no_change_scan | 256 | 4,915 / 5,045 / 5,115 | 5,031 / 5,089 / 5,351 | Pass |
+| full | single_file_update | 64 | 4,247 / 4,290 / 4,339 | 3,748 / 3,828 / 3,911 | Pass after repeat |
+
+References fresh-scan spread is inconclusive for both binaries; its final
+baseline range is 4,411–8,868 ms and candidate range 4,390–8,880 ms. References
+update baseline spread remains inconclusive at 15,306–24,510 ms, while the
+candidate range is 14,164–14,363 ms. These results exhaust the declared repeats.
+The [final campaign archive](2026-11-03-language-coverage/performance-attempt-3/artifacts.json)
+preserves the complete summary, command, exit code, source/worktree inventory,
+runner and unchanged build provenance with compressed/uncompressed checksums.
+
+The next required input is access to a quieter Linux reference host for the
+same frozen comparison. Do not rerun on this host, increase batch targets,
+change budgets, adopt the rejected storage setting, refresh the baseline, or
+mark the goal complete. Tasks 5 and 6 retain their unresolved performance
+acceptance. All local implementation defects found in the bounded audit are
+fixed; this remaining requirement depends on measurement conditions.

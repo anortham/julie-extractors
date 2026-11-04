@@ -2,7 +2,7 @@
 
 **Date / reviewed baseline:** 2026-11-03; `main` at `f9a1b6cfbd6c51e9aecad39a19610695f210ad05`, the recorded v3.11.0 publication.
 
-**Status:** Tasks 1–4 are implemented, reviewed and locally committed: the validated 630-cell matrix records 47 fixed extraction defects, 465 goldens pass, and all 42 languages have pinned CLI corpus evidence. Branch, certification, real-world, rebind and native Windows checks pass on recorded source states. Final-state warm default runs have a 45.434524-second median; writer batching passes. Exact row accounting is complete. Task 5 remains open: the second controlled comparison passes five of six workloads, but references update timing is inconclusive after its permitted repeat. Both failed campaigns are retained; a reviewed fixed calibration margin is being implemented without changing acceptance budgets. Final controlled performance and integration closure remain open. Push and release are outside scope.
+**Status:** Tasks 1–4 are complete: the validated 630-cell matrix records 47 fixed extraction defects, all 465 goldens pass, and all 42 languages have pinned CLI corpus evidence. Linux branch, certification, real-world, rebind and native Windows gates pass. Final warm default median is 45.434524 seconds; writer batching passes. Exact row accounting and the v3 fixed-margin comparison harness are reviewed and committed. The final controlled run passes four of six workloads, but references fresh scans and updates remain inconclusive after their permitted repeats. The NOCOW storage experiment also failed its predeclared adoption rule. A quieter Linux reference host is required to finish Task 5 and performance closure in Task 6. All three campaigns are retained; no budget is waived, no baseline is refreshed, and the goal remains open. Push and release are outside scope.
 
 **Goal:** Make the existing 42-language coverage claims demonstrably accurate, close every locally actionable defect found by the bounded audit below, and install repeatable correctness and performance checks that prevent those defects from returning.
 
@@ -244,7 +244,7 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 - [x] Compatibility against the pinned 3.11.0 binary accounts for every intended row change. Reuse `crates/julie-extract-cli/tests/rebind_equivalence.rs` to check add/edit/delete/rename/malformed-to-valid/no-change against fresh scans with all fact tables and multiplicities.
 - [ ] Run the final branch gate, real-world tiers, all-language corpus, controlled performance comparison and escalation gates. Native Windows runs cover changed platform-sensitive paths and incremental/file lifecycle behavior; log exact commands and source identity.
 - [x] Record three warm default runs with min/median/max and repair a median above 180 seconds. Retain broad coverage rather than hiding expensive tests in ad hoc exclusions.
-- [ ] Review each success checkbox against evidence; record final counts and all 11 retained boundary dispositions. Reconcile worktree states and commit the scoped source/docs/memory locally.
+- [x] Review each success checkbox against evidence; record final counts and all 11 retained boundary dispositions. Reconcile worktree states and commit the scoped source/docs/memory locally.
 - [ ] Mark this plan complete only after every required outcome is met. If a gate or access boundary blocks completion, leave it open and identify the smallest concrete missing action.
 
 ## Goal execution handoff

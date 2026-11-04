@@ -84,6 +84,12 @@
       "artifact": "coverage-storage-fixed64-helper.diff.gz",
       "raw_sha256": "d6f0a513502329b54429d424998faebe542bc3024c75062a67f8b9a402d2f713",
       "gzip_sha256": "e125511a470fe200e2edf614e0056a0cd28613d73da89fb8c91bcdc87f075bcf"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/diagnostic-analysis.md",
+      "artifact": "diagnostic-analysis.md.gz",
+      "raw_sha256": "7e5bf87ceab3e55294c2626f013a2ff873ab5e06c8039f88271c9f5f128f6360",
+      "gzip_sha256": "8b05657d14f6b765410f78a9bb784505c2d863ec28ec8ce2e8870175b16da75c"
     }
   ]
 }

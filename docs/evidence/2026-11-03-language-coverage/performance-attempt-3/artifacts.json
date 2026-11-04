@@ -1,0 +1,227 @@
+{
+  "format_version": 1,
+  "summary_format_version": 3,
+  "source_commit": "e1d14ef1c7b3a2af01dcd06c8763dec0dad8c5c6",
+  "source_clean_before_run": true,
+  "source_clean_after_run": true,
+  "production_source_equivalent_to": "e1c18a1eb6b76eb930117235fa19cfce9477e32a",
+  "elapsed_seconds": 2513.437986,
+  "command_exit_code": 1,
+  "passed": false,
+  "passed_workloads": 4,
+  "total_workloads": 6,
+  "result": "Inconclusive after permitted repeats: references fresh baseline/candidate spread and references update baseline spread. All correctness/health and original latency/RSS/size budget checks have no failures. Do not rerun or tune on this host; quiet reference host required.",
+  "storage_parent_attributes_before": "---------------------- target",
+  "storage_parent_attributes_after": "---------------------- target",
+  "frozen_hashes_verified_after_run": {
+    "target/debug/xtask": "4cdae93d6c985cfa8745114f26ade560e01c41b65d4b9707a2d808c00e282bd6",
+    "target/release/julie-extract": "c236e36111785c9ac6bcab6220f07403ad7ad54d02b00590fbe27f6358e40dcc",
+    "target/coverage-baseline/julie-extract-3.11.0": "79eb21fa95d39445e78b7237a0300fe071649d5671db0fbc4b3baff0ee2fd78d",
+    "docs/evidence/2026-11-03-language-coverage/baseline-receipt/baseline-expectations.json": "ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e",
+    "docs/evidence/2026-11-03-language-coverage/baseline-build.json": "d8e35488379f897a6b334343349184398d5f9f52af54386f28522ece5bd2d1c7",
+    "docs/evidence/2026-11-03-language-coverage/candidate-build.json": "75f60805199dc179ea7fa8f4fc8faedd0fa72a7e90faa40cf7395b5dcdfebbcd",
+    "docs/evidence/2026-11-03-language-coverage/performance-comparison-row-allowlist.json": "578ae07fa522f8c0785ef08b86b3215421947ad8f56957c899d8815859cefacb",
+    "fixtures/real-world/coverage-manifest.json": "fb6e6a8a286acd8900094023d5d8c2b110695eb459c35b52bdfb642fd1a58ec6"
+  },
+  "workloads": [
+    {
+      "level": "references",
+      "workload": "fresh_scan",
+      "gate_failures": [
+        "timing: baseline sample spread is inconclusive",
+        "timing: candidate sample spread is inconclusive"
+      ],
+      "repeat_passed": false,
+      "baseline_operations": 16,
+      "candidate_operations": 16,
+      "baseline_elapsed_ms": [
+        4448,
+        4411,
+        4450,
+        7654,
+        8868
+      ],
+      "candidate_elapsed_ms": [
+        4411,
+        7152,
+        4390,
+        4446,
+        8880
+      ]
+    },
+    {
+      "level": "references",
+      "workload": "no_change_scan",
+      "gate_failures": [],
+      "repeat_passed": null,
+      "baseline_operations": 256,
+      "candidate_operations": 256,
+      "baseline_elapsed_ms": [
+        5075,
+        5035,
+        5150,
+        5167,
+        5136
+      ],
+      "candidate_elapsed_ms": [
+        4744,
+        4705,
+        4658,
+        4716,
+        4731
+      ]
+    },
+    {
+      "level": "references",
+      "workload": "single_file_update",
+      "gate_failures": [
+        "timing: baseline sample spread is inconclusive"
+      ],
+      "repeat_passed": false,
+      "baseline_operations": 256,
+      "candidate_operations": 256,
+      "baseline_elapsed_ms": [
+        15306,
+        17770,
+        15402,
+        24510,
+        15507
+      ],
+      "candidate_elapsed_ms": [
+        14217,
+        14280,
+        14192,
+        14363,
+        14164
+      ]
+    },
+    {
+      "level": "full",
+      "workload": "fresh_scan",
+      "gate_failures": [],
+      "repeat_passed": true,
+      "baseline_operations": 16,
+      "candidate_operations": 16,
+      "baseline_elapsed_ms": [
+        4672,
+        4708,
+        4719,
+        4709,
+        4702
+      ],
+      "candidate_elapsed_ms": [
+        4638,
+        4643,
+        4659,
+        4632,
+        4644
+      ]
+    },
+    {
+      "level": "full",
+      "workload": "no_change_scan",
+      "gate_failures": [],
+      "repeat_passed": null,
+      "baseline_operations": 256,
+      "candidate_operations": 256,
+      "baseline_elapsed_ms": [
+        5042,
+        5115,
+        4915,
+        5045,
+        5048
+      ],
+      "candidate_elapsed_ms": [
+        5064,
+        5089,
+        5351,
+        5031,
+        5322
+      ]
+    },
+    {
+      "level": "full",
+      "workload": "single_file_update",
+      "gate_failures": [],
+      "repeat_passed": true,
+      "baseline_operations": 64,
+      "candidate_operations": 64,
+      "baseline_elapsed_ms": [
+        4309,
+        4290,
+        4247,
+        4271,
+        4339
+      ],
+      "candidate_elapsed_ms": [
+        3911,
+        3748,
+        3828,
+        3831,
+        3806
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "source": "target/performance-compare-task5-margin-e1c18a1e/comparison.json",
+      "artifact": "comparison.json.gz",
+      "raw_sha256": "5f22c109c5dd355fbe8daa1a0ce9512ddacdc11e501111840b453a1115e148a5",
+      "gzip_sha256": "dee02e0849ce32f285683c9a84028b3c7adf82e3d5eda77a1171eb4d87b9c856"
+    },
+    {
+      "source": "target/coverage-final-performance-margin.command.json",
+      "artifact": "coverage-final-performance-margin.command.json.gz",
+      "raw_sha256": "7ae62303244fc2f2c36a8b1ee3fa120ddda7426400f57a9d9447793d38df247b",
+      "gzip_sha256": "4b7619be91ee11c27547e12ffc5dcf7292323c734ad1b6863a4d71195a3a1ec0"
+    },
+    {
+      "source": "target/coverage-final-performance-margin.log",
+      "artifact": "coverage-final-performance-margin.log.gz",
+      "raw_sha256": "b817cee5b10e782e03ebd3c3c3be2dbf019baa5342bb6f3c023f74cb391ea610",
+      "gzip_sha256": "eb718804d0d2aa17d27365266655592ce357f49722f797969450221f3b3ff3bc"
+    },
+    {
+      "source": "target/coverage-final-performance-margin.exit",
+      "artifact": "coverage-final-performance-margin.exit.gz",
+      "raw_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "gzip_sha256": "c28cc69d141393e44a931229323624ef7b8c5bde3ee047ca9b87332daef23c82"
+    },
+    {
+      "source": "target/coverage-final-performance-margin.py",
+      "artifact": "coverage-final-performance-margin.py.gz",
+      "raw_sha256": "39f4db80d1a72b708abd5ddd457847a5c555560bb031ccd2f60a83dcb49fd9d2",
+      "gzip_sha256": "db2420424b63321e798699b4ad88d0b5d080f86dd1469030dd3c9411c247a0e5"
+    },
+    {
+      "source": "target/coverage-final-margin-harness-build.log",
+      "artifact": "coverage-final-margin-harness-build.log.gz",
+      "raw_sha256": "a5f4c585ee974ca44916ac30a98bbc189e067a7e0a6bc6d2e8d6bc525be724af",
+      "gzip_sha256": "0964c207edd2e43a938361c555e36eb95d4661319d16b5b9880c8e1b275b3750"
+    },
+    {
+      "source": "target/coverage-final-performance-worktree-state.json",
+      "artifact": "coverage-final-performance-worktree-state.json.gz",
+      "raw_sha256": "1615d216a215ff9fe743373046488f9a01d34cab8e112fa00f7fc3a5fdaa24a3",
+      "gzip_sha256": "94a1878be7dd4b1ed3518a760e30608c489b515722b879fc76ddf0087611a7d4"
+    },
+    {
+      "source": "docs/evidence/2026-11-03-language-coverage/candidate-build.json",
+      "artifact": "candidate-build.json.gz",
+      "raw_sha256": "75f60805199dc179ea7fa8f4fc8faedd0fa72a7e90faa40cf7395b5dcdfebbcd",
+      "gzip_sha256": "3c6a9d6aad934b06a81e37d4644f28bb22138e0d1a5b32b324e6efb28478df02"
+    },
+    {
+      "source": "docs/evidence/2026-11-03-language-coverage/candidate-build-record.md",
+      "artifact": "candidate-build-record.md.gz",
+      "raw_sha256": "a9b7a578c6bb0c105b383a6b3b6224603764562b9c5c58bc29652e10c8c63100",
+      "gzip_sha256": "27c852ecfe94b2430d1ffb204689a3248e6defbfcfc6bf6aeb13ab70afdce657"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/final-campaign-review.md",
+      "artifact": "final-campaign-review.md.gz",
+      "raw_sha256": "4e9c310d44fdd92244027a4aee7c314ac3563913d06d4a395561bbeb4d472cb0",
+      "gzip_sha256": "278b6c8a894dbfb80a8b388ccb15cac6153f741610011b8f7eae66d90e79661f"
+    }
+  ]
+}
