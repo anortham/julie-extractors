@@ -1,0 +1,102 @@
+{
+  "format_version": 1,
+  "source_commit": "9b2e25f9173b2930207f56336b7021bc56bb8660",
+  "source_state": "Clean committed release metadata; gates ran without source edits.",
+  "candidate_binary_sha256": "445a4c00655dfef885596d5546b45639ec0bcf7ea6b9e685fa219c504e3f4734",
+  "version": "3.12.0",
+  "preflight_targets": 6,
+  "preflight_inputs": 29,
+  "all_twelve_gates_passed": true,
+  "artifacts": [
+    {
+      "source": "target/release-312-fmt.log",
+      "artifact": "release-312-fmt.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source": "target/release-312-xtask.log",
+      "artifact": "release-312-xtask.log.gz",
+      "raw_sha256": "3cc4b2bb9f6fbd42a3d33241af74af705325e057b723d0338d674e28e1162457",
+      "gzip_sha256": "8789263c2973f76b16c752225a0fcb49b825792ff7b3df0f726e2134a3c494d4"
+    },
+    {
+      "source": "target/release-312-default.log",
+      "artifact": "release-312-default.log.gz",
+      "raw_sha256": "bb255a2850c6706f23175e8cae4e26a6ef5e6ae81a17653d3419a903497032c6",
+      "gzip_sha256": "9b61ec60194d8c7653be10e45a432ec6b846361d632c0eba786347d516fbef3d"
+    },
+    {
+      "source": "target/release-312-contract.log",
+      "artifact": "release-312-contract.log.gz",
+      "raw_sha256": "8e526e60b0f95904a24068cb6d11c7ab25dd9f639995c282db1067217fc2992d",
+      "gzip_sha256": "88aebda00199afae0734453de1232d13558595adaa3b75e270b4e9e7ebc66282"
+    },
+    {
+      "source": "target/release-312-source-runner.log",
+      "artifact": "release-312-source-runner.log.gz",
+      "raw_sha256": "e8e485e3e90648fcdf9eb6c1996f032b21f00bd3a69a52e8bebd6bfe2f278027",
+      "gzip_sha256": "4d94f2ad4b3e0e0d9d1c51584e55c909fe5229fd935c7837150cb9dec68a40ae"
+    },
+    {
+      "source": "target/release-312-quality.log",
+      "artifact": "release-312-quality.log.gz",
+      "raw_sha256": "97d2708b02c13b167d0528ddfc7caddf0f3daada1bb399cf7e3061e8248e9e3f",
+      "gzip_sha256": "23bef7053d0822d3f06d720f5c28942e40df904ef5bb17204172b30e6d708345"
+    },
+    {
+      "source": "target/release-312-matrix.log",
+      "artifact": "release-312-matrix.log.gz",
+      "raw_sha256": "2ee8bea3f67ab9ccee3701190bc5e908c62c647b526d28ac5e85189ab76031af",
+      "gzip_sha256": "fa76f4108ee4d84146f664b993238686f26380a62f4f82423818da3a480eb1aa"
+    },
+    {
+      "source": "target/release-312-agent-doc-sync.log",
+      "artifact": "release-312-agent-doc-sync.log.gz",
+      "raw_sha256": "ba73f5f24b92d12d17b640175e7510d14ea8d037919d694821dd0010d43854a2",
+      "gzip_sha256": "bd596ffdcd62c58ed153419a3dea4d0ac476744e4000bf3e6f02d24edef84824"
+    },
+    {
+      "source": "target/release-312-preflight.log",
+      "artifact": "release-312-preflight.log.gz",
+      "raw_sha256": "c65777c2ec63e645a530a34107a91e7433fb532bbadce8724d7604bcf2a231eb",
+      "gzip_sha256": "200f2119aa2a1c38718c39950ff272e0d71189191a3cbe66a7adc82bdcf3f05a"
+    },
+    {
+      "source": "target/release-312-compat.log",
+      "artifact": "release-312-compat.log.gz",
+      "raw_sha256": "eec93e861a597ed10c30d187ad127ee7ceabbec9e9a4706efdface3f16984cfa",
+      "gzip_sha256": "3c6458fc85307268819b8e63045df1e5072f82b9d8dd40df06b622ca0f31bdee"
+    },
+    {
+      "source": "target/release-312-coverage.log",
+      "artifact": "release-312-coverage.log.gz",
+      "raw_sha256": "37e7e57eddb38877c755fca66194b3f80d075de903f7c5154991a7a1e8196817",
+      "gzip_sha256": "c36dd5fec74a00d805103d4bfc2781a50ed9d0e975d1084cb387fc5aa44754f9"
+    },
+    {
+      "source": "target/release-312-package.log",
+      "artifact": "release-312-package.log.gz",
+      "raw_sha256": "082147e308b4b1cbe1c75e4d5b1663ac1b06cafb99357711ee1e214580367528",
+      "gzip_sha256": "8ded2a622e86c10d4f84cc1753c3d345e1b1f7e4498d11c75f95240f1e8914f2"
+    },
+    {
+      "source": "target/release-312-gates.json",
+      "artifact": "release-312-gates.json.gz",
+      "raw_sha256": "41fcc5f1ce837446179b25fab09600b79e2d7f8aa6668d6d3859573f6bc0ece0",
+      "gzip_sha256": "e1bcfd125cabae327f33b0d6a550f76807497d9d81cdd281ea96397d309940d3"
+    },
+    {
+      "source": "target/release-312-build.log",
+      "artifact": "release-312-build.log.gz",
+      "raw_sha256": "4a4152f5450ae846807425ad50efc8c858cbd3d03227a45051addce7ae7604c3",
+      "gzip_sha256": "7154344fbb35f0397fc9b230009690b455dde3f90f649d44c7e01debbea20114"
+    },
+    {
+      "source": "target/release-312-clean-build.log",
+      "artifact": "release-312-clean-build.log.gz",
+      "raw_sha256": "dcbf7b694571154a9bf26c16a5edd0a32901e1e2fe832cfa81580a53d30c2014",
+      "gzip_sha256": "d7f160c6e3a23943291a9e3361c43bd4d8733cc58c19de7449ea531e73ea94d4"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "format_version": 1,
+  "open_gaps": [
+    {
+      "kind": "python.subscript_callable_sites",
+      "reason": "Python call identifier extraction skips subscript function nodes; source invokes a callable, but no named call identifier is emitted. Verified against Flask d73fa1c app.py:1610 and both current/3.11 extractor source.",
+      "required_closure": "Preserve an unresolved source-local subscript invocation site with correct written callee/span/arguments, without inventing the runtime target; validate positive, read-only-subscript negative and offset boundaries.",
+      "planned_closure_task": "docs/plans/2026-11-04-python-subscript-callback-sites.md: preserve unresolved subscript invocation sites",
+      "source": "crates/julie-extractors/src/python/identifiers.rs:99-103",
+      "disposition": "Known coverage gap permitted by the release policy; remains open, not implemented or counted as a closed defect."
+    }
+  ]
+}

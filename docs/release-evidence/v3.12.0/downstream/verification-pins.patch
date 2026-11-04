@@ -1,0 +1,61 @@
+diff --git a/crates/code-kb-core/src/sync.rs b/crates/code-kb-core/src/sync.rs
+index e41adab..6780076 100644
+--- a/crates/code-kb-core/src/sync.rs
++++ b/crates/code-kb-core/src/sync.rs
+@@ -53,7 +53,7 @@ pub enum SyncError {
+     },
+ }
+ 
+-pub const PINNED_JULIE_VERSION: &str = "3.11.0";
++pub const PINNED_JULIE_VERSION: &str = "3.12.0";
+ 
+ /// Extraction level code-kb asks for on a new artifact: the call and variable-reference
+ /// identifiers with their call metadata, without the annotations and complexity metrics of `full`,
+diff --git a/scripts/julie-pins.json b/scripts/julie-pins.json
+index 6081d42..6ee2363 100644
+--- a/scripts/julie-pins.json
++++ b/scripts/julie-pins.json
+@@ -1,31 +1,30 @@
+ {
+-  "version": "3.11.0",
++  "version": "3.12.0",
+   "binary": "julie-extract",
+   "urlTemplate": "https://github.com/anortham/julie-extractors/releases/download/v{VER}/{asset}",
+   "assets": {
+     "aarch64-apple-darwin": {
+-      "name": "julie-extract-v{VER}-aarch64-apple-darwin.tar.gz",
+-      "sha256": "1b5e441c354624297b9c76a18737a5e03c6c593898283bcd4e174ce70dfa94b8"
++      "name": "julie-extract-v{VER}-aarch64-apple-darwin.tar.gz"
+     },
+     "x86_64-apple-darwin": {
+-      "name": "julie-extract-v{VER}-x86_64-apple-darwin.tar.gz",
+-      "sha256": "f24d3cb96160b0015bb68416aa337d56b9cd85ce37df2b1407246071249d44fb"
++      "name": "julie-extract-v{VER}-x86_64-apple-darwin.tar.gz"
+     },
+     "x86_64-unknown-linux-gnu": {
+-      "name": "julie-extract-v{VER}-x86_64-unknown-linux-gnu.tar.gz",
+-      "sha256": "6e31fe837da4b51d2cbdec5be0f723ec46cc47c2ab538ca108caa1242f4c7f4b"
++      "name": "julie-extract-v{VER}-x86_64-unknown-linux-gnu.tar.gz"
+     },
+     "aarch64-unknown-linux-gnu": {
+-      "name": "julie-extract-v{VER}-aarch64-unknown-linux-gnu.tar.gz",
+-      "sha256": "d9b035da5b4ad20d932eee49aeaeac24ee0ec9d610a5197137ff986752a01f34"
++      "name": "julie-extract-v{VER}-aarch64-unknown-linux-gnu.tar.gz"
+     },
+     "x86_64-pc-windows-msvc": {
+-      "name": "julie-extract-v{VER}-x86_64-pc-windows-msvc.zip",
+-      "sha256": "609ef8b204995c510cf1410602a404534b9ed1387990351fce2fcda38f1885a2"
++      "name": "julie-extract-v{VER}-x86_64-pc-windows-msvc.zip"
+     },
+     "aarch64-pc-windows-msvc": {
+-      "name": "julie-extract-v{VER}-aarch64-pc-windows-msvc.zip",
+-      "sha256": "feb68e7ab68cfb51c8b00546bfa248f65569e3027e30bdd4ddb508836aa878f0"
++      "name": "julie-extract-v{VER}-aarch64-pc-windows-msvc.zip"
+     }
++  },
++  "local_candidate": {
++    "purpose": "Pre-publication verification only; published archive checksums are intentionally absent until assets exist.",
++    "source_commit": "9b2e25f9173b2930207f56336b7021bc56bb8660",
++    "binary_sha256": "445a4c00655dfef885596d5546b45639ec0bcf7ea6b9e685fa219c504e3f4734"
+   }
+ }

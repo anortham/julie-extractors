@@ -1,0 +1,89 @@
+{
+  "format_version": 1,
+  "source_commit": "8e2f259733ffc6e30a854c381ea09959a60c6000",
+  "purpose": "Local downstream verification only; user main/toolkit-efficiency remain untouched. No code-kb release or push.",
+  "one_round": "20261104T163617Z",
+  "driver_exit_code": 0,
+  "all_sessions_completed": true,
+  "classification_status": "PASS: every finding source-reviewed; honest gaps retained, tested exact-name/depth behavior confirmed; no wrong-answer blocker or deferral.",
+  "extractor_binary_sha256": "445a4c00655dfef885596d5546b45639ec0bcf7ea6b9e685fa219c504e3f4734",
+  "consumer_binary_sha256": "eaf963a324d42ec76db66893d7054a6f2874beb5fde4cd0d5220a2b4e7237bdb",
+  "artifacts": [
+    {
+      "source": "/home/murphy/source/code-kb/.worktrees/julie-3.12.0-dogfood/target/release-dogfood/evidence.json",
+      "artifact": "evidence.json.gz",
+      "raw_sha256": "a684b8b8027d67e5c57e6686d9e813f3628626d4701601fe2b93e0a49e5b6d30",
+      "gzip_sha256": "1c46f737e85d9e5d7cc6d6dd5e2383a9a450dcfdbc1ffdd8b653347a7380edf1"
+    },
+    {
+      "source": "/home/murphy/source/code-kb/.worktrees/julie-3.12.0-dogfood/target/release-dogfood/20261104T163617Z/claude.md",
+      "artifact": "claude.md.gz",
+      "raw_sha256": "66eef784466395b7baa95d2080192ee4df56a91329649adb92731bb3e3f7b2b9",
+      "gzip_sha256": "8d46600c4f0d87f0efb6d8b080b9d7ec6edfdb1c102ab7b3b749aa34d88475e5"
+    },
+    {
+      "source": "/home/murphy/source/code-kb/.worktrees/julie-3.12.0-dogfood/target/release-dogfood/20261104T163617Z/codex.md",
+      "artifact": "codex.md.gz",
+      "raw_sha256": "8777f1676ca9fa9d9adbeaa50ba2ea9b01cb5c28f4d525536462f8cadf881482",
+      "gzip_sha256": "106940c269df347a571a664d383bb4dcbd172c17ea85d7b2e69b16da42e95928"
+    },
+    {
+      "source": "/home/murphy/source/code-kb/.worktrees/julie-3.12.0-dogfood/target/release-dogfood/20261104T163617Z/claude.log",
+      "artifact": "claude.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source": "/home/murphy/source/code-kb/.worktrees/julie-3.12.0-dogfood/target/release-dogfood/20261104T163617Z/codex.log",
+      "artifact": "codex.log.gz",
+      "raw_sha256": "ef4a2ea3d2d28d548a10fbc17aa2006ddcaff9bdbff6bc0f4ff96046d2e8b40a",
+      "gzip_sha256": "218bf61da0ff4694361775cb8ed409280662b7a028c2e404006dedf6ef6c246f"
+    },
+    {
+      "source": "/home/murphy/source/code-kb/.worktrees/julie-3.12.0-dogfood/target/release-dogfood/20261104T163617Z/claude-prompt.md",
+      "artifact": "claude-prompt.md.gz",
+      "raw_sha256": "da4ce512ee14db12b93516da946924c0a08ea7921a555b9abeafc26b082b35d1",
+      "gzip_sha256": "7458ed2bbf0eb6ff951a5f7430602180b75eb9d22d449b148513d17f43f75389"
+    },
+    {
+      "source": "/home/murphy/source/code-kb/.worktrees/julie-3.12.0-dogfood/target/release-dogfood/20261104T163617Z/codex-prompt.md",
+      "artifact": "codex-prompt.md.gz",
+      "raw_sha256": "b649986a90e900e71e938b4c246756a28307a1f5a266463f9f647e75a7d6d78f",
+      "gzip_sha256": "9b41c3b35dc0808a56d9f04c4e326474362d3a81133587f6702e11399a43f1f3"
+    },
+    {
+      "source": "/home/murphy/source/julie-extractors/.worktrees/language-coverage-plan/target/release-312-dogfood-driver.log",
+      "artifact": "release-312-dogfood-driver.log.gz",
+      "raw_sha256": "7ad3a71fa32678e590d59a7dc79411b885b751e8db231933e43118d0d0f8fb5b",
+      "gzip_sha256": "918df6a18f9ede509b1388037f5a4333527dc41c3504256aeaee1bf1c1b84c2f"
+    },
+    {
+      "source": "/home/murphy/source/julie-extractors/.worktrees/language-coverage-plan/target/release-312-codekb-baseline-build.log",
+      "artifact": "release-312-codekb-baseline-build.log.gz",
+      "raw_sha256": "bfd3f7e696aba7613a443551c484d403d7e0438e35a6adda62eb5125f89bb0f7",
+      "gzip_sha256": "7583a097b4094fceef1c86e546afdd9e396b108cb25f51ecf16ca305e9c20c08"
+    },
+    {
+      "source": "code-kb f290fdc..8e2f259 local verification pin diff",
+      "artifact": "verification-pins.patch",
+      "raw_sha256": "e383c1bebd3eb758cc3db359df2a296c310f9d30e16e6f44347bf140a8645b09"
+    },
+    {
+      "source": "code-kb target/release-dogfood/report.md",
+      "artifact": "report.md.gz",
+      "raw_sha256": "3aeea3b7dadac3dadb89691f822d684d2d4a028df00f35d2339441724694d78c",
+      "gzip_sha256": "4b8d603400b394e43d99100b520b5a2a92a217ab49b224fae1653fdeae128c95"
+    },
+    {
+      "source": "explicit downstream extraction gap disposition",
+      "artifact": "open-gaps.json",
+      "raw_sha256": "2453a04554072d6ca4e2837c0fd1a839ca417c4b129e67861971df9a778ae319"
+    },
+    {
+      "source": "target/release-312-dogfood-validation.log",
+      "artifact": "release-312-dogfood-validation.log.gz",
+      "raw_sha256": "d01f1640fd6727b09a90cf9da66785d0c4a7b26892786a4b93ace57a7515d2cd",
+      "gzip_sha256": "116950f38f5f718dbc2993c27a8040593bac844379ddde6b9a65abcecc9356e7"
+    }
+  ]
+}
