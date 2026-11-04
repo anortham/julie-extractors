@@ -14,10 +14,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-const SUMMARY_FORMAT_VERSION: u32 = 1;
+const SUMMARY_FORMAT_VERSION: u32 = 2;
 const ALLOWLIST_FORMAT_VERSION: u32 = 1;
 const WARMUP_RUNS_PER_BINARY: usize = 1;
 const SAMPLE_COUNT: usize = 5;
+const CALIBRATION_PROBE_COUNT: usize = 2;
 const MIN_BATCH_DURATION_MS: u128 = 2_000;
 const MAX_BATCH_OPERATIONS: usize = 4_096;
 const MAX_SAMPLE_SPREAD_PERCENT: u128 = 10;
@@ -259,6 +260,7 @@ pub struct ComparisonHarnessProvenance {
 pub struct ComparisonPolicy {
     pub warmup_runs_per_binary: usize,
     pub paired_samples_per_workload: usize,
+    pub baseline_calibration_probe_count: usize,
     pub minimum_baseline_batch_ms: u128,
     pub maximum_calibration_operations: usize,
     pub maximum_sample_spread_percent: u128,
@@ -280,11 +282,19 @@ pub fn run_from_args(args: &[String]) -> ExitCode {
     let result = plan_from_args(args).and_then(run);
     match result {
         Ok(summary) => {
+            let failed_workloads = summary
+                .workloads
+                .iter()
+                .filter(|workload| !workload.gate_failures.is_empty())
+                .count();
             println!(
-                "performance comparison {}: {} workload(s); summary {}",
-                if summary.passed { "passed" } else { "failed" },
-                summary.workloads.len(),
-                summary.summary_path.display()
+                "{}",
+                comparison_status_line(
+                    summary.passed,
+                    failed_workloads,
+                    summary.workloads.len(),
+                    &summary.summary_path
+                )
             );
             if summary.passed {
                 ExitCode::SUCCESS
@@ -296,6 +306,25 @@ pub fn run_from_args(args: &[String]) -> ExitCode {
             eprintln!("{}", error.message);
             ExitCode::from(error.exit_code)
         }
+    }
+}
+
+fn comparison_status_line(
+    passed: bool,
+    failed_workloads: usize,
+    total_workloads: usize,
+    summary_path: &Path,
+) -> String {
+    if passed {
+        format!(
+            "performance comparison passed: {total_workloads} workload(s); summary {}",
+            summary_path.display()
+        )
+    } else {
+        format!(
+            "performance comparison failed: {failed_workloads} of {total_workloads} workload(s) have gate failures; summary {}",
+            summary_path.display()
+        )
     }
 }
 
@@ -944,12 +973,20 @@ pub struct SampleSeries {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BaselineCalibrationRound {
+    pub operation_count: usize,
+    pub elapsed_ms: Vec<u128>,
+    pub accepted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WorkloadResult {
     pub language: String,
     pub level: String,
     pub workload: String,
     pub baseline: SampleSeries,
     pub candidate: SampleSeries,
+    pub baseline_calibration_rounds: Vec<BaselineCalibrationRound>,
     pub baseline_health: ComparisonHealth,
     pub candidate_health: ComparisonHealth,
     pub row_deltas: Vec<RowDelta>,
@@ -964,6 +1001,7 @@ pub struct WorkloadResult {
 pub struct PreviousAttempt {
     pub baseline: SampleSeries,
     pub candidate: SampleSeries,
+    pub baseline_calibration_rounds: Vec<BaselineCalibrationRound>,
     pub gate_failures: Vec<String>,
 }
 
@@ -1353,7 +1391,19 @@ pub fn evaluate_budgets(
 }
 
 pub fn sample_spread_is_conclusive(samples: &[u128]) -> bool {
-    if samples.len() != SAMPLE_COUNT {
+    samples.len() == SAMPLE_COUNT && sample_spread_within_tolerance(samples)
+}
+
+fn calibration_probes_are_conclusive(samples: &[u128]) -> bool {
+    samples.len() == CALIBRATION_PROBE_COUNT
+        && samples
+            .iter()
+            .all(|elapsed_ms| *elapsed_ms >= MIN_BATCH_DURATION_MS)
+        && sample_spread_within_tolerance(samples)
+}
+
+fn sample_spread_within_tolerance(samples: &[u128]) -> bool {
+    if samples.is_empty() {
         return false;
     }
     let mut ordered = samples.to_vec();
@@ -2335,6 +2385,7 @@ struct OperationStateOutput {
 struct MeasurementAttempt {
     baseline: SampleSeries,
     candidate: SampleSeries,
+    baseline_calibration_rounds: Vec<BaselineCalibrationRound>,
     baseline_output: BatchOutput,
     candidate_output: BatchOutput,
     baseline_preflight_failures: Vec<String>,
@@ -3269,6 +3320,7 @@ fn comparison_policy() -> ComparisonPolicy {
     ComparisonPolicy {
         warmup_runs_per_binary: WARMUP_RUNS_PER_BINARY,
         paired_samples_per_workload: SAMPLE_COUNT,
+        baseline_calibration_probe_count: CALIBRATION_PROBE_COUNT,
         minimum_baseline_batch_ms: MIN_BATCH_DURATION_MS,
         maximum_calibration_operations: MAX_BATCH_OPERATIONS,
         maximum_sample_spread_percent: MAX_SAMPLE_SPREAD_PERCENT,
@@ -3289,7 +3341,7 @@ fn comparison_policy() -> ComparisonPolicy {
             vec!["indexed_at".to_string(), "last_revision_id".to_string()],
         )]),
         timed_interval: "sum of wall-clock durations around each /usr/bin/time-wrapped scan process; process startup and collector overhead included; source staging, fresh-equivalence scans, semantic checks, and artifact preparation are outside the timed intervals".to_string(),
-        workload_preparation: "fresh_scan clears the database before each timed scan; no_change_scan prepares the database before timing; single_file_update prepares the original state and changes one staged source before each timed scan. Both binaries receive the same warm-up and validation-scan cache treatment; operating-system page cache is not dropped".to_string(),
+        workload_preparation: "baseline calibration selects a fixed operation count only after two consecutive baseline calibration probes at that count meet the minimum duration and spread limits. fresh_scan clears the database before each timed scan; no_change_scan prepares the database before timing; single_file_update prepares the original state and changes one staged source before each timed scan. Both binaries receive the same warm-up and validation-scan cache treatment; operating-system page cache is not dropped".to_string(),
     }
 }
 
@@ -3425,6 +3477,7 @@ fn measure_workload(comparison: WorkloadComparison<'_>) -> Result<WorkloadResult
             let prior = PreviousAttempt {
                 baseline: first_attempt.baseline.clone(),
                 candidate: first_attempt.candidate.clone(),
+                baseline_calibration_rounds: first_attempt.baseline_calibration_rounds.clone(),
                 gate_failures: first_evaluation.gate_failures,
             };
             (
@@ -3481,6 +3534,7 @@ fn measure_workload(comparison: WorkloadComparison<'_>) -> Result<WorkloadResult
         workload: workload.name().to_string(),
         baseline: final_attempt.baseline,
         candidate: final_attempt.candidate,
+        baseline_calibration_rounds: final_attempt.baseline_calibration_rounds,
         baseline_health: final_attempt.baseline_output.health,
         candidate_health: final_attempt.candidate_output.health,
         row_deltas,
@@ -3530,27 +3584,23 @@ fn measure_attempt(
         );
     }
 
-    let mut calibration_operations = 1usize;
-    let calibration = loop {
+    let calibration = calibrate_baseline_batch(workload, |operations| {
         let output = run_batch(
             baseline_binary,
             baseline_stage,
             level,
             workload,
-            calibration_operations,
+            operations,
             baseline_expectation,
         )?;
         baseline_preflight_failures.extend(output.runtime_failures.iter().cloned());
-        if output.metrics.elapsed_ms >= MIN_BATCH_DURATION_MS {
-            break output;
-        }
-        calibration_operations = calibration_operations.saturating_mul(2);
-        if calibration_operations > MAX_BATCH_OPERATIONS {
-            return Err(ComparisonError::environment(format!(
-                "{workload:?} baseline batch did not reach two seconds by {MAX_BATCH_OPERATIONS} operations"
-            )));
-        }
-    };
+        Ok(output)
+    })?;
+    let BaselineCalibration {
+        operation_count: calibration_operations,
+        output: calibration_output,
+        rounds: baseline_calibration_rounds,
+    } = calibration;
     candidate_preflight_failures.extend(
         run_batch(
             candidate_binary,
@@ -3620,19 +3670,20 @@ fn measure_attempt(
     }
     let baseline_series = sample_series(
         calibration_operations,
-        calibration.metrics.elapsed_ms,
+        calibration_output.metrics.elapsed_ms,
         &baseline_samples,
         &baseline_normalized,
     );
     let candidate_series = sample_series(
         calibration_operations,
-        calibration.metrics.elapsed_ms,
+        calibration_output.metrics.elapsed_ms,
         &candidate_samples,
         &candidate_normalized,
     );
     Ok(MeasurementAttempt {
         baseline: baseline_series,
         candidate: candidate_series,
+        baseline_calibration_rounds,
         baseline_output: combine_batch_outputs(baseline_outputs)?,
         candidate_output: combine_batch_outputs(candidate_outputs)?,
         baseline_preflight_failures,
@@ -3680,6 +3731,69 @@ fn sample_series(
         elapsed_ms: metric_range(&times),
         peak_rss_bytes: metric_range(&memories),
         artifact_bytes: metric_range(&sizes),
+    }
+}
+
+#[derive(Debug)]
+struct BaselineCalibration {
+    operation_count: usize,
+    output: BatchOutput,
+    rounds: Vec<BaselineCalibrationRound>,
+}
+
+fn calibrate_baseline_batch(
+    workload: WorkloadKind,
+    mut run_probe: impl FnMut(usize) -> Result<BatchOutput, ComparisonError>,
+) -> Result<BaselineCalibration, ComparisonError> {
+    let mut operation_count = 1usize;
+    let mut rounds = Vec::new();
+    loop {
+        let mut outputs = Vec::with_capacity(CALIBRATION_PROBE_COUNT);
+        let mut elapsed_ms = Vec::with_capacity(CALIBRATION_PROBE_COUNT);
+        for _ in 0..CALIBRATION_PROBE_COUNT {
+            let output = match run_probe(operation_count) {
+                Ok(output) => output,
+                Err(error) => {
+                    let mut observed_rounds = rounds.clone();
+                    observed_rounds.push(BaselineCalibrationRound {
+                        operation_count,
+                        elapsed_ms,
+                        accepted: false,
+                    });
+                    return Err(ComparisonError::environment(format!(
+                        "{}; observed calibration rounds: {observed_rounds:?}",
+                        error.message
+                    )));
+                }
+            };
+            let is_short = output.metrics.elapsed_ms < MIN_BATCH_DURATION_MS;
+            elapsed_ms.push(output.metrics.elapsed_ms);
+            outputs.push(output);
+            if is_short {
+                break;
+            }
+        }
+        let accepted = calibration_probes_are_conclusive(&elapsed_ms);
+        rounds.push(BaselineCalibrationRound {
+            operation_count,
+            elapsed_ms,
+            accepted,
+        });
+        if accepted {
+            return Ok(BaselineCalibration {
+                operation_count,
+                output: outputs
+                    .pop()
+                    .expect("accepted calibration has probe output"),
+                rounds,
+            });
+        }
+        if operation_count >= MAX_BATCH_OPERATIONS {
+            return Err(ComparisonError::environment(format!(
+                "{workload:?} baseline batch did not reach a stable two-second calibration by {MAX_BATCH_OPERATIONS} operations; observed rounds: {rounds:?}"
+            )));
+        }
+        operation_count = operation_count.saturating_mul(2);
     }
 }
 
@@ -4636,12 +4750,174 @@ mod unit_tests {
         }
     }
 
+    fn sample_batch_output_with_duration(elapsed_ms: u128) -> BatchOutput {
+        let mut output = sample_batch_output(&[]);
+        output.metrics.elapsed_ms = elapsed_ms;
+        output
+    }
+
     #[test]
     fn sample_spread_rejects_missing_and_excessive_samples() {
         assert!(!sample_spread_is_conclusive(&[2_000, 2_010]));
         assert!(!sample_spread_is_conclusive(&[
             2_000, 2_010, 2_005, 2_500, 2_020
         ]));
+    }
+
+    #[test]
+    fn calibration_rechecks_a_cold_probe_before_accepting_a_fixed_batch() {
+        let durations = [550, 1_100, 2_203, 1_102, 4_400, 4_410];
+        let mut durations = durations.into_iter();
+        let mut operations = Vec::new();
+
+        let calibration = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
+            operations.push(operation_count);
+            Ok(sample_batch_output_with_duration(
+                durations.next().expect("provide each probe duration"),
+            ))
+        })
+        .expect("stable calibration probe pair");
+
+        assert_eq!(operations, [1, 2, 4, 4, 8, 8]);
+        assert_eq!(calibration.operation_count, 8);
+        assert_eq!(
+            calibration.rounds,
+            [
+                BaselineCalibrationRound {
+                    operation_count: 1,
+                    elapsed_ms: vec![550],
+                    accepted: false,
+                },
+                BaselineCalibrationRound {
+                    operation_count: 2,
+                    elapsed_ms: vec![1_100],
+                    accepted: false,
+                },
+                BaselineCalibrationRound {
+                    operation_count: 4,
+                    elapsed_ms: vec![2_203, 1_102],
+                    accepted: false,
+                },
+                BaselineCalibrationRound {
+                    operation_count: 8,
+                    elapsed_ms: vec![4_400, 4_410],
+                    accepted: true,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn calibration_accepts_two_stable_batches_above_the_duration_floor() {
+        let durations = [900, 1_600, 2_203, 2_183];
+        let mut durations = durations.into_iter();
+        let mut operations = Vec::new();
+
+        let calibration = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
+            operations.push(operation_count);
+            Ok(sample_batch_output_with_duration(
+                durations.next().expect("provide each probe duration"),
+            ))
+        })
+        .expect("stable calibration probe pair");
+
+        assert_eq!(operations, [1, 2, 4, 4]);
+        assert_eq!(calibration.operation_count, 4);
+        assert_eq!(
+            calibration.rounds.last().map(|round| round.accepted),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn calibration_rejects_excessive_probe_spread_and_doubles_operations() {
+        let durations = [900, 1_600, 2_203, 2_500, 4_400, 4_410];
+        let mut durations = durations.into_iter();
+        let mut operations = Vec::new();
+
+        let calibration = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
+            operations.push(operation_count);
+            Ok(sample_batch_output_with_duration(
+                durations.next().expect("provide each probe duration"),
+            ))
+        })
+        .expect("stable calibration probe pair");
+
+        assert_eq!(operations, [1, 2, 4, 4, 8, 8]);
+        assert_eq!(calibration.operation_count, 8);
+        assert!(!calibration.rounds[2].accepted);
+    }
+
+    #[test]
+    fn calibration_probe_errors_include_prior_probe_durations() {
+        let durations = [550, 1_100, 2_203];
+        let mut durations = durations.into_iter();
+        let mut operations = Vec::new();
+
+        let error = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
+            operations.push(operation_count);
+            match durations.next() {
+                Some(duration) => Ok(sample_batch_output_with_duration(duration)),
+                None => Err(ComparisonError::environment("controlled probe failure")),
+            }
+        })
+        .expect_err("probe failures report the samples already captured");
+
+        assert_eq!(operations, [1, 2, 4, 4]);
+        assert!(error.message.contains("elapsed_ms: [2203]"));
+    }
+
+    #[test]
+    fn calibration_fails_after_unstable_probes_reach_the_operation_cap() {
+        let mut operations = Vec::new();
+
+        let error = calibrate_baseline_batch(WorkloadKind::FreshScan, |operation_count| {
+            operations.push(operation_count);
+            let elapsed_ms = if operation_count < MAX_BATCH_OPERATIONS {
+                1_000
+            } else if operations
+                .iter()
+                .filter(|count| **count == MAX_BATCH_OPERATIONS)
+                .count()
+                == 1
+            {
+                2_000
+            } else {
+                3_000
+            };
+            Ok(sample_batch_output_with_duration(elapsed_ms))
+        })
+        .expect_err("unstable calibration cannot exceed the operation cap");
+
+        assert!(error.message.contains("stable two-second calibration"));
+        assert!(error.message.contains("elapsed_ms: [2000, 3000]"));
+        assert_eq!(
+            operations,
+            [
+                1,
+                2,
+                4,
+                8,
+                16,
+                32,
+                64,
+                128,
+                256,
+                512,
+                1_024,
+                2_048,
+                MAX_BATCH_OPERATIONS,
+                MAX_BATCH_OPERATIONS,
+            ]
+        );
+    }
+
+    #[test]
+    fn failed_comparison_status_counts_gate_failures_not_all_workloads() {
+        assert_eq!(
+            comparison_status_line(false, 2, 6, Path::new("comparison.json")),
+            "performance comparison failed: 2 of 6 workload(s) have gate failures; summary comparison.json"
+        );
     }
 
     #[test]
@@ -4773,6 +5049,7 @@ mod unit_tests {
         let policy = comparison_policy();
         assert_eq!(policy.warmup_runs_per_binary, 1);
         assert_eq!(policy.paired_samples_per_workload, 5);
+        assert_eq!(policy.baseline_calibration_probe_count, 2);
         assert_eq!(policy.minimum_baseline_batch_ms, 2_000);
         assert_eq!(policy.maximum_calibration_operations, 4_096);
         assert_eq!(policy.elapsed_growth_percent, 10);
@@ -4803,6 +5080,11 @@ mod unit_tests {
             policy
                 .workload_preparation
                 .contains("page cache is not dropped")
+        );
+        assert!(
+            policy
+                .workload_preparation
+                .contains("two consecutive baseline calibration probes")
         );
     }
 

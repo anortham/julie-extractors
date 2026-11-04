@@ -1,0 +1,31 @@
+{
+  "format_version": 1,
+  "source_base_commit": "c4b630d16f31ae1c82d046323f452a4c053f26f7",
+  "scope": "Stable calibration correction and comparison-summary v2; no extractor or input-format changes.",
+  "artifacts": [
+    {
+      "source_log": "target/coverage-tmp/performance-comparison-calibration-contract.log",
+      "artifact": "contracts.log.gz",
+      "raw_sha256": "8cae9e6892d37e337e23b1fdeb90c4292ddce7cd20a112408fe0b65997309524",
+      "gzip_sha256": "42f15b17079b893b81756c631caad44a0291b1278328de46b294aa5c9593c0a4"
+    },
+    {
+      "source_log": "target/coverage-tmp/performance-comparison-calibration-xtask-full.log",
+      "artifact": "xtask-full.log.gz",
+      "raw_sha256": "96ba47005401abab10141df4f8549b42d867a3e001c64b7e2cad49a6a97f7a6b",
+      "gzip_sha256": "fdd2940b792acc475a9404a6df0b155128af9f11cb530d7c960d24f36e1e6395"
+    },
+    {
+      "source_log": "target/coverage-calibration-final-fmt.log",
+      "artifact": "fmt.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source_log": "target/coverage-calibration-final-clippy.log",
+      "artifact": "clippy.log.gz",
+      "raw_sha256": "69a3161210ba8f1435b07fa99d9bfb0b2820eb320e1010efe27f2cfbf2fdfdee",
+      "gzip_sha256": "80247962633fec4304481383f4711c61a00d362e4591b7989cf9f326d0380e0c"
+    }
+  ]
+}

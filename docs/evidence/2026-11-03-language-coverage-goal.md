@@ -345,3 +345,20 @@ The focused certification run and real-world smoke run pass in 62 and 92 seconds
 The real-world release profile passes all six commands after the Erlang baseline review (`target/coverage-final-real-world-release-after-update.log`, 13.67 seconds). Only Telemetry changes its exact expected counts: 52 to 60 symbols and 45 to zero diagnostics. Eight added parameter/local facts are source-backed; the other nine corpus files retain their expected counts. The focused three-test Erlang corpus rerun also passes. The original failed log remains historical evidence. Controlled baseline/candidate performance remains pending. Windows product gates now pass on `4aac8d12`: cold default, path/operations/rebind, capability, goldens and all-language corpus. Two xtask expectations needed canonical native fixture paths; the host fixes pass all 30 xtask unit tests, and their Windows rerun awaits the follow-up commit/sync. Initial Windows disk exhaustion was repaired by deleting only verified generated outputs for this project. The phase-one logs and exact guest source identity are archived in [Windows evidence](2026-11-03-language-coverage/windows-gates/phase1-artifacts.json). The raw gate logs are archived with deterministic gzip and checksums in the [gate artifact index](2026-11-03-language-coverage/integration-gates/artifacts.json). Keep final release and coverage-goal acceptance open until those gates and the remaining performance/default-runtime acceptance checks are complete.
 
 The authored changes pass the staged whitespace check. The byte-pinned baseline feature-tree capture and vendored upstream SQL/VB files retain upstream whitespace; they are excluded only from this formatting check so their recorded source hashes stay valid. No fixture assertion or extraction check is excluded.
+
+## Calibration correction after the first controlled run
+
+The first paired run at `c4b630d1` passed row/health, RSS and size checks. Four
+workloads passed all gates. References-level fresh and update timings remained
+inconclusive after the allowed repeat: a four-operation calibration took
+2,203 ms, but later baseline batches took 1,102–2,183 ms. The original failed
+summary and command are retained in [attempt-one evidence](2026-11-03-language-coverage/performance-attempt-1/artifacts.json).
+
+Calibration now requires two consecutive same-count baseline probes that both
+reach two seconds and satisfy the existing spread limit. Short or unstable
+rounds double the operation count under the existing cap. Comparison summary
+format v2 retains every probe round, including rejected counts; all input
+formats, budgets, final sample checks and retry limits remain unchanged.
+Focused comparison unit tests (21), comparison contract tests (33), full xtask,
+formatting and xtask Clippy pass. The corrected controlled run remains pending.
+See the [calibration decision](../decisions/2026-11-04-performance-calibration.md).

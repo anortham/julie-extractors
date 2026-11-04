@@ -1,0 +1,26 @@
+{
+  "format_version": 1,
+  "product_gates_source_commit": "4aac8d123434167ccbe20b06ac4ea21ed7e493a8",
+  "xtask_followup_source_commit": "c4b630d16f31ae1c82d046323f452a4c053f26f7",
+  "result": "All six prepared Windows gates pass; guest shut off. The follow-up changes only fixture path expectations, tests and evidence.",
+  "artifacts": [
+    {
+      "source_log": "target/coverage-windows-followup-sync.log",
+      "artifact": "followup-sync.log.gz",
+      "raw_sha256": "b410b2d9291b900416385c559a1bef30ec497f6acb710a003c3e98965b13b6a1",
+      "gzip_sha256": "0b42d76bc10c54c054ce6c1391c64f64339a2acd626bee53407963ee92dbc547"
+    },
+    {
+      "source_log": "target/coverage-windows-xtask-followup.log",
+      "artifact": "xtask-followup.log.gz",
+      "raw_sha256": "5d6607d8efc2d5daabac6e6fe643483e29fcc981285f99cd1ffe262b455b9af6",
+      "gzip_sha256": "0c54ab47f4c786a0189fb18bcdac1131af750a11045bc127060ba8a702c02041"
+    },
+    {
+      "source_log": "target/coverage-windows-status-after-down.log",
+      "artifact": "status-after-down.log.gz",
+      "raw_sha256": "fcd0e285e488cb37a042511417db2ac1209ef9656fbfef67d97cad27ae72ab90",
+      "gzip_sha256": "851b4829fe431e4d910374ea635d67e7e9d17f5fd03be72be611dfbde2c72b47"
+    }
+  ]
+}

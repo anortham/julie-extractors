@@ -14,15 +14,15 @@ No latency, peak-RSS, artifact-size, or retry measurements were run. The final c
 | Baseline build metadata | docs/evidence/2026-11-03-language-coverage/baseline-build.json | d8e35488379f897a6b334343349184398d5f9f52af54386f28522ece5bd2d1c7 |
 | Frozen baseline expectations | docs/evidence/2026-11-03-language-coverage/baseline-receipt/baseline-expectations.json | ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e |
 | Candidate binary | target/release/julie-extract | c236e36111785c9ac6bcab6220f07403ad7ad54d02b00590fbe27f6358e40dcc |
-| Candidate build metadata | docs/evidence/2026-11-03-language-coverage/candidate-build.json | 4643c7acdb8a1785725d45c63e1985ad57e58ec60fcbb72525e6e0d891ec2448 |
-| Candidate build record | docs/evidence/2026-11-03-language-coverage/candidate-build-record.md | 47a8f039633f42606b21dd14d8fef51fc5270617e4f78db7ba01203ade2e5a1e |
+| Candidate build metadata | docs/evidence/2026-11-03-language-coverage/candidate-build.json | 9df82e4bcb3ba7ce22cce9d5c92639474188d32832cec1a3533ebee45dab5c63 |
+| Candidate build record | docs/evidence/2026-11-03-language-coverage/candidate-build-record.md | ef11e9d3af69e1027f867df599a06d12224ee948c8c1d356da634713a52c5645 |
 | Coverage manifest | fixtures/real-world/coverage-manifest.json | fb6e6a8a286acd8900094023d5d8c2b110695eb459c35b52bdfb642fd1a58ec6 |
 | Output change ledger | docs/contracts/extraction-output-changes.md | aad2a8341fa8ca888b785c9de9161b008af372ff8e3ab1bc4ccda00e22063ecb |
 | Untimed preflight | docs/evidence/2026-11-03-language-coverage/performance-comparison-preflight.json | 7f49d81364498dec9c521b95333b75a2f2672a25f4aa15759cee25c26d4d1205 |
 | Exact row allowlist | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-allowlist.json | 578ae07fa522f8c0785ef08b86b3215421947ad8f56957c899d8815859cefacb |
-| Per-entry state evidence | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-evidence.json | d3b813fe1773d3e6bdb97bdd89172dc8d1648f0fd45f3b295559a34843bafc96 |
+| Per-entry state evidence | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-evidence.json | 87390a265873c9d67cf11b7838b971c73d4680e85f8e6ebae65e1e425cb74bfb |
 
-The candidate metadata was produced by a clean release build at source commit 4aac8d123434167ccbe20b06ac4ea21ed7e493a8 with source tree SHA-256 195783c00bb38c4adf69c4777aafbda2dd68da1d3178d39eca8959a54306d911. The current uncommitted changes after that build are documentation, tests, and evidence; the binary and build sidecar hashes still match the preflight.
+The candidate metadata was produced by a clean release build at source commit c4b630d16f31ae1c82d046323f452a4c053f26f7 with source tree SHA-256 b07c4a4f1ede4bc9b56cb0fa65fe3abc8ab4164eff9955565047eb3fe6aea7f9. The current uncommitted changes after that build are documentation and evidence; the binary and build sidecar hashes still match the preflight.
 
 The manifest stages 42 languages and 2 controls (44 inputs). The original state SHA-256 is cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6. The update state SHA-256 is 586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700; it appends one newline to zig/isnan.zig. The two states produce identical row-delta multisets for references and full.
 
@@ -143,11 +143,11 @@ Run only after the lead confirms the host is idle and the Windows run has finish
       --baseline-build-metadata docs/evidence/2026-11-03-language-coverage/baseline-build.json \
       --baseline-build-metadata-sha256 d8e35488379f897a6b334343349184398d5f9f52af54386f28522ece5bd2d1c7 \
       --candidate-build-metadata docs/evidence/2026-11-03-language-coverage/candidate-build.json \
-      --candidate-build-metadata-sha256 4643c7acdb8a1785725d45c63e1985ad57e58ec60fcbb72525e6e0d891ec2448 \
+      --candidate-build-metadata-sha256 9df82e4bcb3ba7ce22cce9d5c92639474188d32832cec1a3533ebee45dab5c63 \
       --manifest fixtures/real-world/coverage-manifest.json \
       --allowlist docs/evidence/2026-11-03-language-coverage/performance-comparison-row-allowlist.json \
       --profile release \
-      --out-dir target/performance-compare-task5-final-4aac8d12
+      --out-dir target/performance-compare-task5-final-c4b630d1
 
 The final binary and sidecar hashes matched the untimed preflight. The manual harness validation supplied the full pinned command above but used existing target as the output directory. It exited with the expected “output directory must be new” error after binary/build/manifest/receipt/allowlist/ledger preflight and before creating workload stages or running scans. Log: target/task5-row-allowlist-harness-preflight.log.
 

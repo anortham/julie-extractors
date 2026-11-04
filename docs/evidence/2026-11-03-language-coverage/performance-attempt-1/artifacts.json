@@ -1,0 +1,60 @@
+{
+  "format_version": 1,
+  "source_commit": "c4b630d16f31ae1c82d046323f452a4c053f26f7",
+  "passed": false,
+  "result": "Four workloads pass; references fresh/update timing is inconclusive after the allowed repeat. Correctness, memory and size checks pass. Single-probe calibration chose counts whose later baseline batches fell below2s. Preserve this failed run; no budget waiver.",
+  "workloads": [
+    {
+      "level": "references",
+      "workload": "fresh_scan",
+      "gate_failures": [
+        "timing: baseline sample spread is inconclusive",
+        "timing: candidate sample spread is inconclusive",
+        "timing: a baseline batch sample was shorter than two seconds"
+      ]
+    },
+    {
+      "level": "references",
+      "workload": "no_change_scan",
+      "gate_failures": []
+    },
+    {
+      "level": "references",
+      "workload": "single_file_update",
+      "gate_failures": [
+        "timing: baseline sample spread is inconclusive",
+        "timing: candidate sample spread is inconclusive",
+        "timing: a baseline batch sample was shorter than two seconds"
+      ]
+    },
+    {
+      "level": "full",
+      "workload": "fresh_scan",
+      "gate_failures": []
+    },
+    {
+      "level": "full",
+      "workload": "no_change_scan",
+      "gate_failures": []
+    },
+    {
+      "level": "full",
+      "workload": "single_file_update",
+      "gate_failures": []
+    }
+  ],
+  "artifacts": [
+    {
+      "source": "target/performance-compare-task5-final-c4b630d1/comparison.json",
+      "artifact": "comparison.json.gz",
+      "raw_sha256": "766106d5be6015338c0815cfd8943cc1f50b591ddb90f1b094a68b934e883c33",
+      "gzip_sha256": "5db7c652e7fe5bf9c7b2bbdef21758a853a8d1b0075a4b2308032be86dc9e5a4"
+    },
+    {
+      "source": "target/coverage-final-performance-comparison.log",
+      "artifact": "command.log.gz",
+      "raw_sha256": "5752fffe16c6be487b4efca2e0de62c0bb2e519c350618e9dee90d9eeecfcc27",
+      "gzip_sha256": "2724c20dd0bfccfe90c3c01799175a543abe3ce74f4ee8d9389952ae72d8e303"
+    }
+  ]
+}
