@@ -420,3 +420,66 @@ confirm the changed call sites are updated. Full xtask passes 39 unit tests
 and all package targets, including 33 comparison contracts. Exact all-workspace
 formatting and xtask all-target Clippy with warnings denied pass. Raw red/green
 and final checks are in the [calibration margin gate index](2026-11-03-language-coverage/calibration-margin-gates/artifacts.json).
+
+
+## Final harness source and native follow-up
+
+The fixed-margin harness is committed as `e1c18a1eb6b76eb930117235fa19cfce9477e32a`.
+An actual clean locked/offline release build retains candidate binary SHA-256
+`c236e36111785c9ac6bcab6220f07403ad7ad54d02b00590fbe27f6358e40dcc`.
+Build metadata SHA-256 is
+`75f60805199dc179ea7fa8f4fc8faedd0fa72a7e90faa40cf7395b5dcdfebbcd`.
+Commit `e2d1869c0ba232a76b26a4ecdef718ab0c9de8ed` records only that build's
+six provenance files; code, manifests and tests are unchanged from `e1`.
+The final xtask executable SHA-256 is
+`4cdae93d6c985cfa8745114f26ade560e01c41b65d4b9707a2d808c00e282bd6`.
+Its input preflight accepts the pinned v1 inputs and intentionally rejects
+an existing output directory before extraction.
+
+Native Windows full xtask passes 39 unit tests and every target at clean `e2`.
+The guest is verified shut off. The earlier sync refusal from dirty provenance
+files is retained beside the successful clean sync. Final warm defaults also
+run at clean `e2`: warm-up 35.635612 seconds, then 45.434524, 65.817743 and
+32.435894 seconds. Min/median/max are 32.435894 / 45.434524 / 65.817743 seconds;
+the median passes the 180-second limit. These supersede the earlier `bd`
+runtime result for final acceptance without discarding it. Exact logs and
+source pins are archived in the [final e2 gate index](2026-11-03-language-coverage/final-gates/e2d1869c/artifacts.json).
+
+The private instrumented v2 diagnostic collected 32- and 64-operation pairs.
+At 64 operations, the worst baseline batch took 6.199 seconds around the
+process, versus 5.907 seconds in the child profile; commit and checkpoint
+accounted for 2.361 and 2.129 seconds. The worst candidate batch took 4.687
+seconds, with 4.396 seconds profiled. Parent-minus-profile stayed nearly
+constant at 277–297 ms per batch. This localizes the tails to writer
+commit/checkpoint work; it does not prove individual fsync durations. The
+[raw diagnostic archive](2026-11-03-language-coverage/update-timing-diagnostics/harness/artifacts.json)
+remains explicitly outside acceptance.
+
+One storage diagnostic is predeclared before its samples: normal and newly
+created NOCOW directories on the same device, both binaries, fixed 64 operations
+and five alternating pairs per arm, unchanged SQLite durability settings,
+without recalibration or retries. Adoption requires the normal arm to reproduce
+spread failure while the alternate arm passes the existing spread limit for
+both binaries, with reduced commit/checkpoint tails and preserved correctness.
+A lower median alone is insufficient. The final six-workload comparison remains
+required under every original budget and its single-repeat limit.
+
+
+## Storage experiment disposition before the final comparison
+
+The fixed-64, five-pair experiment completed without retries in 238.011374
+seconds. Normal-directory baseline spread was 1,088 ms against a 415 ms limit;
+its candidate spread was 56 ms against 355 ms. NOCOW baseline spread was
+595 ms against 397 ms; its candidate spread was 105 ms against 339 ms.
+All six setup/pair cross-arm comparisons preserve exact semantic state hashes
+and health. Directory, source-file, database and WAL-probe attributes match
+the intended arm on the same NVMe/Btrfs filesystem.
+
+The predeclared adoption criterion fails because the NOCOW baseline remains
+noisy. Do not adopt it, discard samples, or infer success from its lower
+median. The [full storage diagnostic](2026-11-03-language-coverage/update-timing-diagnostics/storage-fixed64/artifacts.json)
+is retained. Proceed once with the reviewed v3 calibration policy on ordinary
+storage, under the original six-workload correctness and resource budgets and
+single-repeat cap. Continued noise after that run's repeat requires a quieter
+reference host; no further batch/threshold/storage tuning is authorized by this
+measurement procedure.

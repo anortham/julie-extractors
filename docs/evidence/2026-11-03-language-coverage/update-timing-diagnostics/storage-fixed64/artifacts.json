@@ -1,0 +1,89 @@
+{
+  "format_version": 1,
+  "diagnostic_only": true,
+  "gate_result": "not_evaluated",
+  "source_commit": "e2d1869c0ba232a76b26a4ecdef718ab0c9de8ed",
+  "helper_binary_sha256": "e2ab726a1e6107257a3aa21e688114eac305064449f7207a8be99cb8aea1a553",
+  "source_sha256": {
+    "target/performance-storage-fixed64-diagnostic-20261104/src/comparison.rs": "13706ea80908907a9c50b208ef1423202d2ee853550f90fad2f8b207c86aafff",
+    "target/performance-storage-fixed64-diagnostic-20261104/src/compat.rs": "e45a182018a110be7289fae09ddcf82e53fe1bffabfbef38945ee44f26e47de1",
+    "target/performance-storage-fixed64-diagnostic-20261104/src/coverage.rs": "a98b842481931b426a4f8a03d5cba16a4e7247f4cc462f57afafc5a8c6497fde",
+    "target/performance-storage-fixed64-diagnostic-20261104/src/main.rs": "06c76918e82fa878f9fe86663abbaab6fa2e0c66e5c6bd181c7ad4152780909a"
+  },
+  "decision": "Do not adopt NOCOW: its baseline spread595ms exceeds397ms limit. Normal baseline spread1088ms exceeds415ms. Candidate spreads56/105ms pass. Semantic rows and health agree across both arms. Preserve all samples; no more storage tuning.",
+  "next": "Run reviewed v3 fixed4s calibration campaign on ordinary storage under all original budgets and single-repeat cap; continued noise requires an evidenced quieter host.",
+  "artifacts": [
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/paired-cow-vs-nocow/comparison.json",
+      "artifact": "comparison.json.gz",
+      "raw_sha256": "bb1104bc7e661675dc4f41451f5ca445d162740699fa2626c7b0e9876d47319e",
+      "gzip_sha256": "758fd3068f8d18062ceabf407b7c239352e793caa6cd3ac1cef59727d117cf94"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/paired-cow-vs-nocow/run-scan-diagnostic.json",
+      "artifact": "run-scan-diagnostic.json.gz",
+      "raw_sha256": "38372d3e2c277ca866866f04c955e9e6d0ca9597df99c236135921a166e33cf7",
+      "gzip_sha256": "5a5b5d3701fd0782a1f3e6de99b999c36597d9035556a696d4128b4b0221f730"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/paired-cow-vs-nocow.log",
+      "artifact": "paired-cow-vs-nocow.log.gz",
+      "raw_sha256": "dd17d415d13dbcfa7b3efa9ae00ec82811a39aaef560b0ca0876559a7323ee9a",
+      "gzip_sha256": "8b842dcd38a8d94b099d32784ed8af5f36f4a1b78970e492c653b94450aa789e"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/paired-cow-vs-nocow.exit",
+      "artifact": "paired-cow-vs-nocow.exit.gz",
+      "raw_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "gzip_sha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/paired-command.json",
+      "artifact": "paired-command.json.gz",
+      "raw_sha256": "a996b48735b41324ef40ddddb81478cc372628385ea97a156fdf94ef39581a07",
+      "gzip_sha256": "581a5dfa2634a90b480a74dc2485b4b647eab5f1120ee882542a3f4567eadd8d"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/README.md",
+      "artifact": "README.md.gz",
+      "raw_sha256": "19cac3d557f01348c2084906b8bfdda6d5c358d4b4175e75e2693b79f6624494",
+      "gzip_sha256": "27fc9c5919121247146acd569124ceafb3522170c1189945875766f4f5beb13f"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/Cargo.toml",
+      "artifact": "Cargo.toml.gz",
+      "raw_sha256": "aa83bd7c4c8b25066ecff9ca82876178b0d360096981132d61091432de4fdfdb",
+      "gzip_sha256": "df416edeecfdbd1609e51119c1a62b982e55d96c8c6c1254ab075b2e0a683b80"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/Cargo.lock",
+      "artifact": "Cargo.lock.gz",
+      "raw_sha256": "4f159cb3999588dcef01062772dc5dd29a6810333e2fbd67fe1852d124b8a545",
+      "gzip_sha256": "81bc16abcf14c62c9a69c036c0e4d5f52182d02ef6fda05c3d2d991b3304690c"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/src/main.rs",
+      "artifact": "main.rs.gz",
+      "raw_sha256": "06c76918e82fa878f9fe86663abbaab6fa2e0c66e5c6bd181c7ad4152780909a",
+      "gzip_sha256": "345c63da96f91ed82c89e448e763279ae6e72d9af4667e46e2aad2ee11ac3371"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/preflight/comparison.json",
+      "artifact": "preflight-comparison.json.gz",
+      "raw_sha256": "840f389114b6a1e78acdc2be5cd3462bfa3e09fddf2c6bcaa11276546c8d769f",
+      "gzip_sha256": "2cdd024181a8b79e5f11fac5334b5bb71bc9496925211ae990d54e680b3c4b98"
+    },
+    {
+      "source": "target/performance-storage-fixed64-diagnostic-20261104/preflight/run-scan-diagnostic.json",
+      "artifact": "preflight-run-scan-diagnostic.json.gz",
+      "raw_sha256": "c7d70aee881417ba3eca206adf4f308d7e04ccac912c40b636c473453bbe20e6",
+      "gzip_sha256": "3bb22fec2dfa3c50685fc6805fb6c3485aa5a1892cf9f80d946326c4f12ba586"
+    },
+    {
+      "source": "target/coverage-storage-fixed64-helper.diff",
+      "artifact": "coverage-storage-fixed64-helper.diff.gz",
+      "raw_sha256": "d6f0a513502329b54429d424998faebe542bc3024c75062a67f8b9a402d2f713",
+      "gzip_sha256": "e125511a470fe200e2edf614e0056a0cd28613d73da89fb8c91bcdc87f075bcf"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "format_version": 1,
+  "source_commit": "e2d1869c0ba232a76b26a4ecdef718ab0c9de8ed",
+  "build_source_commit": "e1c18a1eb6b76eb930117235fa19cfce9477e32a",
+  "source_note": "e2 adds only six provenance evidence paths to e1; all code/manifests/test inputs unchanged. Windows and final warm defaults ran at clean e2. Previous bd measurements remain archived separately.",
+  "default_warm_statistics_seconds": {
+    "min": 32.435894,
+    "median": 45.434524,
+    "max": 65.817743
+  },
+  "windows_xtask_library_tests_passed": 39,
+  "windows_all_xtask_targets_passed": true,
+  "guest_final_state": "shut off",
+  "harness_binary_sha256": "fdf9cb1be16708b1f37aba43dc5518f987cb4a3a6250fff69605770efa7be6f6",
+  "candidate_binary_sha256": "c236e36111785c9ac6bcab6220f07403ad7ad54d02b00590fbe27f6358e40dcc",
+  "candidate_build_metadata_sha256": "75f60805199dc179ea7fa8f4fc8faedd0fa72a7e90faa40cf7395b5dcdfebbcd",
+  "harness_preflight_note": "Exit2 is expected: provenance/allowlist v1 inputs load, then the existing output directory is refused before scans.",
+  "artifacts": [
+    {
+      "source": "target/coverage-final-e2-default-1.log",
+      "artifact": "coverage-final-e2-default-1.log.gz",
+      "raw_sha256": "c06f5d779dc8f1eb320b89aca6ccf6c705bb64b4019282d5f5a21e44466a516c",
+      "gzip_sha256": "c999cf651b39777eab626f036879b62817ce8f44223d05713d6b1ff5ad37382f"
+    },
+    {
+      "source": "target/coverage-final-e2-default-2.log",
+      "artifact": "coverage-final-e2-default-2.log.gz",
+      "raw_sha256": "83a15218e2ffa7d245498e92eba1f3c17cbac88ce0dfb091bceb58559c39e853",
+      "gzip_sha256": "d75c1e4ba84e58542b6ee9c734d21e6d4b679bc2bfbc7841eae86c04bc95b686"
+    },
+    {
+      "source": "target/coverage-final-e2-default-3.log",
+      "artifact": "coverage-final-e2-default-3.log.gz",
+      "raw_sha256": "9a7706a994c7a3939caec3e1048f6f7a03667f748dd0aed677daadccf99d8ee5",
+      "gzip_sha256": "cc98b944e591a88e9f87eddf84cc881203a81d016bb48ee50da8d342728056b3"
+    },
+    {
+      "source": "target/coverage-final-e2-default-warmup.log",
+      "artifact": "coverage-final-e2-default-warmup.log.gz",
+      "raw_sha256": "f91d90489a6e3bfe39a2b21534b35afb35d7721944d9448678ef464046be2356",
+      "gzip_sha256": "adffd92a5a0bcf2ca295dc16ef1d3f8efd3494ba162ea19db5ef78411c9fcd19"
+    },
+    {
+      "source": "target/coverage-final-e2-default-runs.json",
+      "artifact": "coverage-final-e2-default-runs.json.gz",
+      "raw_sha256": "dc7a534c887b156a9f0ef8ddd669da56f180ef1eb2ba9124afc9256e22fe4b10",
+      "gzip_sha256": "bd6f2573359f934c635a0f9761db2c8257e9fb940d1198fc14316a29834ff62d"
+    },
+    {
+      "source": "target/coverage-windows-margin-followup-guest-status-final.log",
+      "artifact": "coverage-windows-margin-followup-guest-status-final.log.gz",
+      "raw_sha256": "fcd0e285e488cb37a042511417db2ac1209ef9656fbfef67d97cad27ae72ab90",
+      "gzip_sha256": "851b4829fe431e4d910374ea635d67e7e9d17f5fd03be72be611dfbde2c72b47"
+    },
+    {
+      "source": "target/coverage-windows-margin-followup-preflight.log",
+      "artifact": "coverage-windows-margin-followup-preflight.log.gz",
+      "raw_sha256": "57ea90adde76bd790fd581685e06f1d8a2e2c29383cc94170910766603771b42",
+      "gzip_sha256": "308f893a37786c214bb57173ff8ce9b5caaaf0eef6fc9ea96a8a16e02c7438cd"
+    },
+    {
+      "source": "target/coverage-windows-margin-followup-report.md",
+      "artifact": "coverage-windows-margin-followup-report.md.gz",
+      "raw_sha256": "8e5c9265993e4f02ba6d90292536f599e369e6b5e582e024082fa61f09fd2fdc",
+      "gzip_sha256": "304c3a8fa39ed6f02d1b0da20f8564e136e258f65aaea6df2ec53a6556540628"
+    },
+    {
+      "source": "target/coverage-windows-margin-followup-sync-e2.log",
+      "artifact": "coverage-windows-margin-followup-sync-e2.log.gz",
+      "raw_sha256": "981cd5903591bad108975d77b80517dcfe7756d90aba8ffcb7b0d31cab6bee8d",
+      "gzip_sha256": "c6cc665b7d0e04c4a8845d18859e9646d9d1e4442e7646aa5e8b5dca9be00796"
+    },
+    {
+      "source": "target/coverage-windows-margin-followup-sync.log",
+      "artifact": "coverage-windows-margin-followup-sync.log.gz",
+      "raw_sha256": "f1b164b78f4ca5fa9cf3518d4adba83e989d70103c16aeef492f175a8d19585f",
+      "gzip_sha256": "d25525ccec6f0956bbb228f4063f47684f9896d21e77088c42fbde011e93a837"
+    },
+    {
+      "source": "target/coverage-windows-margin-followup-up.log",
+      "artifact": "coverage-windows-margin-followup-up.log.gz",
+      "raw_sha256": "258d562dc010f0deaac57251722d4ca12edc8b93f3fef07e83c80f4bfa5279ec",
+      "gzip_sha256": "2122cf8cde735ab1e050739e51747321743afa0620ad05e3d2c712f4cf51af91"
+    },
+    {
+      "source": "target/coverage-windows-margin-followup-xtask.log",
+      "artifact": "coverage-windows-margin-followup-xtask.log.gz",
+      "raw_sha256": "4313d51a27e8ea238eb3581afed7701509cae73e8493fbd22a1928c85c86de68",
+      "gzip_sha256": "1cc947e7aacc17ff883f09770bc8c7bd2bcf54b8c7dd9b8bdab73fcf303301af"
+    },
+    {
+      "source": "target/coverage-margin-harness-build.log",
+      "artifact": "coverage-margin-harness-build.log.gz",
+      "raw_sha256": "084ec8a13fc298b85071e435906e810dfd3e02fdb055f161ffbff699d9e07528",
+      "gzip_sha256": "024627a54925f3c64511987b33c8e18948c6fb560b0c3aa871d87dc48aaae564"
+    },
+    {
+      "source": "target/coverage-margin-harness-preflight.log",
+      "artifact": "coverage-margin-harness-preflight.log.gz",
+      "raw_sha256": "32c06c8d6e39484b39ee3745fb035c50eb555912ed726ad53ed6abc55c9dfd47",
+      "gzip_sha256": "556779f6810a9f4bf62b401e746e921bd07fc9c66c6947e3f3a65d315c13e55d"
+    }
+  ]
+}

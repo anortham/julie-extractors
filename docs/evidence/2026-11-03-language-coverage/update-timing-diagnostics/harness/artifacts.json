@@ -60,6 +60,12 @@
       "artifact": "coverage-update-diagnostic-helper.diff.gz",
       "raw_sha256": "1b410a4be2544186f4fffaf3257ccad55c4355eb99ff631223f9ffc9b68f3544",
       "gzip_sha256": "aa094f6f03dc024f1b0fa2caf4775a1231e425e399db1f55166cef701057e120"
+    },
+    {
+      "source": "target/performance-update-timing-diagnostic-20261104/diagnostic-findings.md",
+      "artifact": "diagnostic-findings.md.gz",
+      "raw_sha256": "cac6000ff0185d5270c1d9da91d1049b7f25c4d859d2b6b3ff3a50d067f934b4",
+      "gzip_sha256": "195b8ab56c3fb32dbdae7ae0ee2741c0b1bc2cb17c0cb70b1e8192533b952489"
     }
   ]
 }
