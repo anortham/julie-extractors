@@ -5,7 +5,7 @@
     "evidence": {
       "kind": "build-record",
       "reference": "target/coverage-candidate-build-record.md",
-      "sha256": "a07c3e0033c69924b34dc15d4bd1cd33cbea875438900f0666187a054dca5642"
+      "sha256": "a9b7a578c6bb0c105b383a6b3b6224603764562b9c5c58bc29652e10c8c63100"
     },
     "features": [
       "aho-corasick/default",
@@ -299,10 +299,10 @@
   },
   "format_version": 1,
   "source": {
-    "commit": "bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56",
+    "commit": "e1c18a1eb6b76eb930117235fa19cfce9477e32a",
     "dirty": false,
     "dirty_state_sha256": null,
     "tree_hash_algorithm": "git-ls-tree-r-v1-sha256",
-    "tree_sha256": "bd8794bd18e2c9ba771592d0ef4e3f187768123781101cce5ed6ae374a149262"
+    "tree_sha256": "da9fc6639e6a70bfcf4c6a7e0bf36ed23e865c385dff2cbbf48534407485ebc8"
   }
 }

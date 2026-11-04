@@ -14,15 +14,15 @@ This untimed preflight contains no latency, peak-RSS, artifact-size or retry mea
 | Baseline build metadata | docs/evidence/2026-11-03-language-coverage/baseline-build.json | d8e35488379f897a6b334343349184398d5f9f52af54386f28522ece5bd2d1c7 |
 | Frozen baseline expectations | docs/evidence/2026-11-03-language-coverage/baseline-receipt/baseline-expectations.json | ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e |
 | Candidate binary | target/release/julie-extract | c236e36111785c9ac6bcab6220f07403ad7ad54d02b00590fbe27f6358e40dcc |
-| Candidate build metadata | docs/evidence/2026-11-03-language-coverage/candidate-build.json | fc4aaa61fbaa9fb29e9c9f44234f1052bd337004b1aa2277950afa264762f73c |
-| Candidate build record | docs/evidence/2026-11-03-language-coverage/candidate-build-record.md | a07c3e0033c69924b34dc15d4bd1cd33cbea875438900f0666187a054dca5642 |
+| Candidate build metadata | docs/evidence/2026-11-03-language-coverage/candidate-build.json | 75f60805199dc179ea7fa8f4fc8faedd0fa72a7e90faa40cf7395b5dcdfebbcd |
+| Candidate build record | docs/evidence/2026-11-03-language-coverage/candidate-build-record.md | a9b7a578c6bb0c105b383a6b3b6224603764562b9c5c58bc29652e10c8c63100 |
 | Coverage manifest | fixtures/real-world/coverage-manifest.json | fb6e6a8a286acd8900094023d5d8c2b110695eb459c35b52bdfb642fd1a58ec6 |
 | Output change ledger | docs/contracts/extraction-output-changes.md | aad2a8341fa8ca888b785c9de9161b008af372ff8e3ab1bc4ccda00e22063ecb |
 | Untimed preflight | docs/evidence/2026-11-03-language-coverage/performance-comparison-preflight.json | 7f49d81364498dec9c521b95333b75a2f2672a25f4aa15759cee25c26d4d1205 |
 | Exact row allowlist | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-allowlist.json | 578ae07fa522f8c0785ef08b86b3215421947ad8f56957c899d8815859cefacb |
-| Per-entry state evidence | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-evidence.json | 4d1bdae79b2f8a78783408a2aac9b538eb881a11b8784bc55ba04ce65d6c6e26 |
+| Per-entry state evidence | docs/evidence/2026-11-03-language-coverage/performance-comparison-row-evidence.json | 0c673f43e620f1db77f4cb82080bb608b5aa21a1199b342bf4f15e731fe92b6f |
 
-The candidate metadata was produced by a clean release build at source commit bd7369f043dd2c1c4ddd3a76541c1c7ef372cb56 with source tree SHA-256 bd8794bd18e2c9ba771592d0ef4e3f187768123781101cce5ed6ae374a149262. The CLI binary is byte-identical to the untimed preflight candidate. Subsequent calibration-harness, test and evidence changes do not change its extraction rows.
+The candidate metadata was produced by a clean release build at source commit e1c18a1eb6b76eb930117235fa19cfce9477e32a with source tree SHA-256 da9fc6639e6a70bfcf4c6a7e0bf36ed23e865c385dff2cbbf48534407485ebc8. The CLI binary is byte-identical to the untimed preflight candidate. Subsequent calibration-harness, test and evidence changes do not change its extraction rows.
 
 The manifest stages 42 languages and 2 controls (44 inputs). The original state SHA-256 is cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6. The update state SHA-256 is 586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700; it appends one newline to zig/isnan.zig. The two states produce identical row-delta multisets for references and full.
 
@@ -143,7 +143,7 @@ Run only after the lead confirms the host is idle and the Windows run has finish
       --baseline-build-metadata docs/evidence/2026-11-03-language-coverage/baseline-build.json \
       --baseline-build-metadata-sha256 d8e35488379f897a6b334343349184398d5f9f52af54386f28522ece5bd2d1c7 \
       --candidate-build-metadata docs/evidence/2026-11-03-language-coverage/candidate-build.json \
-      --candidate-build-metadata-sha256 fc4aaa61fbaa9fb29e9c9f44234f1052bd337004b1aa2277950afa264762f73c \
+      --candidate-build-metadata-sha256 75f60805199dc179ea7fa8f4fc8faedd0fa72a7e90faa40cf7395b5dcdfebbcd \
       --manifest fixtures/real-world/coverage-manifest.json \
       --allowlist docs/evidence/2026-11-03-language-coverage/performance-comparison-row-allowlist.json \
       --profile release \
