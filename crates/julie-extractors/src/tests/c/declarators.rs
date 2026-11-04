@@ -83,6 +83,8 @@ fn typedef_of_same_named_struct_is_one_row() {
     );
     let point = only(&result, "Point");
     assert_eq!(point.kind, SymbolKind::Struct);
+    assert!(point.body_span.is_some());
+    assert!(point.body_hash.is_some());
     let fields: Vec<_> = result
         .symbols
         .iter()
@@ -104,6 +106,10 @@ fn typedef_with_a_differently_named_struct_keeps_both_names() {
     let node_t = only(&result, "node_t");
     assert_eq!(node_s.kind, SymbolKind::Struct);
     assert_eq!(node_t.kind, SymbolKind::Struct);
+    assert!(node_s.body_span.is_some());
+    assert!(node_s.body_hash.is_some());
+    assert!(node_t.body_span.is_some());
+    assert!(node_t.body_hash.is_some());
     assert!(node_s.parent_id.is_none());
     assert_eq!(
         only(&result, "next").parent_id.as_deref(),
@@ -116,6 +122,8 @@ fn typedef_enum_is_an_enum_that_owns_its_enumerators() {
     let result = extract("typedef enum { RED, GREEN } Color;\nenum { LOOSE };\n");
     let color = only(&result, "Color");
     assert_eq!(color.kind, SymbolKind::Enum);
+    assert!(color.body_span.is_some());
+    assert!(color.body_hash.is_some());
     assert_eq!(only(&result, "RED").parent_id.as_deref(), Some(&*color.id));
     assert_eq!(
         only(&result, "GREEN").parent_id.as_deref(),
@@ -233,7 +241,8 @@ int use(void) {
 fn typedef_names_come_from_each_declarator() {
     let result = extract(
         r#"typedef struct list_node list_node_t;
-typedef struct { int x; } Foo, *FooPtr;
+typedef struct { int x; } Foo, *FooPtr, FooArray[2], (*FooFactory)(void);
+typedef union { int i; float f; } Number;
 typedef void handler_t(int signo);
 typedef int (*visit_fn)(list_node_t *node, void *ctx);
 typedef unsigned long size_type;
@@ -242,7 +251,16 @@ struct walker { visit_fn visit; };
 "#,
     );
     assert_eq!(only(&result, "Foo").kind, SymbolKind::Struct);
-    assert_eq!(only(&result, "FooPtr").kind, SymbolKind::Type);
+    assert!(only(&result, "Foo").body_span.is_some());
+    assert!(only(&result, "Foo").body_hash.is_some());
+    for name in ["FooPtr", "FooArray", "FooFactory"] {
+        let alias = only(&result, name);
+        assert_eq!(alias.kind, SymbolKind::Type, "{name}");
+        assert_eq!(alias.body_span, None, "{name}");
+        assert_eq!(alias.body_hash, None, "{name}");
+    }
+    assert!(only(&result, "Number").body_span.is_some());
+    assert!(only(&result, "Number").body_hash.is_some());
     for name in ["handler_t", "visit_fn", "size_type", "Matrix"] {
         assert_eq!(only(&result, name).kind, SymbolKind::Type, "{name}");
     }

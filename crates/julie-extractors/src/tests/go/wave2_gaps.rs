@@ -257,6 +257,52 @@ func use() {
 }
 
 #[test]
+fn variable_symbols_do_not_claim_types_or_initializers_as_bodies() {
+    let source = r#"package store
+
+type Circle struct{}
+
+func run(callback func()) { callback() }
+
+func create() {
+	var empty = Circle{}
+	var registry = map[string]func(){}
+	var handler = func() { run(func() {}) }
+	_, _, _ = empty, registry, handler
+}
+"#;
+    let result = extract(source);
+    let callback = find(&result, "callback", 5);
+    let empty = find(&result, "empty", 8);
+    let registry = find(&result, "registry", 9);
+    let handler = find(&result, "handler", 10);
+
+    assert_eq!(
+        type_of(&result, "empty", 8),
+        Some(("Circle".to_string(), true))
+    );
+    let handler_body = handler.body_span.as_ref().expect("function literal body");
+    assert_eq!(
+        &source[handler_body.start_byte as usize..handler_body.end_byte as usize],
+        "{ run(func() {}) }"
+    );
+    assert!(handler.body_hash.is_some());
+    let false_body_rows: Vec<_> = [callback, empty, registry]
+        .into_iter()
+        .filter(|symbol| symbol.body_span.is_some() || symbol.body_hash.is_some())
+        .map(|symbol| {
+            let body = symbol
+                .body_span
+                .as_ref()
+                .map(|span| source[span.start_byte as usize..span.end_byte as usize].to_string());
+            (symbol.name.clone(), body, symbol.body_hash.clone())
+        })
+        .collect();
+
+    assert!(false_body_rows.is_empty(), "{false_body_rows:#?}");
+}
+
+#[test]
 fn doc_comments_follow_go_doc_rules() {
     let result = extract(
         r#"package store

@@ -197,15 +197,8 @@
       "end_column": 29,
       "start_byte": 865,
       "end_byte": 890,
-      "body_span": {
-        "start_line": 51,
-        "start_column": 27,
-        "end_line": 51,
-        "end_column": 29,
-        "start_byte": 888,
-        "end_byte": 890
-      },
-      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var DefaultCircle = &Circle{}",
       "doc_comment": "// DefaultCircle is the zero circle.",
       "visibility": "Public",

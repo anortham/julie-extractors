@@ -104,6 +104,18 @@ The registered `html/external_script_body` fixture and HTML regression test
 prove the correction. Consumers should refresh an existing artifact before
 incremental use with the changed extraction-contract marker.
 
+`declaration-body-ownership-v1`: C pointer, array and function-pointer typedef
+aliases no longer inherit their inline aggregate's body span or hash. Actual
+struct, union and enum declarations retain their bodies. Go parameters and
+ordinary variable initializers no longer claim function-type parentheses or
+composite-literal braces as declaration bodies; variables initialized directly
+with function literals keep the function body. Swift function-type parameters
+now have null body spans and hashes while function declarations keep theirs.
+These corrections change body fields only, preserving symbols, type facts and
+declaration ownership. Registered C declarator, Go declaration/test and Swift
+declaration goldens record the corrected rows. Refresh existing artifacts
+before incremental use with this marker.
+
 ## Declared changes
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.

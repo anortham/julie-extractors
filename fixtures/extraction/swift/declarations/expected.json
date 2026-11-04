@@ -1116,15 +1116,8 @@
       "end_column": 40,
       "start_byte": 908,
       "end_byte": 930,
-      "body_span": {
-        "start_line": 35,
-        "start_column": 23,
-        "end_line": 35,
-        "end_column": 32,
-        "start_byte": 913,
-        "end_byte": 922
-      },
-      "body_hash": "9b2a0276d5c242ea0ff3be4136c43a78",
+      "body_span": null,
+      "body_hash": null,
       "signature": "_ p: (Element) -> Bool",
       "doc_comment": null,
       "visibility": null,

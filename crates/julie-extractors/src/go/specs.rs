@@ -209,6 +209,13 @@ impl super::GoExtractor {
                         annotations: annotations.clone(),
                     },
                 );
+                if !value_nodes
+                    .get(index)
+                    .is_some_and(|value| value.kind() == "func_literal")
+                {
+                    symbol.body_span = None;
+                    symbol.body_hash = None;
+                }
                 symbol.doc_comment = doc_comment.clone();
                 if let Some(type_node) = type_node {
                     super::type_facts::record_type_node_fact(

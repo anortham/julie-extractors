@@ -175,3 +175,35 @@ fn swift_argument_types_of_many_calls_in_one_block_stay_fast() {
         "{elapsed:?} for 10000 calls"
     );
 }
+
+#[test]
+fn function_type_parameters_do_not_claim_bodies() {
+    let source = "func matching(_ p: (Element) -> Bool) { consume(p) }\n";
+    let result = extract_canonical_for_language_at(
+        "swift",
+        "Test.swift",
+        source,
+        Path::new("."),
+        ExtractionLevel::Full,
+    )
+    .unwrap();
+    let parameter = result
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "p")
+        .expect("parameter symbol");
+    let function = result
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "matching")
+        .expect("function symbol");
+
+    assert_eq!(parameter.kind, crate::base::SymbolKind::Variable);
+    assert!(parameter.body_span.is_none());
+    assert!(parameter.body_hash.is_none());
+    let function_body = function.body_span.as_ref().expect("function body");
+    assert_eq!(
+        &source[function_body.start_byte as usize..function_body.end_byte as usize],
+        "{ consume(p) }"
+    );
+}

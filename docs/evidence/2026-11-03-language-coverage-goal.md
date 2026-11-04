@@ -111,3 +111,73 @@ The native audit reproduced an extra body kind in the registered C declarator go
 The scripting audit replayed the PowerShell variable-path argument diagnostics and Erlang documentation/catch macro diagnostics. Assigned only `crates/julie-extractors/src/tests/powershell/import_source.rs` for a minimal valid argument-mode path reproduction. Production/parser ownership remains pending source and official-syntax analysis. Erlang macro cases require further triage before any new boundary or fix is asserted; preserve positive recovered facts and uncertainty.
 
 The web worker also owns `crates/julie-extractors/src/tests/qml/wave2_gaps.rs` for canonical annotation-level characterization. Existing direct QML attachment tests remain; the new test must assert exact keys at all levels, zero diagnostics and declaration source slices. No production QML correction is assumed.
+
+### Task 3 shared annotation-level contract assignment
+
+Assigned `crates/julie-extractors/src/tests/extraction_levels.rs` to the scripting audit worker for one capability-gated all-language annotation-level contract. It must cover all 28 current annotation-claiming languages, select registered diagnostic-free positive fixture sources, compare exact declaration-owner/annotation-key expectations from versioned goldens at references/full, and require absence at symbols/facts. No language may be silently skipped; missing clean proof fails. Name the test `capability_matrix_preserves_annotations_at_every_extraction_level` and gate it with `test-capability-matrix` so the existing capability runner selects it while default stays fast. Existing direct-language and web wrapper span tests remain. This adds required characterization, not new extraction behavior.
+
+### Task 3 SQL correction ownership
+
+Current SQL docs/ledger advertise routines, RETURNS types, parameter/column counts, body spans and PK/FK facts without the old July plan's test-scope boundary. Fresh probes demonstrate missing/misnamed routines, bogus/missing columns and lost constraints. Recorded IDs: SQL-PROCEDURE-HEADER, SQL-TEMPORAL-COLUMNS, SQL-INLINE-TVF, SQL-BRACKETED-CONSTRAINTS. Assign a separate SQL implementer the exact production/test/new-fixture paths listed in SDD `task-3-sql-brief.md`; the domain auditor keeps matrix work. Parser edits require a source-backed proposal and explicit vendor/source assignment, while the lead retains manifests/lock/status/markers. Additional DECLARE-AS type loss remains a candidate requiring an exact source/test assignment. These defects are in scope; older certification coverage cannot be used to reclassify them away.
+
+### Task 3 native body ownership assignments
+
+Assigned GO-NONBODY-SPANS to the native worker: `crates/julie-extractors/src/go/parameters.rs`, `crates/julie-extractors/src/go/specs.rs`, `crates/julie-extractors/src/tests/go/wave2_gaps.rs`, and the exact expected JSON files under `go/test_roles`, `go/types_and_relations`, `go/gocheck_ginkgo`. Function-type parameter parentheses and ordinary composite-literal delimiters are not declaration bodies. Preserve any genuinely owned callable bodies; report additional useful body kinds for lead capability registration rather than inventing N/A.
+
+Assigned SWIFT-PARAMETER-BODY to the same worker: `crates/julie-extractors/src/swift/parameters.rs`, `crates/julie-extractors/src/tests/swift/argument_types.rs`, and `fixtures/extraction/swift/declarations/expected.json`. The function-typed parameter p currently points at `(Element)` as a body; both fields must be absent for a parameter. Preserve its type facts and real function bodies.
+
+### Task 3 web access-evidence assignments
+
+Assigned the web worker exact assertion paths: `tests/typescript/identifiers.rs`, `tests/javascript/identifier_extraction.rs`, `tests/vue/wave2_gaps.rs`, `tests/razor/wave2_gaps.rs`, `tests/qml/identifiers.rs`, `tests/python/identifiers.rs`, `tests/php/identifiers.rs`, `tests/ruby/identifiers.rs`, `tests/lua/identifier_extraction.rs` under the extractor src tree. Add occurrence-by-byte shadowing/access checks and explicit non-vacuous no-access assertions for calls/type usages where those kinds apply. Add standalone variants in new `tests/javascript/jsx_access.rs` and `tests/typescript/tsx_access.rs`; lead owns module registration so existing per-variant filters select them. Existing callee/type-resolution shadowing assertions do not substitute for access classification. Production defects, if any, require exact follow-up ownership.
+
+SQL-TRANSACTION-FACTS is an additional accepted reproduction: the pinned procedure has BEGIN TRAN, COMMIT and ROLLBACK sites but no advertised sql.transaction.v1 rows. The SQL worker's existing base/sql_structural_facts.rs and tests/sql/structural_facts.rs ownership covers its fix; distinguish transaction starts from ordinary BEGIN blocks.
+
+### Parser correction decision and ownership
+
+Astra approved source-local parser corrections under the existing licensed-vendor policy; no remote push is required. Prefer published crates, then unchanged pinned upstream, then a local correction. A full freshness report attempt failed HTTP403 on unrelated VB GitHub metadata; targeted PowerShell checks show published 0.26.6 and upstream 65ea6919 match, fix comma lists, and still lack variable-prefix path arguments. Assign a PowerShell implementer vendor/tree-sitter-powershell plus the exact language consumer/test/fixture/doc paths in SDD task-3-powershell-brief.md, preserving audit_other's existing red test. Root keeps manifests/lock/status/marker/gates.
+
+Official [PowerShell parsing documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_parsing) distinguishes argument-mode variable adjacency from expression mode. The correction must preserve those boundaries and actual variable facts, not merely erase diagnostics.
+
+The SQL worker is also assigned `vendor/tree-sitter-sequel-tsql/` for a small licensed correction if targeted published/current-owned-upstream checks cannot preserve existing certified behavior and close the proven cases. Base source is the current owned fork63ea933e464813d01cab5d7febcb0f77409c247b (MIT), with distinct version/provenance and generator0.26.11. No source preprocessing or warning filtering. The same worker may edit `src/sql/types.rs` if the post-grammar DECLARE-AS type regression still needs local semantic adaptation; its tests remain in the already-owned SQL files. Root retains all shared dependency wiring.
+
+### Task 3 native parameter-attribute reproduction
+
+The Roslyn `IgnoreAccessibilityBinder.vb` probe diagnoses the valid `<[In]>` parameter attribute before `<Out> ByRef` at line 20. Assigned the native auditor `crates/julie-extractors/src/tests/vbnet/wave2.rs` and `fixtures/extraction/vbnet/parameter_attributes/{source.vb,expected.json}` for the exact failing reproduction. Grammar ownership follows targeted published/upstream inspection; root retains dependency and fixture registration. A clean alternate VB corpus file does not close this defect.
+
+The C `alloc.c` probe instead depends on the included header's `TS_PUBLIC` macro definition before four function-pointer globals. The source-local extractor does not expand included headers. Record the actual macro definition, recovered facts and diagnostic spans as a context boundary; do not invent a definition or silently suppress the diagnostics.
+
+### Task 5 implementation dispatch
+
+Assigned the performance worker `xtask/src/performance.rs`, new submodules beneath `xtask/src/performance/`, comparison contract tests, affected baseline contract tests and the opt-in performance workflow. Preserve the existing baseline and writer commands. Implement all ten performance acceptance rules from the approved plan, including exact semantic row deltas, prepared update/no-change state, calibrated alternating batches, native memory collection and noise/repeat rules. Timed corpus measurements wait for the corrected candidate and an otherwise idle host. Root owns output allowlist contents, shared dependencies, final measurements and integration evidence.
+
+### Task 4 lead review follow-up
+
+The initial runner implements actual isolated CLI scans and exact SQLite assertions for all 42 samples plus two executed controls. Working-source hashes match every manifest entry. Lead requested offline copies of required license/NOTICE evidence, strict malformed-report handling and additional manifest misuse checks before integration. The selected SQL sample's nine inherited diagnostics remain a Task 3 defect; passing its current count assertion is not a healthy-corpus claim.
+
+### Task 3 source-region assertion assignment
+
+The web auditor found that `supported_languages_with_source_region_syntax_emit_regions` proves only presence of each expected kind and permits extra fabricated regions. Assigned that function in `crates/julie-extractors/src/tests/source_regions.rs` and necessary local helpers to the web worker. Add meaningful kind/span and confusable-absence assertions for the eleven audited web languages; preserve existing assertions for other languages. Any production defect requires separate ownership before edits.
+
+### Task 3 Erlang macro catch correction assignment
+
+The latest published `tree-sitter-erlang` 0.21.0 and upstream `62c82e67b73e13f3ef06e4c8c07ff035a8235d30` have identical grammar source and retain the catch-arrow gap. Assign a separate worker `vendor/tree-sitter-erlang/`, `crates/julie-extractors/src/tests/erlang/wave1_gaps.rs` and new `fixtures/extraction/erlang/macro_catch_head/{source.erl,expected.json}`. Base a distinct vendored version on 0.21.0; preserve actual upstream Apache LICENSE and document/correct its conflicting Cargo MIT metadata. Add a catch-specific macro-head/no-arrow-body branch, with distinct AST fields that cannot be mistaken for pattern bindings. No include expansion, fabricated bindings or diagnostic filtering. Source review indicates existing recursive extraction can preserve real calls and complete function bodies without production Rust changes; request exact ownership if that assumption fails. Root retains dependency/fixture registration, status, output marker, certification and final gates.
+
+### Task 3 retained Phoenix boundary assertion assignment
+
+Assign `crates/julie-extractors/src/tests/elixir/wave2_gaps.rs` to the scripting auditor for the retained `phoenix.cross_file_scope_prefix` context boundary. Prove local forwarding/mount facts and multiple registrations while keeping another file's router prefix unknown. Do not add project-wide resolution. Existing in-file nested routes remain positive proof.
+
+### Task 3 HTML annotation evidence assignment
+
+The existing HTML annotation N/A classification contradicts useful annotations already emitted from Babel script classes. Assign `crates/julie-extractors/src/tests/html/annotations.rs` and `fixtures/extraction/html/annotations/{source.html,expected.json}` to the domain auditor for exact positive, undecorated/confusable and host-offset proof. Inspect member kinds as well as classes before updating claims. Root owns test module and capability registration; the shared annotation contract must derive claiming languages from the ledger, including HTML after corrected proof lands.
+
+### Task 3 VB parameter-attribute parser correction
+
+The exact Roslyn syntax is two adjacent parameter attribute blocks, `<[In]> <Out> ByRef`. Pinned `LuisCarreras/tree-sitter-vb-dotnet` 25dca4ac1456c691e2381a2d76151ef432aefc9e accepts only one optional parameter attribute block. Published 0.1.0 and current CodeAnt-AI upstream retain that limitation and omit other required pinned-fork behavior. Assign the native auditor `vendor/tree-sitter-vb-dotnet/` in addition to the already-owned VB test/fixture paths. Base a distinctly versioned licensed correction on the current pinned fork, permit repeated adjacent parameter attribute blocks while preserving ordinary and single-block parameters, regenerate with CLI0.26.11 and retain malformed controls. Root owns Cargo/lock/workspace/status wiring, fixture registration, output declaration and final certification/Windows gates.
+
+## Task 3 reviewed native body-ownership slice
+
+C-TYPEDEF-BODY-SPAN, GO-NONBODY-SPANS and SWIFT-PARAMETER-BODY are reviewed. The C check preserves real aggregate bodies and covers pointer, array and function-pointer aliases. Go preserves a direct function literal's exact body/hash and the composite initializer's inferred type while removing false parameter/initializer bodies. Swift preserves the function body while clearing the function-type parameter's body. All five changed goldens differ only in body_span/body_hash fields, now null; no symbols or type facts are lost.
+
+The source digest over the fourteen ordered source/test/golden/marker paths is `9c3c59d5d6dc47f287ca36283c7ee70f57403af902e5ff09ce9fce7a8c20b11a` on top of `7257ec1f`. Final focused checks pass: C typedef-related filter16 tests, Go1, Swift1. Logs: `/tmp/julie-native-c-reviewed-green.log`, `/tmp/julie-native-go-reviewed-final.log`, `/tmp/julie-native-swift-reviewed-green.log`. Earlier integration attempts encountered transient Rust syntax/helper errors in concurrently authored Erlang/Elixir tests; their owners corrected those before the successful runs. Native worker language tiers pass C141, Go173, Swift182 plus one selected golden each; captured SDD `task-3-native-*-language-final.log`. Final focused source has the same production changes and stronger preservation assertions. Scoped rustfmt and diff whitespace checks pass. `check_edit` reports no changed callable shapes.
+
+Root declares `declaration-body-ownership-v1` in the extraction contract and output ledger; its API assertion failed before the marker and passed afterward. Captured logs `/tmp/julie-native-body-marker-red.log`, `/tmp/julie-native-body-marker-green.log`; final recheck is `/tmp/julie-native-body-marker-final.log`. This completes only the native body-ownership slice. Matrix, parser corrections and all goal integration gates remain open.

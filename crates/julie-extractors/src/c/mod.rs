@@ -295,7 +295,8 @@ impl CExtractor {
         parent_id: Option<String>,
         depth: u32,
     ) {
-        let typedef_symbols = typedefs::extract_type_definition(self, node, parent_id.as_deref());
+        let mut typedef_symbols =
+            typedefs::extract_type_definition(self, node, parent_id.as_deref());
         let Some(specifier) = node.child_by_field_name("type").filter(|t| {
             t.child_by_field_name("body").is_some()
                 && matches!(
@@ -321,6 +322,12 @@ impl CExtractor {
             .child_by_field_name("name")
             .map(|name| self.base.get_node_text(&name))
             .is_some_and(|tag| typedef_symbols.iter().all(|s| s.name != tag));
+        for symbol in &mut typedef_symbols {
+            if symbol.kind == SymbolKind::Type {
+                symbol.body_span = None;
+                symbol.body_hash = None;
+            }
+        }
         symbols.extend(typedef_symbols);
         if tag_is_new
             && let Some(tag_symbol) = self.extract_specifier(specifier, parent_id.as_deref())

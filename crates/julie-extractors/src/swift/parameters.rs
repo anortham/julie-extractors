@@ -27,7 +27,7 @@ pub(super) fn extract_parameter_symbols(
             "role".to_string(),
             serde_json::Value::String("parameter".to_string()),
         )]);
-        let symbol = extractor.base.create_symbol(
+        let mut symbol = extractor.base.create_symbol(
             &param_node,
             name,
             SymbolKind::Variable,
@@ -38,6 +38,7 @@ pub(super) fn extract_parameter_symbols(
                 ..Default::default()
             },
         );
+        super::clear_body(&mut symbol);
         if let Some(type_node) = declared_parameter_type(param_node) {
             let declared = declared_parameter_text(extractor, param_node, type_node);
             type_facts::record_declared_type_text(

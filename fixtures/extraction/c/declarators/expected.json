@@ -120,15 +120,8 @@
       "end_column": 39,
       "start_byte": 365,
       "end_byte": 404,
-      "body_span": {
-        "start_line": 17,
-        "start_column": 15,
-        "end_line": 17,
-        "end_column": 25,
-        "start_byte": 380,
-        "end_byte": 390
-      },
-      "body_hash": "e3f70d33aa9535e43869555cd975b899",
+      "body_span": null,
+      "body_hash": null,
       "signature": "typedef struct { ... } *FooPtr",
       "doc_comment": null,
       "visibility": "Public",

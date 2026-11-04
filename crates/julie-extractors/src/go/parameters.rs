@@ -54,7 +54,7 @@ fn extract_from_parameter_list(
                 "role".to_string(),
                 serde_json::Value::String("parameter".to_string()),
             )]);
-            let symbol = base.create_symbol(
+            let mut symbol = base.create_symbol(
                 &param_node,
                 name,
                 SymbolKind::Variable,
@@ -65,6 +65,8 @@ fn extract_from_parameter_list(
                     ..Default::default()
                 },
             );
+            symbol.body_span = None;
+            symbol.body_hash = None;
             if records_facts && let Some(type_node) = type_node {
                 super::type_facts::record_type_node_fact(base, &symbol.id, type_node, false);
             }
