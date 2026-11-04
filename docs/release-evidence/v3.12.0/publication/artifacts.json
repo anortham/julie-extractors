@@ -1,0 +1,222 @@
+{
+  "format_version": 1,
+  "source_commit": "22ed595281f870c251e8e0bfa9b52caff858b3cb",
+  "tag_object": "3d25fd8e5744934812b4b561b78f666577917b16",
+  "source_ci_run": 41878766483,
+  "release_ci_run": 41881915084,
+  "published_at": "2026-11-04T18:12:03Z",
+  "six_public_archives_verified": true,
+  "executed_targets": [
+    "x86_64-unknown-linux-gnu"
+  ],
+  "native_coverage_cases": 44,
+  "local_vs_published_identical_tables": 18,
+  "artifacts": [
+    {
+      "source": "target/release-3.12.0/source-ci-success.json",
+      "artifact": "source-ci-success.json.gz",
+      "raw_sha256": "fb0542d7846d9aace452bc243086c41a2609638a9a50f16b8e0deabeaceba8df",
+      "gzip_sha256": "987d961f04a896a7abb3f89bb0706ad5e29afa8b7678fa7b86d3b4163040f52d"
+    },
+    {
+      "source": "target/release-3.12.0/source-ci-success.log",
+      "artifact": "source-ci-success.log.gz",
+      "raw_sha256": "530871e8e49dd96aae1aae64fddcf75f2d5b9b4dfdaa3f7095f662b9cb716e0f",
+      "gzip_sha256": "e220a12d2e736d00dddb454e45c4f12f01458bf9cb4045218cabb0d694e092a7"
+    },
+    {
+      "source": "target/release-3.12.0/release-ci.json",
+      "artifact": "release-ci.json.gz",
+      "raw_sha256": "d0e2457530ea8d602c6854911d9854ece89c52b91680e958abc553e5bfe0deb3",
+      "gzip_sha256": "2f8a37ea93950cefac12698f2479eaeae5f091a2dd4986571365d4d1f757b455"
+    },
+    {
+      "source": "target/release-3.12.0/release-ci.log",
+      "artifact": "release-ci.log.gz",
+      "raw_sha256": "506b5a82e556195968fa048869b7dd79557024ec79416a94edc71a90b2e12190",
+      "gzip_sha256": "1b735397c17076c3b73a93faf50c7f87827ecd6d101b8a3d3bf2c7da25373f52"
+    },
+    {
+      "source": "target/release-3.12.0/release-api.json",
+      "artifact": "release-api.json.gz",
+      "raw_sha256": "cbc191f9f3fb4247b6b0199a5badf757d0385ea3304353319becaad5777aec0b",
+      "gzip_sha256": "8e12799ae645ca56cef284b91203006f79d2f79be02ab5ad3c5fb05099ab4d1f"
+    },
+    {
+      "source": "target/release-3.12.0/asset-verification.json",
+      "artifact": "asset-verification.json.gz",
+      "raw_sha256": "2664a3ea81055d50dc6ac1249904e1365844eee46d4dcdb522471230339b9707",
+      "gzip_sha256": "4190a0c2ea257a164cd30587633af38d965be4d230fabce9c10d0eea07e924a2"
+    },
+    {
+      "source": "target/release-3.12.0/verify-assets.py",
+      "artifact": "verify-assets.py.gz",
+      "raw_sha256": "a7581c3ab834c03427b1cd40f699be457619d051aba72c07acfa717ad47a7341",
+      "gzip_sha256": "08dd750c0ea3e43b59df9431e9c1363c477cf8f3ed3fb350c258c82eaa587699"
+    },
+    {
+      "source": "target/release-3.12.0/publication-inputs.json",
+      "artifact": "publication-inputs.json.gz",
+      "raw_sha256": "3a93ba02048849062da710749d1738376392662fbad18c42dbd2c122d73bbc4e",
+      "gzip_sha256": "f3a4f99762ff2ac05ad86f78e890638b2d807b37b892c8d7d295bd3a0354bb8c"
+    },
+    {
+      "source": "target/release-3.12.0/published-coverage.log",
+      "artifact": "published-coverage.log.gz",
+      "raw_sha256": "7d32081a4e95fb8ef39876fa1e1a7e07d6232581d495f1a43e5db609a1abe155",
+      "gzip_sha256": "85f5a192699bc752b3b3b7e958d76bcf0ecdf12943885e5166ab17a2d6420528"
+    },
+    {
+      "source": "target/release-3.12.0/published-compat.log",
+      "artifact": "published-compat.log.gz",
+      "raw_sha256": "a80b355a13125ec99c1d2b4c70d7a607b1fc7ab05a2d182a183526e7c11a9321",
+      "gzip_sha256": "ec1f31ffadb1f5191b0c351f0b022a939974e33f42986f093f3e632096dbc946"
+    },
+    {
+      "source": "target/release-3.12.0/corpus-pins.json",
+      "artifact": "corpus-pins.json.gz",
+      "raw_sha256": "626af3d55c1eef3d7d3063ad2fe9378a81c88bd9a9c0c9db32480f831387eab0",
+      "gzip_sha256": "0cb159bb144ddd4bed95e6841e58e4047a8024d9eb3ab430a8abc9c1b7f05767"
+    },
+    {
+      "source": "target/release-3.12.0/corpus-pinned.txt",
+      "artifact": "corpus-pinned.txt.gz",
+      "raw_sha256": "ab8f1d0c6e5bdc2c9abb2a814d398bf853e031e9d6826e0ba2101f7e6734cd56",
+      "gzip_sha256": "7c547c161b9f44552086a570411def3038fc4a08fd4f6d36a028c39c25889845"
+    },
+    {
+      "source": "target/release-3.12.0/code-kb-v2.12.0-release.json",
+      "artifact": "code-kb-v2.12.0-release.json.gz",
+      "raw_sha256": "f43c0ed27c61c8ad69c0261571e0022aaf98b78c51615bb6147511af34555ca7",
+      "gzip_sha256": "d371962da2d8569505eb40291d366795215910a6cb3e851bfa1517cde287e871"
+    },
+    {
+      "source": "target/release-3.12.0/release-state-tagged.log",
+      "artifact": "release-state-tagged.log.gz",
+      "raw_sha256": "4e67d0b0d30089ecbe3e2659d899ba16ca89c860c22cc041a6df298464eb6283",
+      "gzip_sha256": "062684601d52af82ddcfc017c59e1cb2eea30a7908f054a88c26fa0084771268"
+    },
+    {
+      "source": "target/release-3.12.0/published-corpus/report.md",
+      "artifact": "corpus-initial-report.md.gz",
+      "raw_sha256": "2225e258ce7d275f1810d328d8c722d454b05ed9a118d24457fc90c51391f97f",
+      "gzip_sha256": "c1569510172ea9817c71a3205e08630593577f850b6d4257fde990ff4e38a7d3"
+    },
+    {
+      "source": "target/release-3.12.0/published-corpus.log",
+      "artifact": "corpus-initial.log.gz",
+      "raw_sha256": "c78e56c3b774fcb3c7a23b76b252bbffbf4aa9b482dd0e8a92ca37068a86d405",
+      "gzip_sha256": "8333322c712fa74f6e9dce0632b4fee055b2af1c90b545b0c76548874b7d5fc7"
+    },
+    {
+      "source": "target/release-3.12.0/published-corpus-final/report.md",
+      "artifact": "corpus-final-report.md.gz",
+      "raw_sha256": "05169e2902ece9375fd8967a7c4c0588d83eab97244ca51f474e20096fc99bd6",
+      "gzip_sha256": "cd74a5f225da2187f21a17b0a20efe73f5dedeb32e61982199ab8bac9acc8cff"
+    },
+    {
+      "source": "target/release-3.12.0/published-corpus-final.log",
+      "artifact": "corpus-final.log.gz",
+      "raw_sha256": "d2cb134be293dc619de755786cf82a676d5c9b8180f231fb6c96f00b785f2e0b",
+      "gzip_sha256": "3eda0713d555349dc8236bf9d3f106f17ac9c2817a179202797feb27ae5284ed"
+    },
+    {
+      "source": "target/release-3.12.0/corpus-verification.json",
+      "artifact": "corpus-verification.json.gz",
+      "raw_sha256": "e5d09918619705d387fef3da13d73739dd9151dcfadb565fd9a158082685da9e",
+      "gzip_sha256": "e3952e1f6dd391b5bd563f30ff38801cf461e77b9ddcd015a4c80c2972f9bb44"
+    },
+    {
+      "source": "target/release-3.12.0/perf-nlohmann/summary.json",
+      "artifact": "nlohmann-controlled-summary.json.gz",
+      "raw_sha256": "40ea24c8506689414732cb11a203b0fc22177a1b741d684db24b983964012e99",
+      "gzip_sha256": "48c24cfb18441153cdb4b60ad25b26ea7a53f5ed80108728db1f26d67b24d695"
+    },
+    {
+      "source": "target/release-3.12.0/perf-nlohmann/measurements.jsonl",
+      "artifact": "nlohmann-measurements.jsonl.gz",
+      "raw_sha256": "108c8fc0f56a75fa01e4860a8a160676270232e2ef821bb005023e3933326e24",
+      "gzip_sha256": "f010efcf557a6c2e732310382a1058be10022fd2b87b4ebcf59a8efe22889a20"
+    },
+    {
+      "source": "target/release-3.12.0/published-nlohmann-retake/report.md",
+      "artifact": "nlohmann-focused-report.md.gz",
+      "raw_sha256": "c2dad9dfe1dc8bd01d86bec830cd54ad50170a0af168cb271d6274b9050c4031",
+      "gzip_sha256": "8f9704238096e294fe0ca9c7f4463e65118845df08a848da94a34e5034e67a35"
+    },
+    {
+      "source": "target/release-3.12.0/published-nlohmann-retake.log",
+      "artifact": "nlohmann-focused.log.gz",
+      "raw_sha256": "1c3dd026153b42635418f5334c5f883083c806af493764306541676267a4c4e0",
+      "gzip_sha256": "a5dd842421005a9df2f79b0be1da2f70ebabaf04d214cf77bcf97fd19b7b19ce"
+    },
+    {
+      "source": "target/release-3.12.0/published-consumer.patch",
+      "artifact": "consumer-pins.patch.gz",
+      "raw_sha256": "408e4c9b6876810df11bde991f8329af3e5c4f7877ae06e2f3a495a0660bc3b4",
+      "gzip_sha256": "dc84ac703b36e2f9601d38ea6065760ef0d39bcad2d28f5b20367d68d9325d05"
+    },
+    {
+      "source": "target/release-3.12.0/published-consumer.json",
+      "artifact": "consumer-provenance.json.gz",
+      "raw_sha256": "d113672b626e99291d710adb0b1b8c2a37a4d995268a2179911fafd5e3cc1afc",
+      "gzip_sha256": "b3aefe5dffc60393c62889e3084a8d5aec31d7fc805677c636f20f2c27daefb7"
+    },
+    {
+      "source": "target/release-3.12.0/corpus-review-1-2-dispositions.md",
+      "artifact": "source-review-1-2.md.gz",
+      "raw_sha256": "2a3789793d34e187220779f3720ffa551b866daeb5d06c6dbe980b405134ccc9",
+      "gzip_sha256": "9ab2df150af00fbc2f8875204d67092ab9c39284d3c5188c11344daf590f3a90"
+    },
+    {
+      "source": "target/release-3.12.0/corpus-review-3-dispositions.md",
+      "artifact": "source-review-3.md.gz",
+      "raw_sha256": "797ef3c22ba638f8aed8f9b5097acf7b624c5c886ba7d6a974316d96ccc54aa7",
+      "gzip_sha256": "b04fde1b85a5ae538dfd1f5c73f599683feece64ae6d864f0eab727cbd07e357"
+    },
+    {
+      "source": "target/release-3.12.0/changed-tool-outputs.json",
+      "artifact": "changed-tool-outputs.json.gz",
+      "raw_sha256": "41261287cb25b0766f93a9a4c7765348b9da20bd3ce8f8fa5ad12e6308741ac0",
+      "gzip_sha256": "3089b88460b0d8b78ba854a56752d3462820d7a0ab47515a7dfafd65bab399d1"
+    },
+    {
+      "source": "target/release-3.12.0/full-probe-diffs-1.md",
+      "artifact": "full-tool-diffs-1.md.gz",
+      "raw_sha256": "0198bc891281e899da9c6ed5ff41652f9379efc0c97ba4658190b1497d4c9658",
+      "gzip_sha256": "e7e1d2b4b3396b04db549270c4ab0ed66762c458e13cc95108241a35a3258542"
+    },
+    {
+      "source": "target/release-3.12.0/full-probe-diffs-2.md",
+      "artifact": "full-tool-diffs-2.md.gz",
+      "raw_sha256": "625121b3769e9329466627a071fdb2477ab7828a775b6458030206ca3cd35132",
+      "gzip_sha256": "394921ebf65d0cd3f9a128b43cac521dca673be208425e5bb9fce21ea4b73298"
+    },
+    {
+      "source": "target/release-3.12.0/full-probe-diffs-3.md",
+      "artifact": "full-tool-diffs-3.md.gz",
+      "raw_sha256": "1fdd2c023cca9cc93e97d22b7dc181f3dd6843c0cf4116aa7d1314af7adcd071",
+      "gzip_sha256": "14105a4042f6f7b1a674b7fecdcbacad7e4ae1b528f642177c0b0e139b833ebf"
+    },
+    {
+      "source": "target/release-3.12.0/facts-output-source-deltas.json",
+      "artifact": "facts-source-deltas.json.gz",
+      "raw_sha256": "00ca8a0985ca2db2e9ac9c7c5564fe1f7e663ae82043c4925a0e4d9a1c66eacd",
+      "gzip_sha256": "d7611f0cbbd6797d9b4d4345828f7d499b7405242f3e9f591b6ce80422fe75b9"
+    }
+  ],
+  "published_corpus": {
+    "result": "PASS",
+    "projects": 15,
+    "same_nonperformance_content_as_source_reviewed_initial_report": true,
+    "changed_tool_outputs": 9,
+    "displayed_relationship_samples": 10,
+    "original_timing_failure_preserved": true,
+    "source_review": "corpus-review-1-2-dispositions.md and corpus-review-3-dispositions.md",
+    "fixture_diff_lines": 55,
+    "fixture_diff_complete_below_runner_cap": 60,
+    "final_report": "target/release-3.12.0/published-corpus-final/report.md"
+  },
+  "consumer_verification_commit": "310d6a764bafe06603104e54bbbcf3aff847fa90",
+  "original_fixture_indexes_not_reused_after_diagnostic_wrong_root": true
+}
