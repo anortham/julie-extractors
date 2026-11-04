@@ -7,9 +7,10 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-const { verifyRebuiltReceipt, parseCargoFeatures } = await import("./source-performance-comparison.mjs").catch(() => ({
+const { verifyRebuiltReceipt, parseCargoFeatures, createEvidenceDirectory } = await import("./source-performance-comparison.mjs").catch(() => ({
   verifyRebuiltReceipt: () => null,
   parseCargoFeatures: () => [],
+  createEvidenceDirectory: () => null,
 }));
 
 function receipt() {
@@ -125,6 +126,30 @@ test("mutable source references are rejected before creating output", () => {
     assert.equal(result.status, 2);
     assert.match(result.stderr, /baseline-commit must be a full/);
     assert.equal(fs.existsSync(output), false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("fresh runner evidence can create its missing target parent", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "source-comparison-directory-"));
+  try {
+    const output = path.join(directory, "target", "comparison");
+    assert.doesNotThrow(() => createEvidenceDirectory(output));
+    assert.equal(fs.statSync(output).isDirectory(), true);
+    assert.deepEqual(fs.readdirSync(output), []);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("existing evidence is preserved instead of reused", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "source-comparison-existing-"));
+  try {
+    const sentinel = path.join(directory, "receipt.json");
+    fs.writeFileSync(sentinel, "reviewed evidence\n");
+    assert.throws(() => createEvidenceDirectory(directory));
+    assert.equal(fs.readFileSync(sentinel, "utf8"), "reviewed evidence\n");
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

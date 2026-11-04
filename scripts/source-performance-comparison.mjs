@@ -54,6 +54,11 @@ export function parseCargoFeatures(tree) {
   return [...features].sort();
 }
 
+export function createEvidenceDirectory(output) {
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.mkdirSync(output);
+}
+
 const harnessRoot = fileURLToPath(new URL("..", import.meta.url));
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
@@ -173,7 +178,7 @@ function prepareComparison(values) {
   const original = readJson(values["original-receipt"]);
   assert.deepEqual(baselineSource, original.source, "baseline checkout differs from the frozen semantic baseline source");
   assert.equal(original.manifest_sha256, values["manifest-sha256"].toLowerCase(), "frozen receipt does not pin this corpus");
-  fs.mkdirSync(output);
+  createEvidenceDirectory(output);
   const buildRoot = fs.mkdtempSync(path.join(os.tmpdir(), "source-performance-build-"));
   fs.copyFileSync(values["original-receipt"], path.join(output, "original-baseline-expectations.json"));
   const baseline = buildExtractor("baseline", baselineRoot, values["baseline-commit"], output, buildRoot);
