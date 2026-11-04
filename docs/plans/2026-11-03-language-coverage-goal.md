@@ -187,11 +187,11 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 
 **What to build:** Source-backed classifications and a completeness check without changing the established meaning of `--strict`. **Approach:** Derive core-domain state from the ledger when it fully accounts for the domain; keep the three observed-only domains in `DOMAIN_APPLICABILITY`. Add an explicit **new** `--check-applicability` switch which fails on unclassified cells or inconsistent classifications, and run it alongside strict mode in CI. Record this added gate in a decision document; do not turn every retained open gap into a strict-mode failure.
 
-- [ ] All 31 cells are resolved using source/grammar or real fixture evidence; qmldir is correctly treated as a domain language.
-- [ ] Empty output alone cannot establish N/A; useful XML/schema and manifest-native facts are not suppressed to satisfy classification.
-- [ ] Node regression tests reject unknown languages, duplicate/conflicting buckets, missing classifications, unsupported claims and stale fixture registrations; introducing a new language forces classification work.
-- [ ] `node --test scripts/language-data-quality-report.test.mjs` and `node scripts/language-data-quality-report.mjs --strict --check-applicability` pass; both commands become documented after implementation.
-- [ ] Hand the verified diff to the lead.
+- [x] All 31 cells are resolved using source/grammar or real fixture evidence; qmldir is correctly treated as a domain language.
+- [x] Empty output alone cannot establish N/A; useful XML/schema and manifest-native facts are not suppressed to satisfy classification.
+- [x] Node regression tests reject unknown languages, duplicate/conflicting buckets, missing classifications, unsupported claims and stale fixture registrations; introducing a new language forces classification work.
+- [x] `node --test scripts/language-data-quality-report.test.mjs` and `node scripts/language-data-quality-report.mjs --strict --check-applicability` pass; both commands become documented after implementation.
+- [x] Hand the verified diff to the lead.
 
 ### Task 3: Requalify the current language claims and retained boundaries
 

@@ -20,6 +20,8 @@ Use `cargo xtask test list` to print the tier names.
 - Real-world release fixtures: `cargo xtask test real-world-release`
 - Release package manifest: `cargo xtask release package-list`
 - Dependency policy: `cargo deny check`
+- Language quality and applicability: `node scripts/language-data-quality-report.mjs --strict --check-applicability`
+- Report regression tests: `node --test scripts/language-data-quality-report.test.mjs`
 - Dogfood this repo: `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors`
 
 The default command expands to fast package tests for `julie-extractors`,
@@ -319,3 +321,16 @@ cargo xtask performance writer-current-schema --out-dir target/performance/write
 - Workers run narrow tests; lead sessions own broad gates.
 - Keep `crates/julie-extractors/src/tests/test_tiers.rs` green; it fails if
   known slow gates are no longer feature-gated out of the default suite.
+
+## Coverage evidence checks
+
+`--strict` retains the silent-cell and quality-debt checks. Add
+`--check-applicability` to reject unclassified domains, conflicting
+classifications, and advertised kinds/patterns without useful registered
+golden proof. Test roles are checked individually. The eleven retained
+consumer/context gaps remain visible without becoming strict-mode failures.
+
+Run the report's Node regression tests when changing fixture classification
+or proof predicates. Both commands above run in regular CI. The
+[coverage evidence decision](decisions/2026-11-03-language-coverage-evidence.md)
+records the manifest/schema representation boundaries.

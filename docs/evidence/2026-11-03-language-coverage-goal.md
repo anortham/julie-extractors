@@ -71,3 +71,15 @@ The SDD workspace is `.razorback/sdd/2026-11-03-language-coverage-goal-54245db20
 Task 1 landed locally as `bdb5039c`. The staging warning exposed a real checkout defect: the verified HTML fixture had 354 bytes and one CRLF, while Git's `* text=auto eol=lf` stored 353 bytes without CRLF. An exact working-source/committed-blob assertion failed. The source and golden were correct together, but a fresh checkout would not retain that source identity.
 
 Added `-text` for the exact HTML source and `fixtures/real-world/coverage/**` so pinned corpus hashes also survive staging/checkouts. The already-tracked fixture required `git add --renormalize` after the attribute change; an ordinary add reused its cached clean state. Exact staged-byte comparison now passes (354 bytes, one CRLF). `JULIE_GOLDEN_LANGUAGE=html cargo test -p julie-extractors --features test-golden --lib golden_fixtures_match_canonical_extraction` selects one test and passes; its source bytes equal the staged blob. Log: `/tmp/julie-html-preserved-bytes-golden.txt`. This follow-up corrects the local commit without rewriting history.
+
+## Task 2 reviewed acceptance
+
+The lead reviewed the report and CI changes, requested per-unit proof and useful access/annotation/doc-comment guards, then checked the resulting predicates and captured final outputs. All 31 original cells now have source-backed dispositions. Raw output-family counters retain their established meaning. The 14 language-level applicability views are complete; test detection retains per-role validation.
+
+| Scope | Command | UTC | Source identity | Result | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| Task 2 | `node --test scripts/language-data-quality-report.test.mjs` | 2026-11-04 00:58 | 4c5356c4 plus reviewed Task 2 digest `03e529f69fdb25e2c59bc1fdb45333164e743789c8c47e23f06d1b85236b74a2` | 19 passed, 0 failed | SDD `task-2-node-tests-final.log` |
+| Task 2 | `node scripts/language-data-quality-report.mjs --strict --check-applicability` | 2026-11-04 00:58 | same source | 42 languages; silent cells 0; quality debts 0; retained gaps 11; unclassified views 0/14 | SDD `task-2-applicability-final.log` |
+| Task 2 | `node scripts/language-data-quality-report.mjs --strict` | 2026-11-04 00:58 | same source | Existing strict checks pass | SDD `task-2-strict-final.log` |
+
+The reviewed digest covers ordered paths and bytes of the report, its Node tests and CI workflow. Body hashes are recomputed by the Rust capability guard; Node additionally rejects malformed/mismatched spans and missing proof. No generic type/relationship rows are inferred from unrelated structural facts.

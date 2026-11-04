@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const CAPABILITIES_PATH = path.join(ROOT, "fixtures/extraction/capabilities.json");
@@ -36,7 +37,7 @@ const TEST_ROLE_PREDICATES = {
   test_lifecycle: (symbol) => roleTrue(symbol, "test_lifecycle"),
 };
 
-const OBSERVED_DOMAINS = [
+export const OBSERVED_DOMAINS = [
   ...DOMAINS,
   "pending_relationships",
   "types",
@@ -68,6 +69,7 @@ const DOMAIN_LANGUAGES = new Set([
   "html",
   "json",
   "markdown",
+  "qmldir",
   "regex",
   "sql",
   "toml",
@@ -85,6 +87,10 @@ const DOMAIN_APPLICABILITY = {
       "jsx",
       "html",
       "css",
+      "gomod",
+      "gosum",
+      "qmldir",
+      "xml",
       "r",
       "bash",
       "sql",
@@ -99,7 +105,7 @@ const DOMAIN_APPLICABILITY = {
     quality_debt: [],
   },
   relationships: {
-    not_applicable: [],
+    not_applicable: ["qmldir"],
     convention_only: [],
     native_debt: [],
     quality_debt: [],
@@ -139,13 +145,23 @@ const DOMAIN_APPLICABILITY = {
     quality_debt: [],
   },
   pending_relationships: {
-    not_applicable: ["regex"],
+    not_applicable: ["gosum", "qmldir", "regex"],
     convention_only: [],
     native_debt: [],
     quality_debt: [],
   },
   types: {
-    not_applicable: ["css", "json", "markdown", "toml", "yaml"],
+    not_applicable: [
+      "css",
+      "gomod",
+      "gosum",
+      "json",
+      "markdown",
+      "qmldir",
+      "toml",
+      "xml",
+      "yaml",
+    ],
     convention_only: [],
     native_debt: [],
     quality_debt: [],
@@ -191,21 +207,17 @@ const APPLICABILITY_BUCKETS = [
 const capabilities = JSON.parse(fs.readFileSync(CAPABILITIES_PATH, "utf8"));
 const ALL_LANGUAGES = capabilities.languages.map((row) => row.language);
 
-function expectedFiles(language) {
-  const row = capabilities.languages.find((candidate) => candidate.language === language);
-  return (row?.fixtures ?? [])
-    .map((fixture) => path.join(ROOT, fixture.expected))
-    .sort();
-}
-
 // Every expected.json on disk must be registered in capabilities.json, and
 // every registered golden must exist on disk. Unregistered goldens are
 // invisible to every evidence gate; registered-but-missing goldens would
 // otherwise crash observedCounts with a bare ENOENT.
-function reconcileGoldenRegistry() {
+export function reconcileGoldenRegistry({
+  root = ROOT,
+  capabilities: matrix = capabilities,
+} = {}) {
   const registered = new Set(
-    capabilities.languages.flatMap((row) =>
-      (row.fixtures ?? []).map((fixture) => path.join(ROOT, fixture.expected)),
+    matrix.languages.flatMap((row) =>
+      (row.fixtures ?? []).map((fixture) => path.join(root, fixture.expected)),
     ),
   );
   const problems = [];
@@ -213,12 +225,12 @@ function reconcileGoldenRegistry() {
   for (const file of registered) {
     if (!fs.existsSync(file)) {
       problems.push(
-        `registered golden missing on disk: ${path.relative(ROOT, file)} (fix the capabilities.json fixtures entry or restore the file)`,
+        `registered golden missing on disk: ${reportPath(root, file)} (fix the capabilities.json fixtures entry or restore the file)`,
       );
     }
   }
 
-  const stack = [path.join(ROOT, "fixtures/extraction")];
+  const stack = [path.join(root, "fixtures/extraction")];
   while (stack.length > 0) {
     const dir = stack.pop();
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -227,7 +239,7 @@ function reconcileGoldenRegistry() {
         stack.push(fullPath);
       } else if (entry.name === "expected.json" && !registered.has(fullPath)) {
         problems.push(
-          `golden on disk is not registered in capabilities.json: ${path.relative(ROOT, fullPath)}`,
+          `golden on disk is not registered in capabilities.json: ${reportPath(root, fullPath)}`,
         );
       }
     }
@@ -236,8 +248,202 @@ function reconcileGoldenRegistry() {
   return problems;
 }
 
+function reportPath(root, file) {
+  return path.relative(root, file).split(path.sep).join("/");
+}
+
 function rows(value, field) {
   return Array.isArray(value?.[field]) ? value[field] : [];
+}
+
+function addUnit(units, domain, value) {
+  if (typeof value === "string" && value.trim().length > 0) {
+    units[domain].add(value);
+  }
+}
+
+function identifierAccessIsUseful(identifier) {
+  return (
+    ["variable_ref", "member_access"].includes(identifier.kind) &&
+    ["read", "write", "read_write"].includes(identifier.metadata?.access)
+  );
+}
+
+function annotationIsUseful(annotation) {
+  return typeof annotation?.annotation === "string" && annotation.annotation.trim().length > 0;
+}
+
+function symbolHasUsefulAnnotation(symbol) {
+  return rows(symbol, "annotations").some(annotationIsUseful);
+}
+
+function symbolHasUsefulDocComment(symbol) {
+  return typeof symbol.doc_comment === "string" && symbol.doc_comment.trim().length > 0;
+}
+
+function spanFieldsAreValid(span) {
+  return (
+    span &&
+    typeof span === "object" &&
+    !Array.isArray(span) &&
+    [
+      "start_line",
+      "start_column",
+      "end_line",
+      "end_column",
+      "start_byte",
+      "end_byte",
+    ].every((field) => Number.isSafeInteger(span[field]) && span[field] >= 0) &&
+    span.start_byte < span.end_byte
+  );
+}
+
+function sourceProofData(source) {
+  const lineBreakOffsets = [];
+  for (let offset = 0; offset < source.length; offset += 1) {
+    if (source[offset] === 0x0a) {
+      lineBreakOffsets.push(offset);
+    }
+  }
+  return {
+    lineBreakOffsets,
+    source,
+    validUtf8: Buffer.from(source.toString("utf8")).equals(source),
+  };
+}
+
+function spanMatchesSource(sourceData, span) {
+  const { lineBreakOffsets, source, validUtf8 } = sourceData;
+  if (!validUtf8 || !spanFieldsAreValid(span) || span.end_byte > source.length) {
+    return false;
+  }
+
+  for (const [name, offset] of [
+    ["start", span.start_byte],
+    ["end", span.end_byte],
+  ]) {
+    if (offset < source.length && source[offset] >= 0x80 && source[offset] <= 0xbf) {
+      return false;
+    }
+
+    let low = 0;
+    let high = lineBreakOffsets.length;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if (lineBreakOffsets[middle] < offset) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+    const line = low + 1;
+    const column = offset - (low === 0 ? 0 : lineBreakOffsets[low - 1] + 1);
+    if (span[`${name}_line`] !== line || span[`${name}_column`] !== column) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function bodySpanHasGoldenProof(symbol, fixture, root, sourceCache) {
+  const bodySpan = symbol.body_span;
+  const declaration = symbol;
+  const filePath = symbol.file_path;
+  const registeredSources = Array.isArray(fixture.sources) && fixture.sources.length > 0
+    ? fixture.sources
+    : [fixture.source];
+  if (
+    typeof filePath !== "string" ||
+    !registeredSources.includes(filePath) ||
+    !spanFieldsAreValid(bodySpan) ||
+    !spanFieldsAreValid(declaration) ||
+    typeof symbol.language !== "string" ||
+    symbol.language.trim().length === 0 ||
+    typeof symbol.body_hash !== "string" ||
+    !/^[a-f0-9]{32}$/i.test(symbol.body_hash) ||
+    bodySpan.start_byte < declaration.start_byte ||
+    bodySpan.end_byte > declaration.end_byte
+  ) {
+    return false;
+  }
+
+  const rootPath = path.resolve(root);
+  const sourcePath = path.resolve(rootPath, filePath);
+  const relativePath = path.relative(rootPath, sourcePath);
+  if (
+    relativePath === "" ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
+    return false;
+  }
+
+  let sourceData = sourceCache.get(sourcePath);
+  if (!sourceData) {
+    try {
+      sourceData = sourceProofData(fs.readFileSync(sourcePath));
+      sourceCache.set(sourcePath, sourceData);
+    } catch {
+      return false;
+    }
+  }
+
+  return spanMatchesSource(sourceData, bodySpan) && spanMatchesSource(sourceData, declaration);
+}
+
+function observedSupportedUnits(goldenFixtures, root) {
+  const observed = Object.fromEntries(DOMAINS.map((domain) => [domain, new Set()]));
+  for (const { fixture, expected } of goldenFixtures ?? []) {
+    const sourceCache = new Map();
+    for (const symbol of rows(expected, "symbols")) {
+      addUnit(observed, "symbols", symbol.kind);
+      if (bodySpanHasGoldenProof(symbol, fixture, root, sourceCache)) {
+        addUnit(observed, "body_spans", symbol.kind);
+      }
+      if (symbolHasUsefulAnnotation(symbol)) {
+        addUnit(observed, "annotations", symbol.kind);
+      }
+      if (symbolHasUsefulDocComment(symbol)) {
+        addUnit(observed, "doc_comments", symbol.kind);
+      }
+      for (const role of TEST_ROLE_UNITS) {
+        if (TEST_ROLE_PREDICATES[role](symbol)) {
+          addUnit(observed, "test_detection", role);
+        }
+      }
+    }
+
+    for (const field of ["relationships", "pending_relationships"]) {
+      for (const relationship of rows(expected, field)) {
+        addUnit(observed, "relationships", relationship.kind);
+      }
+    }
+    for (const relationship of rows(expected, "structured_pending_relationships")) {
+      addUnit(observed, "relationships", relationship.pending?.kind);
+    }
+    for (const identifier of rows(expected, "identifiers")) {
+      addUnit(observed, "identifiers", identifier.kind);
+      if (identifierAccessIsUseful(identifier)) {
+        addUnit(observed, "identifier_metadata", "identifiers.access");
+      }
+    }
+    for (const fact of rows(expected, "structural_facts")) {
+      addUnit(observed, "structural_facts", fact.pattern_id);
+    }
+    for (const metric of rows(expected, "complexity_metrics")) {
+      addUnit(observed, "complexity_metrics", metric.scope);
+    }
+    for (const literal of rows(expected, "literals")) {
+      addUnit(observed, "literals", literal.kind);
+    }
+    for (const region of rows(expected, "source_regions")) {
+      addUnit(observed, "source_regions", region.kind);
+    }
+  }
+
+  return observed;
 }
 
 function emptyCounts() {
@@ -248,8 +454,12 @@ function emptyCounts() {
 
 function observedCounts(language) {
   const counts = emptyCounts();
-  for (const file of expectedFiles(language)) {
+  const row = capabilities.languages.find((candidate) => candidate.language === language);
+  const goldenFixtures = [];
+  for (const fixture of row?.fixtures ?? []) {
+    const file = path.join(ROOT, fixture.expected);
     const expected = JSON.parse(fs.readFileSync(file, "utf8"));
+    goldenFixtures.push({ fixture, expected });
     counts.symbols += rows(expected, "symbols").length;
     counts.relationships += rows(expected, "relationships").length;
     counts.pending_relationships +=
@@ -287,7 +497,7 @@ function observedCounts(language) {
     (total, role) => total + counts[role],
     0,
   );
-  return counts;
+  return { counts, goldenFixtures };
 }
 
 function coverageState(row, domain) {
@@ -307,7 +517,7 @@ function isSilent(row, domain) {
   );
 }
 
-function expectedDomainsFor(language) {
+export function expectedDomainsFor(language) {
   return DOMAIN_LANGUAGES.has(language)
     ? DOMAIN_LANGUAGE_EXPECTATIONS
     : CODE_LANGUAGE_EXPECTATIONS;
@@ -331,9 +541,11 @@ function analyze() {
   const rowsByLanguage = [];
   const silentCells = [];
   const qualityDebts = [];
+  const goldenFixturesByLanguage = {};
 
   for (const row of capabilities.languages) {
-    const counts = observedCounts(row.language);
+    const { counts, goldenFixtures } = observedCounts(row.language);
+    goldenFixturesByLanguage[row.language] = goldenFixtures;
     rowsByLanguage.push({ row, counts });
 
     for (const domain of OBSERVED_DOMAINS) {
@@ -366,18 +578,74 @@ function analyze() {
     rowsByLanguage,
     silentCells,
     openGapBacklog: countOpenGaps(rowsByLanguage),
+    goldenFixturesByLanguage,
   };
 }
 
-function validateDomainApplicability(byDomain) {
-  const allLanguages = new Set(ALL_LANGUAGES);
+function metadataBuckets(domain, metadata) {
+  return metadata[domain] ?? Object.fromEntries(
+    APPLICABILITY_BUCKETS.map((bucket) => [bucket, []]),
+  );
+}
 
-  for (const [domain, meta] of Object.entries(DOMAIN_APPLICABILITY)) {
+function ledgerBucket(row, domain) {
+  if (!row) {
+    return undefined;
+  }
+  const state = coverageState(row, domain);
+  if (state.supported.length > 0) {
+    return "supported";
+  }
+  if (state.openGaps.length > 0) {
+    return "native_debt";
+  }
+  if (state.notApplicable.length > 0) {
+    return "not_applicable";
+  }
+  return undefined;
+}
+
+export function validateDomainApplicability({
+  byDomain,
+  languages = ALL_LANGUAGES,
+  domainApplicability = DOMAIN_APPLICABILITY,
+  capabilityRows = capabilities.languages,
+  goldenFixturesByLanguage = {},
+  requireComplete = false,
+  requireClaims = false,
+}) {
+  if (languages.length !== new Set(languages).size) {
+    throw new Error("DOMAIN_APPLICABILITY duplicate language in registry");
+  }
+  const allLanguages = new Set(languages);
+  const capabilityByLanguage = new Map(capabilityRows.map((row) => [row.language, row]));
+
+  for (const [domain, meta] of Object.entries(domainApplicability)) {
+    if (!APPLICABILITY_VIEW_DOMAINS.includes(domain)) {
+      throw new Error(`DOMAIN_APPLICABILITY unknown domain: ${domain}`);
+    }
+    if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+      throw new Error(`DOMAIN_APPLICABILITY invalid domain metadata: domain=${domain}`);
+    }
+    const unknownBuckets = Object.keys(meta).filter(
+      (bucket) => !APPLICABILITY_BUCKETS.includes(bucket),
+    );
+    if (unknownBuckets.length > 0) {
+      throw new Error(
+        `DOMAIN_APPLICABILITY unknown bucket: domain=${domain} bucket=${unknownBuckets[0]}`,
+      );
+    }
+
     const fixtureProven = new Set(byDomain[domain] ?? []);
     const bucketForLanguage = new Map();
 
     for (const bucket of APPLICABILITY_BUCKETS) {
-      for (const language of meta[bucket] ?? []) {
+      const entries = meta[bucket] ?? [];
+      if (!Array.isArray(entries)) {
+        throw new Error(`DOMAIN_APPLICABILITY invalid bucket: domain=${domain} bucket=${bucket}`);
+      }
+
+      for (const language of entries) {
         if (!allLanguages.has(language)) {
           throw new Error(
             `DOMAIN_APPLICABILITY unknown language: domain=${domain} bucket=${bucket} language=${language}`,
@@ -391,18 +659,54 @@ function validateDomainApplicability(byDomain) {
         }
         bucketForLanguage.set(language, bucket);
 
+        const row = capabilityByLanguage.get(language);
         if (
-          bucket === "not_applicable" ||
-          bucket === "convention_only" ||
-          bucket === "native_debt"
+          row &&
+          DOMAINS.includes(domain) &&
+          ["not_applicable", "convention_only"].includes(bucket) &&
+          coverageState(row, domain).openGaps.length > 0
         ) {
-          if (fixtureProven.has(language)) {
+          throw new Error(
+            `DOMAIN_APPLICABILITY ledger conflict: domain=${domain} bucket=${bucket} language=${language}`,
+          );
+        }
+
+        if (
+          ["not_applicable", "convention_only", "native_debt"].includes(bucket) &&
+          fixtureProven.has(language)
+        ) {
+          throw new Error(
+            `DOMAIN_APPLICABILITY fixture-proven conflict: domain=${domain} bucket=${bucket} language=${language}`,
+          );
+        }
+      }
+    }
+  }
+
+  if (requireClaims) {
+    for (const language of languages) {
+      const row = capabilityByLanguage.get(language);
+      if (!row) {
+        continue;
+      }
+      const observed = observedSupportedUnits(goldenFixturesByLanguage[language], ROOT);
+      for (const domain of DOMAINS) {
+        for (const unit of coverageState(row, domain).supported) {
+          if (!observed[domain].has(unit)) {
             throw new Error(
-              `DOMAIN_APPLICABILITY fixture-proven conflict: domain=${domain} bucket=${bucket} language=${language}`,
+              `DOMAIN_APPLICABILITY unsupported claim: domain=${domain} language=${language} unit=${unit}`,
             );
           }
         }
       }
+    }
+  }
+
+  if (requireComplete) {
+    const missing = applicabilityView(byDomain, languages, domainApplicability, capabilityRows)
+      .flatMap((view) => view.unclassifiedGaps.map((language) => `${view.domain}.${language}`));
+    if (missing.length > 0) {
+      throw new Error(`DOMAIN_APPLICABILITY unclassified language: ${missing[0]}`);
     }
   }
 }
@@ -419,32 +723,53 @@ const APPLICABILITY_VIEW_DOMAINS = OBSERVED_DOMAINS.filter(
   (domain) => domain !== "test_detection",
 );
 
-function applicabilityView(byDomain) {
+export function applicabilityView(
+  byDomain,
+  languages = ALL_LANGUAGES,
+  domainApplicability = DOMAIN_APPLICABILITY,
+  capabilityRows = capabilities.languages,
+) {
+  const capabilityByLanguage = new Map(capabilityRows.map((row) => [row.language, row]));
+
   return APPLICABILITY_VIEW_DOMAINS.map((domain) => {
-    const meta = DOMAIN_APPLICABILITY[domain] ?? {
-      not_applicable: [],
-      convention_only: [],
-      native_debt: [],
-      quality_debt: [],
-    };
+    const meta = metadataBuckets(domain, domainApplicability);
     const fixtureProvenNative = sortedUnique(byDomain[domain]);
+    const classifications = Object.fromEntries(
+      APPLICABILITY_BUCKETS.map((bucket) => [bucket, new Set(meta[bucket] ?? [])]),
+    );
+
+    for (const language of languages) {
+      if (
+        fixtureProvenNative.includes(language) ||
+        APPLICABILITY_BUCKETS.some((bucket) => classifications[bucket].has(language))
+      ) {
+        continue;
+      }
+
+      if (DOMAINS.includes(domain) && domain !== "test_detection") {
+        const bucket = ledgerBucket(capabilityByLanguage.get(language), domain);
+        if (bucket && bucket !== "supported") {
+          classifications[bucket].add(language);
+        }
+      }
+    }
+
     const classified = new Set([
       ...fixtureProvenNative,
-      ...meta.not_applicable,
-      ...meta.convention_only,
-      ...meta.native_debt,
-      ...meta.quality_debt,
+      ...APPLICABILITY_BUCKETS.flatMap((bucket) => [...classifications[bucket]]),
     ]);
     const unclassifiedGaps = sortedUnique(
-      ALL_LANGUAGES.filter((language) => !classified.has(language)),
+      languages.filter((language) => !classified.has(language)),
     );
     const applicableTotal =
-      ALL_LANGUAGES.length -
-      meta.not_applicable.length -
-      meta.convention_only.length;
+      languages.length -
+      classifications.not_applicable.size -
+      classifications.convention_only.size;
     const applicableCovered = fixtureProvenNative.length;
-    const nativeDebt = sortedUnique(meta.native_debt);
-    const qualityDebt = sortedUnique(meta.quality_debt);
+    const notApplicable = sortedUnique([...classifications.not_applicable]);
+    const conventionOnly = sortedUnique([...classifications.convention_only]);
+    const nativeDebt = sortedUnique([...classifications.native_debt]);
+    const qualityDebt = sortedUnique([...classifications.quality_debt]);
     const closureComplete =
       unclassifiedGaps.length === 0 &&
       nativeDebt.length === 0 &&
@@ -454,8 +779,8 @@ function applicabilityView(byDomain) {
     return {
       domain,
       fixtureProvenNative,
-      notApplicable: sortedUnique(meta.not_applicable),
-      conventionOnly: sortedUnique(meta.convention_only),
+      notApplicable,
+      conventionOnly,
       nativeDebt,
       qualityDebt,
       unclassifiedGaps,
@@ -600,22 +925,40 @@ function printReport({
   }
 }
 
-const registryProblems = reconcileGoldenRegistry();
-if (registryProblems.length > 0) {
-  console.error("golden fixture registry is out of sync with disk:");
-  for (const problem of registryProblems) {
-    console.error(`  ${problem}`);
+export function runReport(args = process.argv.slice(2)) {
+  const registryProblems = reconcileGoldenRegistry();
+  if (registryProblems.length > 0) {
+    console.error("golden fixture registry is out of sync with disk:");
+    for (const problem of registryProblems) {
+      console.error(`  ${problem}`);
+    }
+    return 1;
   }
-  process.exit(1);
+
+  const result = analyze();
+  try {
+    validateDomainApplicability({
+      byDomain: result.byDomain,
+      goldenFixturesByLanguage: result.goldenFixturesByLanguage,
+      requireComplete: args.includes("--check-applicability"),
+      requireClaims: args.includes("--check-applicability"),
+    });
+  } catch (error) {
+    console.error(error.message);
+    return 1;
+  }
+  printReport(result);
+
+  if (
+    args.includes("--strict") &&
+    (result.silentCells.length > 0 || result.qualityDebts.length > 0)
+  ) {
+    return 1;
+  }
+
+  return 0;
 }
 
-const result = analyze();
-validateDomainApplicability(result.byDomain);
-printReport(result);
-
-if (
-  process.argv.includes("--strict") &&
-  (result.silentCells.length > 0 || result.qualityDebts.length > 0)
-) {
-  process.exitCode = 1;
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.exitCode = runReport();
 }

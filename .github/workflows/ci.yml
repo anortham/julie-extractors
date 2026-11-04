@@ -48,6 +48,12 @@ jobs:
       - name: Check language data quality report
         run: node scripts/language-data-quality-report.mjs --strict
 
+      - name: Test language data quality report
+        run: node --test scripts/language-data-quality-report.test.mjs
+
+      - name: Check language applicability
+        run: node scripts/language-data-quality-report.mjs --strict --check-applicability
+
       - name: Test xtask
         run: cargo test -p xtask
 
