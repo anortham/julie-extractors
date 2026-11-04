@@ -1,8 +1,8 @@
 # Language coverage verification evidence
 
-**Current status:** Local implementation and source verification are complete. Required performance acceptance remains blocked: the final v3 comparison passes four workloads, while references fresh scans and updates remain inconclusive after their permitted repeats. A quieter Linux reference host is required. A tested [CI reference-host package](2026-11-03-language-coverage/ci-reference-host/README.md) is ready for explicit push/dispatch and new-build-identity approval; the goal and performance checkboxes remain open. [Raw final campaign](2026-11-03-language-coverage/performance-attempt-3/artifacts.json).
+**Current status:** Goal complete. All six tasks and acceptance criteria pass. The user-approved [CI comparison](2026-11-03-language-coverage/performance-ci-41856042545/README.md) passes all six workloads with unchanged budgets and the frozen semantic baseline. [Goal closure](#goal-closure) records final source identities, reusable gate evidence, metrics and the separate GitHub aggregate-status observation. All three inconclusive local campaigns remain retained.
 
-Implementation begins from `837b9796` in `.worktrees/language-coverage-plan` on `docs/language-coverage-plan`. Baseline product source is `f9a1b6cf`. All fourteen worktrees were clean before implementation. The goal authorizes local changes and commits; push and publication remain outside scope.
+Implementation begins from `837b9796` in `.worktrees/language-coverage-plan` on `docs/language-coverage-plan`. Baseline product source is `f9a1b6cf`. All fourteen worktrees were clean before implementation. The original goal authorized local changes and commits; the user separately approved the prepared task-branch push and CI comparison on 2026-11-04. Publication remains outside scope.
 
 | Scope | Invariant | Command | Source | Result | Evidence |
 |---|---|---|---|---|---|
@@ -564,3 +564,35 @@ red/green/mutation logs. The final performance outcome remains unproven until
 an approved remote run clears every required gate.
 
 The prepared harness pin is `7a31fa573f99328946c6104b9de6fa7a82261d43`. Its follow-up directory fix creates missing parents while requiring an exclusive new evidence leaf; the two filesystem regressions fail before the fix and pass afterward. Dispatch inputs use strings as required by the installed GitHub CLI.
+
+
+## Approved CI execution
+
+The user approved the prepared push and comparison route on 2026-11-04. All fourteen worktrees were clean before pushing `150a29d5661f54c50ba62360a5b19f2cd99c115f` to `docs/language-coverage-plan`. The exact prepared dispatch JSON started [run 41856042545](https://github.com/anortham/julie-extractors/actions/runs/41856042545). Its writer floor passed; source-build comparison job `126664831865` subsequently completed every step successfully, as recorded below. No additional timing run or threshold change was made.
+
+A final read-only review found no other acceptance blocker. Product code, grammars, fixtures and xtask remain unchanged from `e1c18a1e`; the later CI driver has separate preparation evidence. The lead verified all 239 indexed evidence files against their raw and compressed hashes. Historical integration working-tree results remain distinguished from clean `e2d1869c` verification. Actual CI identities, receipt equivalence and all six workload outcomes were the remaining requirements, now proven below.
+
+
+## Goal closure
+
+All original requirements are satisfied on final code `7a31fa573f99328946c6104b9de6fa7a82261d43`. Its product Rust, fixtures, grammars, manifests and xtask are unchanged from verified `e1c18a1eb6b76eb930117235fa19cfce9477e32a`. Later task commits change only documentation, evidence and memory. Reused gates cover unchanged relevant inputs; their original source identities remain in the indexes rather than being relabeled as fresh runs.
+
+| Requirement | Verified evidence |
+| --- | --- |
+| Honest body claims and all applicability cells | Capability validator, strict/applicability and matrix checks in [integration gates](2026-11-03-language-coverage/integration-gates/artifacts.json); 42 languages × 15 domains = 630 cells, zero silent/debt/unclassified cells |
+| Every bounded local defect fixed | 47 closed defects and 465 passing goldens in the validation matrix; all 11 consumer/context boundaries retain positive and negative evidence |
+| Reproducible representative extraction | Pinned corpus covers all 42 language rows plus controls; fresh CI candidate coverage also passes |
+| Branch, certification and real-world gates | Format, Clippy, xtask, default, contract, strict quality, agent-doc sync, dependency policy, certification, smoke/release and rebind evidence in the integration and subsequent gate indexes |
+| Native Windows behavior | Product lifecycle/default/capability/golden/corpus gates at `4aac8d12`; follow-up path expectations and full 39-unit-test/all-target xtask verification at clean `e2d1869c`, retained in [Windows evidence](2026-11-03-language-coverage/windows-gates/phase2-artifacts.json) and [final e2 gates](2026-11-03-language-coverage/final-gates/e2d1869c/artifacts.json) |
+| Default runtime and writer batching | Clean e2 warm min/median/max 32.435894 / 45.434524 / 65.817743 seconds; one-transaction writer floor and current-schema 1.22M-row check pass |
+| Comparator rejects bad input and regressions | Existing 33 comparison contracts, calibration tests, 19 source-runner contracts and canonical-fact mutation evidence; slow work remains outside default |
+| Actual correctness and performance acceptance | All six [controlled CI workloads](2026-11-03-language-coverage/performance-ci-41856042545/README.md) pass; all ten baseline snapshots, four raw dumps and 3,090 exact row allowances verified; no budget override |
+| Durable audit and source reconciliation | All 239 prior indexed evidence checksums verified; all 733 new archived non-executable members verified against the downloaded ZIP inventory; scoped documentation/evidence/memory committed and every worktree checked |
+
+CI run `41856042545` used clean dispatch branch `150a29d5`, baseline source `f9a1b6cf`, candidate source `e1c18a1e`, and harness source `7a31fa57`. Actual baseline and candidate executable hashes are `3eba4cf46d38664fc18fe3b65c50aafd0bcdfb08ad3ef3d6bcaa711f49daba2a` and `525dd9f25c35e4cf5d84d8e70dbf7894458cf11ca4876573efda8fc53aeb06a4`. The approved new host identities do not refresh semantic expectations. The original receipt remains `ae5b1e5e…`, manifest `fb6e6a8a…`, and allowance `578ae07f…`.
+
+Every final batch satisfies the two-second floor and 10%/20ms spread gate. Median latency changes range from −1.89% to +0.99%; memory and artifact-size budgets pass. References fresh scans used the allowed single repeat after baseline spread failed; all other workloads pass on their first attempt. No failed/unsupported files, skips, warnings or unexplained diagnostics are introduced. Both source states and full row multiplicity remain checked.
+
+The actual comparison command exited 0, evidence upload succeeded, and every source-job step, including Complete job, is recorded successful. At `2026-11-04T16:15:26Z`, GitHub REST still reported aggregate/job status `in_progress`; [the observation](2026-11-03-language-coverage/performance-ci-41856042545/workflow-observation.json) preserves this discrepancy. Overall workflow success is not claimed. A separate read-only review confirmed that terminal REST status was an extra confirmation suggestion, not an original requirement: the verified command, accepted measurements and uploaded raw evidence satisfy the plan. No cancellation, rerun, threshold relaxation or acceptance waiver was used.
+
+The [CI archive index](2026-11-03-language-coverage/performance-ci-41856042545/artifacts.json) retains command output, actual build records, receipts, canonical rows, SQLite artifacts, sample statistics, exact allowances, independent calculations and review. The original GitHub ZIP digest matches `de743175637ee7cad4f016ed6ac60775130248f672d875e7d3e2811fedf41c43`. All 735 downloaded members are inventoried; only the two release executables are omitted from durable source control, with their complete hashes and build records preserved. Merge, publication and release were not required or performed.

@@ -1,0 +1,81 @@
+{
+  "format_version": 1,
+  "run_id": 41856042545,
+  "run_url": "https://github.com/anortham/julie-extractors/actions/runs/41856042545",
+  "source_archive_sha256": "de743175637ee7cad4f016ed6ac60775130248f672d875e7d3e2811fedf41c43",
+  "downloaded_members": 735,
+  "durably_archived_members": 733,
+  "comparison_passed": true,
+  "workloads_passed": 6,
+  "artifacts": [
+    {
+      "source": "target/coverage-approved-ci-final-audit.json",
+      "artifact": "independent-audit.json.gz",
+      "raw_sha256": "2b1f105b3ea746d4226a967bcbdcd0199eaa0029326c54e1a8f22494bca77703",
+      "gzip_sha256": "f7081ac61604d6d9ee5738029cdc98bd00e15b5a1405ede99f454a2eba5bfb5b"
+    },
+    {
+      "source": "target/coverage-ci-final-audit.py",
+      "artifact": "independent-audit.py.gz",
+      "raw_sha256": "1963216f4e4efda87a6b32163f396ad79ceaa06b28fed9fca2a909ebda5077d3",
+      "gzip_sha256": "ac640722a89f1cf271c30909f42f2508f8cb2e23b4a73c21a8b7939e86edeeee"
+    },
+    {
+      "source": "target/coverage-approved-ci-audit.json",
+      "artifact": "pre-result-audit.json.gz",
+      "raw_sha256": "08778bfef1ed3ecf726c4686281b706c7b82f17f00509dbdebe3c2d4919f843b",
+      "gzip_sha256": "bf4acdec83fbcb12706bd89dea62a914907c44a1ce94d96b9b1816afa3281e7b"
+    },
+    {
+      "source": "target/coverage-approved-ci-source.log",
+      "artifact": "source-job.log.gz",
+      "raw_sha256": "a97766b2294dad41bf2f1fe814442d07078709179ccc925e56de517f8c1ab158",
+      "gzip_sha256": "020225cee44f755494d636bdaee147f46dd5f645eaa5c64c73e206af66d58371"
+    },
+    {
+      "source": "target/coverage-approved-ci-writer.log",
+      "artifact": "writer-job.log.gz",
+      "raw_sha256": "c98e585a9cb867f26c40fc064f5e188f4c7913551a0636129fec16ef86f82d4b",
+      "gzip_sha256": "ddf98a093fc79c0f72bd09967bc05f092d1dad5a438b702c72a952e6efa643d0"
+    },
+    {
+      "source": "target/coverage-approved-ci-artifacts-api.json",
+      "artifact": "github-artifacts.json.gz",
+      "raw_sha256": "e46ae55b7b03b9fef4c8dce13e628cb7ff7dfc44873d21aed6e2ff8827bc2109",
+      "gzip_sha256": "b7506fdc3961c21c025d7f386a98db25c9e324efa43e155756d9279353ea37ca"
+    },
+    {
+      "source": "target/coverage-ci-41856042545/comparison/comparison.json",
+      "artifact": "comparison.json.gz",
+      "raw_sha256": "79559c0c2ba506cc6e83ee501b462950082042b2b70ef32f657dd0282216cd88",
+      "gzip_sha256": "1751af88014373608a96d5336faeac17244b81f983431fc694badfd7c2172b82"
+    },
+    {
+      "source": "target/coverage-ci-41856042545",
+      "artifact": "raw-evidence.tar.gz",
+      "raw_sha256": "bcc2e5cf5870d22c029084183a8eeb1bf79c7b2f5ff3b82718b4f7ecb9ba4153",
+      "gzip_sha256": "27f4038f480ae65fc584da462f7c7939eec96e8dd9a8ed78a7518fd860e25144"
+    },
+    {
+      "source": "target/coverage-ci-41856042545",
+      "artifact": "members.json",
+      "raw_sha256": "8b92a6e6a542e14a2a49ed338e78a5e69d4b51f85e29b98b6a3a64b97d99d814"
+    },
+    {
+      "source": "independent read-only review",
+      "artifact": "review.md",
+      "raw_sha256": "9f9358168736aeacfd8bd2bfb8a3c1dd835001e86505c974024355e5282d93ab"
+    },
+    {
+      "source": "target/coverage-approved-ci-run.json",
+      "artifact": "github-run.json.gz",
+      "raw_sha256": "ff4aea9343bd90226b536097106f648471b428ad25ba20a048a6c2df75605bd1",
+      "gzip_sha256": "1b432e1e042a3e693219218e412af6381f1ffa5c7fdd1ad4fcaedad5fbd75c6e"
+    },
+    {
+      "source": "final workflow observation",
+      "artifact": "workflow-observation.json",
+      "raw_sha256": "ab0423da07ded37cc934d9a0ebdac8007ec5fcf1e69d410fd9163a111457a3b2"
+    }
+  ]
+}

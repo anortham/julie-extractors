@@ -2,7 +2,7 @@
 
 **Date / reviewed baseline:** 2026-11-03; `main` at `f9a1b6cfbd6c51e9aecad39a19610695f210ad05`, the recorded v3.11.0 publication.
 
-**Status:** Tasks 1–4 are complete: the validated 630-cell matrix records 47 fixed extraction defects, all 465 goldens pass, and all 42 languages have pinned CLI corpus evidence. Linux branch, certification, real-world, rebind and native Windows gates pass. Final warm default median is 45.434524 seconds; writer batching passes. Exact row accounting and the v3 fixed-margin comparison harness are reviewed and committed. The final controlled run passes four of six workloads, but references fresh scans and updates remain inconclusive after their permitted repeats. The NOCOW storage experiment also failed its predeclared adoption rule. A quieter Linux reference host is required to finish Task 5 and performance closure in Task 6. A locally tested CI source-build route is ready for explicit owner approval to push, dispatch and record new host-build identities while retaining the frozen semantic baseline. All three campaigns are retained; no budget is waived, no baseline is refreshed, and the goal remains open. Push and release are outside scope.
+**Status:** Complete. All six tasks and acceptance criteria are satisfied. The validated 630-cell matrix covers 42 languages and records 47 fixed extraction defects; all 465 goldens and the pinned 42-language CLI corpus pass. Linux, native Windows, certification, incremental-equivalence and writer gates pass. Final warm default median is 45.434524 seconds. The user-approved CI comparison passes all six workloads under the unchanged budgets, frozen semantic baseline and exact row allowance. [Final evidence](../evidence/2026-11-03-language-coverage-goal.md#goal-closure) records source identities, metrics and the aggregate-status discrepancy. Final code is `7a31fa57`, with product Rust/fixtures/xtask unchanged from `e1c18a1e`; subsequent changes are documentation, evidence and memory. Merge and release remain outside scope.
 
 **Goal:** Make the existing 42-language coverage claims demonstrably accurate, close every locally actionable defect found by the bounded audit below, and install repeatable correctness and performance checks that prevent those defects from returning.
 
@@ -89,9 +89,9 @@ The goal is complete only when **all** of the following are true on one identifi
 - [x] Every reproducible local defect found by the bounded matrix below is fixed and verified. New defects may not be deferred merely because they are inconvenient. Genuine external blockers are recorded and prevent claiming the affected required outcome complete.
 - [x] Each of the 11 retained entries has positive local evidence, an uncertainty/negative control, and its existing owner/closure boundary. The backlog may remain 11; deleting or relabeling these entries does not count as implementation. No additional unexplained gap is permitted.
 - [x] The representative corpus covers 42/42 language rows with reproducible inputs and meaningful expected facts. Both native and embedded syntax are represented for wrappers/variants; no language is covered solely by another language's result.
-- [ ] The new comparison detects injected correctness loss, extra skipped files, and performance regressions. The real final candidate passes the controlled budgets below, including approved row-growth accounting.
-- [ ] Focused checks, the final branch gate, applicable Windows checks, and required expensive checks pass. The warm default-tier median remains at or below 180 seconds on the recorded reference host; any growth beyond that is repaired without weakening tests.
-- [ ] A final evidence ledger records baseline/candidate SHAs, binary hashes, inputs, commands, results, metrics, and every disposition. All task boxes are checked and related worktrees are reconciled; changes are committed locally. Push, publication, release, and code-kb modifications are not required.
+- [x] The new comparison detects injected correctness loss, extra skipped files, and performance regressions. The real final candidate passes the controlled budgets below, including approved row-growth accounting.
+- [x] Focused checks, the final branch gate, applicable Windows checks, and required expensive checks pass. The warm default-tier median remains at or below 180 seconds on the recorded reference host; any growth beyond that is repaired without weakening tests.
+- [x] A final evidence ledger records baseline/candidate SHAs, binary hashes, inputs, commands, results, metrics, and every disposition. All task boxes are checked and related worktrees are reconciled; changes are committed locally. Push, publication, release, and code-kb modifications are not required.
 
 **Bounded audit:** Audit the current 42 languages and their currently advertised constructs, the five body claims, the 31 applicability cells, and the 11 retained gaps. For each applicable domain, examine a positive example, a confusable negative example, and a boundary example (nesting/shadowing, Unicode/CRLF offsets, malformed recovery, or embedded offsets as appropriate). Reuse existing assertions when they prove the behavior. New languages, speculative frameworks, and unlimited syntax enumeration are separate goals. N/A cells require a source-backed rationale rather than an artificial positive example. Fix local defects exposed by these checks before closing their matrix rows.
 
@@ -231,7 +231,7 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 - [x] Controlled bad summary/input cases fail and valid cases pass; output changes require named evidence. There is no silent baseline refresh.
 - [x] Changed traversal/index code has meaningful N/2N/4N checks and no repeated whole-tree/symbol indexing per emitted row. Shared changes exercise representative large/nested files beyond tiny goldens.
 - [x] Dedicated workflow runs an opt-in comparison with explicit pinned baseline/candidate inputs and uploads summaries; ordinary PR CI runs comparator logic tests, not host-sensitive timing gates.
-- [ ] Final candidate passes the pinned corpus comparison and applicable writer/batching checks; hand the verified diff and raw measurements to the lead.
+- [x] Final candidate passes the pinned corpus comparison and applicable writer/batching checks; hand the verified diff and raw measurements to the lead.
 
 ### Task 6: Integrate contracts, prevent test-tier drift, and close the goal
 
@@ -242,14 +242,14 @@ Commit mode: `parallel-lead-commit`. Workers hand verified diffs to the lead. Th
 - [x] New fast contract tests are routed explicitly; convention tests prove corpus, certification and timed stress gates stay outside default. Retain narrow language commands.
 - [x] Public capability snapshots, docs and contract markers agree with the result; docs point to schema v8/extraction v4 and the SQLite-only product. No unsolicited version bump or release.
 - [x] Compatibility against the pinned 3.11.0 binary accounts for every intended row change. Reuse `crates/julie-extract-cli/tests/rebind_equivalence.rs` to check add/edit/delete/rename/malformed-to-valid/no-change against fresh scans with all fact tables and multiplicities.
-- [ ] Run the final branch gate, real-world tiers, all-language corpus, controlled performance comparison and escalation gates. Native Windows runs cover changed platform-sensitive paths and incremental/file lifecycle behavior; log exact commands and source identity.
+- [x] Run the final branch gate, real-world tiers, all-language corpus, controlled performance comparison and escalation gates. Native Windows runs cover changed platform-sensitive paths and incremental/file lifecycle behavior; log exact commands and source identity.
 - [x] Record three warm default runs with min/median/max and repair a median above 180 seconds. Retain broad coverage rather than hiding expensive tests in ad hoc exclusions.
 - [x] Review each success checkbox against evidence; record final counts and all 11 retained boundary dispositions. Reconcile worktree states and commit the scoped source/docs/memory locally.
-- [ ] Mark this plan complete only after every required outcome is met. If a gate or access boundary blocks completion, leave it open and identify the smallest concrete missing action.
+- [x] Mark this plan complete only after every required outcome is met. If a gate or access boundary blocks completion, leave it open and identify the smallest concrete missing action.
 
 ## Goal execution handoff
 
-Use this document as the goal's acceptance contract, not merely its task list. On execution, first verify current source/worktrees and re-run the strict report: the reviewed baseline can drift. Preserve completed work, update evidence with the new baseline, and execute through final verification without stopping at intermediate tasks. The active goal authorizes local implementation and commits, not push or publication.
+Use this document as the goal's acceptance contract, not merely its task list. On execution, first verify current source/worktrees and re-run the strict report: the reviewed baseline can drift. Preserve completed work, update evidence with the new baseline, and execute through final verification without stopping at intermediate tasks. The original goal authorized local implementation and commits. The user separately approved the prepared task-branch push and CI comparison on 2026-11-04; no merge or release was requested.
 
 The plan itself is saved in `/home/murphy/source/julie-extractors/.worktrees/language-coverage-plan` on `docs/language-coverage-plan`, based on `f9a1b6cf`. Keep related edits together and reconcile this documentation branch when choosing the implementation worktree.
 
@@ -267,5 +267,10 @@ The existing budgets, corpus, row allowance and repeat cap remain unchanged.
 Local preparation and verification do not authorize a push, workflow dispatch,
 or new reference-host build identities. The approval package is the workflow
 and runner diff, immutable revisions, frozen-receipt proof and exact dispatch
-command. Task 5's final comparison checkbox and overall goal remain open until
-an actual controlled run passes every required gate.
+command. Task 5's final comparison checkbox and overall goal remained open through
+preparation; the approved controlled run subsequently passed every required gate.
+
+
+## Final acceptance
+
+The approved [CI comparison](../evidence/2026-11-03-language-coverage/performance-ci-41856042545/README.md) passes all six workloads. Only references fresh scans used the permitted repeat; both attempts are retained. All ten rebuilt baseline snapshots, four raw semantic dumps, 3,090 exact allowance entries and build provenance were independently verified. No budget override or semantic baseline refresh was used. The actual comparison command and all job steps completed successfully and evidence upload passed. GitHub aggregate status remained `in_progress` at the recorded final observation; overall workflow success is not claimed or required by this plan. The command result and every original acceptance gate are proven by the archived evidence.

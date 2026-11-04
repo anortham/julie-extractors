@@ -1,6 +1,7 @@
 # CI reference-host approval package
 
-Ready for approval; no push, dispatch or remote timing run has occurred.
+Preparation record: the user subsequently approved this route on 2026-11-04.
+Branch commit `150a29d5` is pushed. The [actual comparison](../performance-ci-41856042545/README.md) passes all six workloads; the separate aggregate-status observation is preserved there. The archived preparation evidence below predates approval.
 
 The local untimed rehearsal rebuilt both release binaries from clean sources
 and reproduced the frozen hashes `79eb21fa…` and `c236e361…`. The candidate

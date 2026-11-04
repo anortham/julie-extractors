@@ -1,0 +1,13 @@
+{
+  "format_version": 1,
+  "observed_utc": "2026-11-04T16:15:26.154672+00:00",
+  "run_id": 41856042545,
+  "aggregate_status": "in_progress",
+  "aggregate_conclusion": "",
+  "source_job_status": "in_progress",
+  "source_job_conclusion": "",
+  "all_source_job_steps_completed_successfully": true,
+  "comparison_passed": true,
+  "artifact_upload_passed": true,
+  "acceptance_disposition": "The actual comparison command and all required gates passed. Aggregate workflow status is reported separately and is not an additional goal acceptance criterion."
+}
