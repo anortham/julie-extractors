@@ -1,6 +1,26 @@
 use std::path::PathBuf;
 use xtask::test_tiers::{CommandSpec, plan_from_args, tier_names};
 
+const CALL_ARGUMENT_COUNTS_TESTS: &str =
+    include_str!("../../crates/julie-extractors/tests/call_argument_counts.rs");
+
+fn command_enables_test_perf(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "--all-features")
+        || args.iter().enumerate().any(|(index, arg)| {
+            let features = match arg.as_str() {
+                "--features" | "-F" => args.get(index + 1).map(String::as_str),
+                _ => arg
+                    .strip_prefix("--features=")
+                    .or_else(|| arg.strip_prefix("-F")),
+            };
+            features.is_some_and(|features| {
+                features
+                    .split(',')
+                    .any(|feature| feature.trim() == "test-perf")
+            })
+        })
+}
+
 #[test]
 fn test_default_tier_runs_fast_contracts_and_extractor_tests() {
     let plan = plan_from_args(["test", "default"]).expect("default plan");
@@ -785,25 +805,43 @@ fn test_tier_names_are_stable_for_docs_and_help() {
 }
 
 #[test]
-fn test_perf_tier_runs_only_opt_in_writer_benchmark() {
+fn test_perf_tier_runs_opt_in_writer_and_extractor_timing_checks() {
     let plan = plan_from_args(["test", "perf"]).expect("perf plan");
 
     assert_eq!(
         plan.commands,
-        vec![CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extract-artifact",
-                "--features",
-                "test-perf",
-                "--test",
-                "writer_perf",
-                "--",
-                "--nocapture",
-            ],
-        )]
+        vec![
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--features",
+                    "test-perf",
+                    "--test",
+                    "writer_perf",
+                    "--",
+                    "--nocapture",
+                ],
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "--release",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-perf",
+                    "--test",
+                    "call_argument_counts",
+                    "--",
+                    "--test-threads=1",
+                    "--nocapture",
+                ],
+            ),
+        ]
     );
 }
 
@@ -819,6 +857,96 @@ fn test_default_and_contract_tiers_exclude_writer_perf() {
             "{tier} tier must not register the wall-clock writer floor"
         );
     }
+}
+
+#[test]
+fn test_timed_call_argument_checks_are_confined_to_opt_in_perf_tier() {
+    for test_name in [
+        "typescript_call_with_twenty_thousand_comparisons_stays_fast",
+        "csharp_call_with_twenty_thousand_comparisons_stays_fast",
+        "cpp_call_with_twenty_thousand_comparisons_stays_fast",
+        "kotlin_call_with_twenty_thousand_comparisons_stays_fast",
+        "nested_calls_stay_fast",
+    ] {
+        let gated_test = format!("#[cfg(feature = \"test-perf\")]\n#[test]\nfn {test_name}");
+        assert!(
+            CALL_ARGUMENT_COUNTS_TESTS.contains(&gated_test),
+            "{test_name} must be gated by test-perf"
+        );
+    }
+
+    for helper_name in [
+        "timed_argument_counts_of",
+        "assert_long_comparison_list_stays_fast",
+    ] {
+        let gated_helper = format!("#[cfg(feature = \"test-perf\")]\nfn {helper_name}(");
+        assert!(
+            CALL_ARGUMENT_COUNTS_TESTS.contains(&gated_helper),
+            "{helper_name} must be gated by test-perf"
+        );
+    }
+
+    assert!(
+        CALL_ARGUMENT_COUNTS_TESTS.contains("#[test]\nfn nested_calls_keep_their_counts")
+            && !CALL_ARGUMENT_COUNTS_TESTS.contains(
+                "#[cfg(feature = \"test-perf\")]\n#[test]\nfn nested_calls_keep_their_counts"
+            ),
+        "nested call count correctness must stay in the default tier"
+    );
+
+    for tier in ["default", "contract"] {
+        let plan = plan_from_args(["test", tier]).expect("tier plan");
+        assert!(
+            plan.commands
+                .iter()
+                .all(|command| !command_enables_test_perf(&command.args)),
+            "{tier} tier must not enable timed comparison checks"
+        );
+    }
+
+    for args in [
+        vec![
+            "cargo".to_owned(),
+            "test".to_owned(),
+            "--features".to_owned(),
+            "test-golden,test-perf".to_owned(),
+        ],
+        vec![
+            "cargo".to_owned(),
+            "test".to_owned(),
+            "--features=test-golden,test-perf".to_owned(),
+        ],
+        vec![
+            "cargo".to_owned(),
+            "test".to_owned(),
+            "-F".to_owned(),
+            "test-perf".to_owned(),
+        ],
+        vec![
+            "cargo".to_owned(),
+            "test".to_owned(),
+            "--all-features".to_owned(),
+        ],
+    ] {
+        assert!(command_enables_test_perf(&args));
+    }
+
+    let perf = plan_from_args(["test", "perf"]).expect("perf plan");
+    assert!(
+        perf.commands.iter().any(|command| {
+            command
+                .args
+                .windows(2)
+                .any(|args| args == ["--test", "call_argument_counts"])
+                && command
+                    .args
+                    .windows(2)
+                    .any(|args| args == ["--features", "test-perf"])
+                && command.args.contains(&"--release".to_owned())
+                && command.args.contains(&"--test-threads=1".to_owned())
+        }),
+        "perf tier must run call argument timing checks serially in release mode"
+    );
 }
 
 #[test]

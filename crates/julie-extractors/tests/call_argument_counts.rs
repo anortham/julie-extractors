@@ -1,4 +1,5 @@
 use std::path::Path;
+#[cfg(feature = "test-perf")]
 use std::time::{Duration, Instant};
 
 use julie_extractors::{ExtractionLevel, IdentifierKind, extract_canonical_for_language_at};
@@ -2180,6 +2181,7 @@ fn comparisons_without_a_closing_angle_keep_their_counts() {
     );
 }
 
+#[cfg(feature = "test-perf")]
 fn timed_argument_counts_of(
     language: &str,
     path: &str,
@@ -2199,6 +2201,7 @@ const ANGLE_RULE_LANGUAGES: [(&str, &str, WrapStatements); 4] = [
     ("kotlin", "sample.kt", in_kotlin_function),
 ];
 
+#[cfg(feature = "test-perf")]
 fn assert_long_comparison_list_stays_fast(language: &str, path: &str, wrap: fn(&str) -> String) {
     let comparisons: Vec<_> = (0..20_000).map(|i| format!("a{i} < b{i}")).collect();
     let call = format!("q({});", comparisons.join(", "));
@@ -2210,21 +2213,25 @@ fn assert_long_comparison_list_stays_fast(language: &str, path: &str, wrap: fn(&
     );
 }
 
+#[cfg(feature = "test-perf")]
 #[test]
 fn typescript_call_with_twenty_thousand_comparisons_stays_fast() {
     assert_long_comparison_list_stays_fast("typescript", "sample.ts", in_typescript_function);
 }
 
+#[cfg(feature = "test-perf")]
 #[test]
 fn csharp_call_with_twenty_thousand_comparisons_stays_fast() {
     assert_long_comparison_list_stays_fast("csharp", "sample.cs", in_csharp_method);
 }
 
+#[cfg(feature = "test-perf")]
 #[test]
 fn cpp_call_with_twenty_thousand_comparisons_stays_fast() {
     assert_long_comparison_list_stays_fast("cpp", "sample.cpp", in_cpp_function);
 }
 
+#[cfg(feature = "test-perf")]
 #[test]
 fn kotlin_call_with_twenty_thousand_comparisons_stays_fast() {
     assert_long_comparison_list_stays_fast("kotlin", "sample.kt", in_kotlin_function);
@@ -2232,6 +2239,17 @@ fn kotlin_call_with_twenty_thousand_comparisons_stays_fast() {
 
 #[test]
 fn nested_calls_keep_their_counts() {
+    let depth = 100;
+    let nested = format!("{}1{};", "q(".repeat(depth), ")".repeat(depth));
+    for (language, path, wrap) in ANGLE_RULE_LANGUAGES {
+        let keys = argument_counts_of(language, path, &wrap(&nested), "q");
+        assert_eq!(keys, vec![Some(1); depth], "{language}: nested calls");
+    }
+}
+
+#[cfg(feature = "test-perf")]
+#[test]
+fn nested_calls_stay_fast() {
     let depth = 100;
     let nested = format!("{}1{};", "q(".repeat(depth), ")".repeat(depth));
     for (language, path, wrap) in ANGLE_RULE_LANGUAGES {

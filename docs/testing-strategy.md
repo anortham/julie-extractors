@@ -144,16 +144,20 @@ Flask route artifact contract tests for `julie-extract-cli`.
 The retired resolution tests are not part of this tier. The current
 `cargo xtask coverage` sample check is a separate opt-in command.
 
-## Writer performance tier
+## Performance tier
 
-Runs the feature-gated synthetic writer throughput floors:
+Runs the feature-gated synthetic writer throughput floors and extractor timing
+checks:
 
 ```bash
 cargo xtask test perf
 ```
 
-This opt-in tier stays out of the default and contract tiers because wall-clock
-floors are intentionally generous and host-sensitive.
+The extractor checks cover 20,000 comparisons in TypeScript, C#, C++, and
+Kotlin, plus 100-deep nested calls. The default tier keeps nested-call count
+correctness without the timing ceiling. This opt-in tier stays out of the
+default and contract tiers because wall-clock floors are intentionally generous
+and host-sensitive.
 
 The Python SQLite consumer example is a downstream smoke check for non-Rust
 artifact readers:

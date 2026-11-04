@@ -23,6 +23,7 @@ test-golden = []
 test-capability-matrix = []
 test-certification = []
 test-downstream-smoke = []
+test-perf = []
 test-real-world = []
 
 [dependencies]

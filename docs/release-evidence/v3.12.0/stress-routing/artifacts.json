@@ -1,0 +1,144 @@
+{
+  "format_version": 1,
+  "source_commit": "d508db8c5cd4d38457479397613661c1343bac89",
+  "failed_ci_run": 41872663869,
+  "failed_ci_elapsed_seconds": 10.048248488,
+  "unchanged_timing_limit_seconds": 10,
+  "isolated_debug_test_seconds": 3.19,
+  "production_implementation_changed": false,
+  "artifacts": [
+    {
+      "source": "target/release-3.12.0/source-ci-failed.log",
+      "artifact": "source-ci-failed.log.gz",
+      "raw_sha256": "e295c910af52d38726b43b8dd17efe064d0674faf3a59839e8121f2a3d26519c",
+      "gzip_sha256": "e3d0246a43a61c2c101627f297c2cd464606e4b58a1678a154550b3d707cdb31"
+    },
+    {
+      "source": "target/release-3.12.0/csharp-stress-baseline.log",
+      "artifact": "csharp-stress-baseline.log.gz",
+      "raw_sha256": "f5d9fa8e546daa876d839062347e1133010186e47453c0855b8f2016964722e9",
+      "gzip_sha256": "8d6ad14665d6336a5d9918de3174492cce2328f982fbf3c12754afd629edecb9"
+    },
+    {
+      "source": "target/release-3.12.0/csharp-profile/report.json",
+      "artifact": "report.json.gz",
+      "raw_sha256": "a241e3840c6fcd4c19e9a061243e49e6923d8cc13350fb6d4cafbd3da60eed4a",
+      "gzip_sha256": "293f620eea0024ac48d8095496c424a78b728dad15ee8273120bd698e8d33f09"
+    },
+    {
+      "source": "target/release-3.12.0/csharp-profile/10000/input/sample.cs",
+      "artifact": "10000-sample.cs.gz",
+      "raw_sha256": "2e745fb6b7f0489bc86afe2c9645c2654c45452086351119aee6228b9720f150",
+      "gzip_sha256": "07357a3962590ce7b7a54593cf155f78abeb13e2255f502a50e6b7540885ab41"
+    },
+    {
+      "source": "target/release-3.12.0/csharp-profile/20000/input/sample.cs",
+      "artifact": "20000-sample.cs.gz",
+      "raw_sha256": "c24b471c47876dcae1b3c0ce82b5793f682595fa0987f2d0d221a5ffe93a2f63",
+      "gzip_sha256": "7fab076d11aa4437da8ca876e8f3f250fd5f9af713def6664d382a3e0b77353a"
+    },
+    {
+      "source": "target/release-3.12.0/csharp-profile/5000/input/sample.cs",
+      "artifact": "5000-sample.cs.gz",
+      "raw_sha256": "0e9f27d453fda5fe4f6d179e62fb17f37a3d3dc1754ede27dee3fa2ba08b4ba3",
+      "gzip_sha256": "69efbbf71e18e2ce99ab1852c568f32d5614988abea346d8f1d672fcb6afc851"
+    },
+    {
+      "source": "/tmp/julie-extractors-test-tiers-2026-11-04-review.log",
+      "artifact": "worker-test-tiers-review.log.gz",
+      "raw_sha256": "4c20a89e0d8e8432e0f02e4c90374e4133d499df14846d0f22dac3013edf7e6c",
+      "gzip_sha256": "5ad17bb8f259cfb49d2296b230be8952d7aaddb80bc20012c754746fec45d8de"
+    },
+    {
+      "source": "target/release-3.12.0/routing-fmt.log",
+      "artifact": "routing-fmt.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source": "target/release-3.12.0/routing-xtask.log",
+      "artifact": "routing-xtask.log.gz",
+      "raw_sha256": "d9ba03c17a9a1267fe4b238bebd872d0407800bdc463a76e6025fe568df7037b",
+      "gzip_sha256": "e7a354e404e316c038f169d377cff7b81d9d202741c48724b2dc13393af118c1"
+    },
+    {
+      "source": "target/release-3.12.0/routing-default.log",
+      "artifact": "routing-default.log.gz",
+      "raw_sha256": "693587061ca72d89c74b6c9253d4d281b6b3794e0c42866bf2ec72349646d994",
+      "gzip_sha256": "fc19f43ac5965ba033a65ab42c5ca535848d856ca9530af1791db97bc9f8cfed"
+    },
+    {
+      "source": "target/release-3.12.0/routing-perf.log",
+      "artifact": "routing-perf.log.gz",
+      "raw_sha256": "f4f266805dafb7937d86854fe2e2aee3a68a9b46fa27482e300f5eb675009c34",
+      "gzip_sha256": "0f8f09b4126c81b79d1ea02a1021cad31838d97b0428d8c826df19e8cdbc6d94"
+    },
+    {
+      "source": "target/release-3.12.0/routing-clippy.log",
+      "artifact": "routing-clippy.log.gz",
+      "raw_sha256": "80fcde29cb5386b91bdb5a79718a55059b538579ddad616bcd1836260c91bfe4",
+      "gzip_sha256": "4e09f673ee33b64b7d25c458043b7e7db1e60a7840ddf54347150f091eaeba5c"
+    },
+    {
+      "source": "target/release-3.12.0/routing-release-build.log",
+      "artifact": "routing-release-build.log.gz",
+      "raw_sha256": "a966561dc825bdcfbbcb2a3c1ec726e9540a0dc601e08c9261594c2e3e70f7f3",
+      "gzip_sha256": "3b6314d5461f28d3bae3e306ccea6cda48332f372a525bec1a794fc576205bd8"
+    },
+    {
+      "source": "target/release-3.12.0/routing-preflight.log",
+      "artifact": "routing-preflight.log.gz",
+      "raw_sha256": "c65777c2ec63e645a530a34107a91e7433fb532bbadce8724d7604bcf2a231eb",
+      "gzip_sha256": "200f2119aa2a1c38718c39950ff272e0d71189191a3cbe66a7adc82bdcf3f05a"
+    },
+    {
+      "source": "target/release-3.12.0/routing-coverage.log",
+      "artifact": "routing-coverage.log.gz",
+      "raw_sha256": "e78d7df4c57f2b43bb9b77a69634f3550f1827751d4fca984f5f24cd1341a314",
+      "gzip_sha256": "edcc428d569aed76354723dcd541ff06c9c3cd54f4f66a0e0651ac2f531fcae5"
+    },
+    {
+      "source": "target/release-3.12.0/routing-compat.log",
+      "artifact": "routing-compat.log.gz",
+      "raw_sha256": "da687277f09c6cb888f61950fb3963375fb76d8790258b2c322056f8d34a80fc",
+      "gzip_sha256": "b1b70db91a72181a4b24c8aeebb54273ac62d02657d0ec575eb954dab0424260"
+    },
+    {
+      "source": "target/release-3.12.0/routing-package.log",
+      "artifact": "routing-package.log.gz",
+      "raw_sha256": "b4c13154895777686e44c421bba00ec2d23c5a1c82333bddfb2f6891237791e3",
+      "gzip_sha256": "8334089f07354417fddb617f8491d3a09b7cbdeef38fec113321cef55a46da22"
+    },
+    {
+      "source": "target/release-3.12.0/routing-gates.json",
+      "artifact": "routing-gates.json.gz",
+      "raw_sha256": "d29219d60cfd0652aa6118945ba6e3ae3a70c1c8bf23d74223ecf5791e01ea5c",
+      "gzip_sha256": "b9f64ac8471da0f8a4bdd437b03d910f2572a9ac6c7cb6967faa1b9908ec140a"
+    },
+    {
+      "source": "target/release-3.12.0/stress-routing.patch",
+      "artifact": "stress-routing.patch.gz",
+      "raw_sha256": "5ae16f5970696b8012f798e40b9c5f0071ba99124cd3909da7e29d46b263fa0f",
+      "gzip_sha256": "fdd8b8f02adf8827c850c810ef4714611bee597347ceeba96759bb232dc432ac"
+    },
+    {
+      "source": "target/release-3.12.0/diagnostic-host.json",
+      "artifact": "diagnostic-host.json.gz",
+      "raw_sha256": "36ae7c0da90be64e4fd27fcc1aefc01189348f864f26d5ba95764097eb26baba",
+      "gzip_sha256": "c553c8e0336fe37e02546b0ace1686b0ad741ac00e53af0b92dc9c4e9fd50309"
+    }
+  ],
+  "worker_tdd_observation": {
+    "red": "New convention failed on an ungated TypeScript timing case before implementation; streamed agent tool result, raw filesystem output unavailable.",
+    "green_default_argument_tests": 76,
+    "green_release_argument_tests": 81,
+    "green_tier_tests": 25,
+    "raw_report_limitation": "Initial red/default/perf results were streamed; the root full affected gates are separately captured after implementation."
+  },
+  "all_ten_affected_gates_passed": true,
+  "default_tier_reported_seconds": 101,
+  "release_argument_tests_passed": 81,
+  "post_fix_binary_sha256": "445a4c00655dfef885596d5546b45639ec0bcf7ea6b9e685fa219c504e3f4734",
+  "post_fix_binary_matches_dogfood_candidate": true,
+  "comparable_extraction_tables_byte_identical": 18
+}

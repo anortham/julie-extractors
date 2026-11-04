@@ -508,20 +508,38 @@ fn certification_plan() -> TestPlan {
 }
 
 fn perf_plan() -> TestPlan {
-    TestPlan::new(vec![CommandSpec::new(
-        "cargo",
-        [
-            "test",
-            "-p",
-            "julie-extract-artifact",
-            "--features",
-            "test-perf",
-            "--test",
-            "writer_perf",
-            "--",
-            "--nocapture",
-        ],
-    )])
+    TestPlan::new(vec![
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-artifact",
+                "--features",
+                "test-perf",
+                "--test",
+                "writer_perf",
+                "--",
+                "--nocapture",
+            ],
+        ),
+        CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "--release",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-perf",
+                "--test",
+                "call_argument_counts",
+                "--",
+                "--test-threads=1",
+                "--nocapture",
+            ],
+        ),
+    ])
 }
 
 fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
