@@ -1,6 +1,6 @@
 # Language coverage verification evidence
 
-**Current status:** Local implementation and source verification are complete. Required performance acceptance remains blocked: the final v3 comparison passes four workloads, while references fresh scans and updates remain inconclusive after their permitted repeats. A quieter Linux reference host is required; the goal and performance checkboxes remain open. [Raw final campaign](2026-11-03-language-coverage/performance-attempt-3/artifacts.json).
+**Current status:** Local implementation and source verification are complete. Required performance acceptance remains blocked: the final v3 comparison passes four workloads, while references fresh scans and updates remain inconclusive after their permitted repeats. A quieter Linux reference host is required. A tested [CI reference-host package](2026-11-03-language-coverage/ci-reference-host/README.md) is ready for explicit push/dispatch and new-build-identity approval; the goal and performance checkboxes remain open. [Raw final campaign](2026-11-03-language-coverage/performance-attempt-3/artifacts.json).
 
 Implementation begins from `837b9796` in `.worktrees/language-coverage-plan` on `docs/language-coverage-plan`. Baseline product source is `f9a1b6cf`. All fourteen worktrees were clean before implementation. The goal authorizes local changes and commits; push and publication remain outside scope.
 
@@ -530,3 +530,37 @@ change budgets, adopt the rejected storage setting, refresh the baseline, or
 mark the goal complete. Tasks 5 and 6 retain their unresolved performance
 acceptance. All local implementation defects found in the bounded audit are
 fixed; this remaining requirement depends on measurement conditions.
+
+
+## Prepared CI path after goal resume
+
+Read-only checks found GitHub Actions enabled, with no self-hosted runner and
+no published task branch or candidate artifact. The existing registered remote
+workflow runs only the writer floor. The local workflow now offers an explicit
+source-build mode, using immutable baseline, candidate and harness commits.
+Remote execution requires approval to push the branch and record the new
+reference-host build identities. No semantic baseline refresh is permitted.
+
+The untimed local rehearsal at clean `d5de48b8` rebuilt baseline and candidate
+release binaries and reproduced `79eb21fa` and `c236e361` exactly. Both builds
+record Rust 1.97.1, release profiles, one Cargo job and 267 feature pairs. The
+candidate passed all 42 corpus rows and both controls. The rebuilt baseline
+receipt matches the original `ae5b1e5e…` byte-for-byte; all ten source-state
+snapshots preserve canonical facts, diagnostics and health. The runner records
+`comparison_started=false`; no local timing experiment was repeated.
+
+The new receipt guard, CLI safety and fresh-directory checks pass 19 tests, and all 33 existing
+comparator contracts pass. Removing the canonical-fact check in a private mutant
+causes the targeted regression to fail. YAML and shell parsing and actionlint
+1.7.12 pass. The dispatch form has 25 inputs, within the verified current GitHub
+limit. The 120-minute job limit covers builds and measurements without changing
+an extractor acceptance threshold.
+
+The [approval package](2026-11-03-language-coverage/ci-reference-host/README.md)
+contains exact source pins, actions and dispatch inputs. Its
+[artifact index](2026-11-03-language-coverage/ci-reference-host/artifacts.json)
+retains the real build records, original/rebuilt receipts, corpus result and
+red/green/mutation logs. The final performance outcome remains unproven until
+an approved remote run clears every required gate.
+
+The prepared harness pin is `7a31fa573f99328946c6104b9de6fa7a82261d43`. Its follow-up directory fix creates missing parents while requiring an exclusive new evidence leaf; the two filesystem regressions fail before the fix and pass afterward. Dispatch inputs use strings as required by the installed GitHub CLI.

@@ -1,0 +1,231 @@
+{
+  "format_version": 1,
+  "approval_status": "not yet authorized: no push, dispatch or remote comparison performed",
+  "local_rehearsal_source": "d5de48b8ffb0d433482b2b1a510521b1d686609f",
+  "local_candidate_note": "The rehearsal built d5de48b8, whose Rust sources/manifests equal e1c18a1e; it reproduced c236e361 byte-for-byte. CI inputs retain the original verified candidate source e1c18a1e.",
+  "baseline_binary_sha256": "79eb21fa95d39445e78b7237a0300fe071649d5671db0fbc4b3baff0ee2fd78d",
+  "candidate_binary_sha256": "c236e36111785c9ac6bcab6220f07403ad7ad54d02b00590fbe27f6358e40dcc",
+  "baseline_equivalence": {
+    "snapshot_count": 10,
+    "original_binary_sha256": "79eb21fa95d39445e78b7237a0300fe071649d5671db0fbc4b3baff0ee2fd78d",
+    "rebuilt_binary_sha256": "79eb21fa95d39445e78b7237a0300fe071649d5671db0fbc4b3baff0ee2fd78d"
+  },
+  "comparison_started": false,
+  "node_contract_tests_passed": 19,
+  "existing_comparator_contract_tests_passed": 33,
+  "actionlint_version": "1.7.12",
+  "artifacts": [
+    {
+      "source": "target/coverage-ci-actionlint.log",
+      "artifact": "coverage-ci-actionlint.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source": "target/coverage-ci-driver-red.log",
+      "artifact": "coverage-ci-driver-red.log.gz",
+      "raw_sha256": "32b44a0de9aa59527685c5bf856440b63dece05d1ed34179d0f869f1e5f60f98",
+      "gzip_sha256": "98e479bbd1da27dc7910a2829b360c5c5d8707be7c67ff49e2a4972a5ff5edf2"
+    },
+    {
+      "source": "target/coverage-ci-existing-contract.log",
+      "artifact": "coverage-ci-existing-contract.log.gz",
+      "raw_sha256": "56cbfa9aa79d93b52500e1c3a117aed43d182f38810b0054e1e3b448ff99e4c8",
+      "gzip_sha256": "7239d9efb824e735c139f1f2c71ec080308e4abf04672a392c9a4862b59891e9"
+    },
+    {
+      "source": "target/coverage-ci-mutation.log",
+      "artifact": "coverage-ci-mutation.log.gz",
+      "raw_sha256": "562a8c3640227f0bb657b11277345a0bcc83cf0546e9686014ac0d8488ec8184",
+      "gzip_sha256": "7d3ce30f5ca4d31d2a9810ace733221b75dd7a2dcbcfd86c5bcc4f99685f4ee3"
+    },
+    {
+      "source": "target/coverage-ci-real-preparation.exit",
+      "artifact": "coverage-ci-real-preparation.exit.gz",
+      "raw_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "gzip_sha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+    },
+    {
+      "source": "target/coverage-ci-real-preparation.log",
+      "artifact": "coverage-ci-real-preparation.log.gz",
+      "raw_sha256": "ddcc01e8d10d483ce9b33d241394459611ad95d5aeb01f798896f4ba7a1331fb",
+      "gzip_sha256": "828972d29facee2108300fd631abad6ed4d1543c9ae59c94b8bf62917fd03619"
+    },
+    {
+      "source": "target/coverage-ci-receipt-green.log",
+      "artifact": "coverage-ci-receipt-green.log.gz",
+      "raw_sha256": "9b2a4873f6edec3209530f75be23a44996e867d827809436c887a666387fced2",
+      "gzip_sha256": "af261a595a410bd6f406fd4e99738bac6f9cf89687f65ae917fb299a3fb6084e"
+    },
+    {
+      "source": "target/coverage-ci-receipt-red.log",
+      "artifact": "coverage-ci-receipt-red.log.gz",
+      "raw_sha256": "2aad8d75249ee0f09c75e4a4bb6596b648b84e9f3c94be1e91cc03014981a095",
+      "gzip_sha256": "91ae94324f3009e51cd77d9d841a8f4736861506e220a12661a7739756961912"
+    },
+    {
+      "source": "target/coverage-ci-tests-final.log",
+      "artifact": "coverage-ci-tests-final.log.gz",
+      "raw_sha256": "0d9cb1d17c35b9a13e31287d6e46c3d42d9fc613d6da7b4c460fe0f7ecabcb85",
+      "gzip_sha256": "87f3d2c3a49c2b28ddce19a5d96e5d820578086569edd5e4bcfddfa171cea342"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/baseline/build-record.json",
+      "artifact": "baseline--build-record.json.gz",
+      "raw_sha256": "da327656512a21bd13d8ecff1a93a25256abc2aabbc9df08dd2d0fd378e2982d",
+      "gzip_sha256": "2541b0bbd45bdbfee6d6ac8c50f65587d25a14cbc65454f4c64965e5c42942fb"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/baseline/build.log",
+      "artifact": "baseline--build.log.gz",
+      "raw_sha256": "ddeb02611f28b6453946e5a9be73e9f346eb9b14a8fb0287c08c7c6ba9ffebbc",
+      "gzip_sha256": "f64057d243c5ce26001e2fe475a37561ed34f7120987ad867f5b9e59e3bf347a"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/baseline/feature-tree.txt",
+      "artifact": "baseline--feature-tree.txt.gz",
+      "raw_sha256": "4104f28687a64eb89204b88bf0bb050bc0a6fdcbc0b32889115f6e466ad4dafa",
+      "gzip_sha256": "53ec7923569c477a50455ee7596a4e4b43e288f52f2334de89c7bbc02c1b9abc"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/baseline/fetch.log",
+      "artifact": "baseline--fetch.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/baseline/julie-extract.build.json",
+      "artifact": "baseline--julie-extract.build.json.gz",
+      "raw_sha256": "b439849488476579635f8d2db16ecae7bbe3bd1f34de00f381260c82a9fa4d84",
+      "gzip_sha256": "7dcf08ba5183a190a5d3e3158c147d235ef80cde298de96a5ab0541bfe6e56b4"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/baseline-capture.log",
+      "artifact": "baseline-capture.log.gz",
+      "raw_sha256": "ecc46b1c47450c2d74008e57ed90f1cf9bfe496f2550cde5014ae711521d2955",
+      "gzip_sha256": "00712f7eabc68d35600dc69859c0ee9061e06105cfa8900e1c6ad312b40bb21b"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/baseline-equivalence.json",
+      "artifact": "baseline-equivalence.json.gz",
+      "raw_sha256": "171022aae09e82bacf42af6ff399103939f28f04c7649c9e78cc6a41e9706e23",
+      "gzip_sha256": "0420c752c4275ac65550e91a9ae4ecd3eaa382924ce606e8c4428cdbfab3a2c7"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/candidate/build-record.json",
+      "artifact": "candidate--build-record.json.gz",
+      "raw_sha256": "77794ccb69755030dd6e8b809dd6687b076e6ea1efd40c7539ae1a1b4bff7616",
+      "gzip_sha256": "4a27887d7334a98fe5b92601a217f0f550a7a1510d50d1e9c3ad54f039cee0ec"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/candidate/build.log",
+      "artifact": "candidate--build.log.gz",
+      "raw_sha256": "1b2a104f0f11d56c2c28138823cef107ff99ebfab4e1bc45e6794fc9279d0f14",
+      "gzip_sha256": "e2ab418a855b567f59cba38f1c3511371326a9b51f24adadd21a2a5e4f7ffcc1"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/candidate/feature-tree.txt",
+      "artifact": "candidate--feature-tree.txt.gz",
+      "raw_sha256": "29e0a744f1b65442b7c4492aac01a2d5cc5716e581aa40e8827be7b94e223762",
+      "gzip_sha256": "52cb87592fa1642b6f1b4e4a66602930d480e7cf2c5dd85f97799120e60e18a5"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/candidate/fetch.log",
+      "artifact": "candidate--fetch.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/candidate/julie-extract.build.json",
+      "artifact": "candidate--julie-extract.build.json.gz",
+      "raw_sha256": "63696cc6cfe44d46b55cd3c63275be92117d4c5b3c3a0f3033f25801f7e62469",
+      "gzip_sha256": "2c0caaddd4cda73f1ea97f4f6b6401a51242176c1611c7bdcf0e42a0cffe65bc"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/candidate-coverage.log",
+      "artifact": "candidate-coverage.log.gz",
+      "raw_sha256": "cb0b0438e60667551389d4cd4069faa1294c619d1e6e899921d61eddd2fa026c",
+      "gzip_sha256": "caabca5a3c916391d59a0e614a11c18f15ec752edc00f41a782006a27b0a7f12"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/harness-build.log",
+      "artifact": "harness-build.log.gz",
+      "raw_sha256": "4f13f945e40635c1c0a9fdc42f8a0a80009947858eaaf2a1a9d4c81120592071",
+      "gzip_sha256": "6eb98400f8d368cc4d55bca17007cc46836523ba9bd8197152ec69e6011ef721"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/harness-fetch.log",
+      "artifact": "harness-fetch.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/original-baseline-expectations.json",
+      "artifact": "original-baseline-expectations.json.gz",
+      "raw_sha256": "ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e",
+      "gzip_sha256": "64086b403a853769ad36658496ec08f26233e8a6467d24e62ce4b6b6d127fdb3"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/preparation.json",
+      "artifact": "preparation.json.gz",
+      "raw_sha256": "f76588ac4a6254e70b2fd80b9b79bf054770c3e46b9acc8184111a7eefe7ebcc",
+      "gzip_sha256": "025895009a7b17271623dcefdeb12bd4f64d7270e239e0e95f6a80ca97219337"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/rebuilt-baseline-receipt/baseline-expectations.json",
+      "artifact": "rebuilt-baseline-receipt--baseline-expectations.json.gz",
+      "raw_sha256": "ae5b1e5ec8500d5b4e7c46b25a6961a9ce56128becfe4e4474f314d90dbf404e",
+      "gzip_sha256": "64086b403a853769ad36658496ec08f26233e8a6467d24e62ce4b6b6d127fdb3"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/rebuilt-baseline-receipt/runs/all-full-workloads/baseline/source/json/package.json",
+      "artifact": "rebuilt-baseline-receipt--runs--all-full-workloads--baseline--source--json--package.json.gz",
+      "raw_sha256": "dff53fdd95c9ab8e6e536626ad1236b6df1d9b5dab184c9902f7f05d5b19eb71",
+      "gzip_sha256": "132b1e217ed94d04685736714da44cd8dccf6436d51f6377486e351c920b4408"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/rebuilt-baseline-receipt/runs/all-references-workloads/baseline/source/json/package.json",
+      "artifact": "rebuilt-baseline-receipt--runs--all-references-workloads--baseline--source--json--package.json.gz",
+      "raw_sha256": "dff53fdd95c9ab8e6e536626ad1236b6df1d9b5dab184c9902f7f05d5b19eb71",
+      "gzip_sha256": "132b1e217ed94d04685736714da44cd8dccf6436d51f6377486e351c920b4408"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/rebuilt-baseline-receipt/semantic-dump-all-full-586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700.tsv",
+      "artifact": "rebuilt-baseline-receipt--semantic-dump-all-full-586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700.tsv.gz",
+      "raw_sha256": "dbbd07ec1d2fb8f2ed4ee4405a2d3ed9ade83d5394fdbcf2beea3e19e33830c8",
+      "gzip_sha256": "dfa4d0fb15bc7ace0aa347673856d7fd3041e1f7e9a7ef6bc17550f4de713654"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/rebuilt-baseline-receipt/semantic-dump-all-full-cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6.tsv",
+      "artifact": "rebuilt-baseline-receipt--semantic-dump-all-full-cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6.tsv.gz",
+      "raw_sha256": "f34de7f4eea6b1f78a7d7f0a87be845269322f91ce1366862591369101f021ae",
+      "gzip_sha256": "c8e0f24e83dbf5df3963b8a183d656d8e8592bd35945337392623c03fc48d76c"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/rebuilt-baseline-receipt/semantic-dump-all-references-586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700.tsv",
+      "artifact": "rebuilt-baseline-receipt--semantic-dump-all-references-586ad6ed5ace7b6bc68ce44b0f5323cc76d5a1dfb70b04cc62e0068ea0bdc700.tsv.gz",
+      "raw_sha256": "7b2744e860e61ad2e69a68c5ecdc81ad1e1ce8a7b0d585fedf659ac6fdc01996",
+      "gzip_sha256": "48a8491746c84732e001168d7f4085cec4fea87c33b7eeffcae7543ba6285888"
+    },
+    {
+      "source": "target/source-ci-preparation-d5de48b8/rebuilt-baseline-receipt/semantic-dump-all-references-cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6.tsv",
+      "artifact": "rebuilt-baseline-receipt--semantic-dump-all-references-cf98cbd5de935cd445895b501ee0800f23760c395046774da3e5f96d59438ab6.tsv.gz",
+      "raw_sha256": "60c890873fd88f3adfb3b46ff2fa690dfc94a9eb121e526610e79081f4742439",
+      "gzip_sha256": "d2bcf2190586790ed126e0bef77c3bd9e59db94e133061f0dff7436dc2253f34"
+    },
+    {
+      "source": "target/coverage-ci-fresh-directory-red.log",
+      "artifact": "coverage-ci-fresh-directory-red.log.gz",
+      "raw_sha256": "221641af62bc05396f5b49f9b4c8026d80eb4698d19ed2fa196a706850d7c5ed",
+      "gzip_sha256": "56175925df8020fb1ac6f5d1ef127c538d06280f51284458b4abbb9fe49dcdb9"
+    },
+    {
+      "source": "target/coverage-ci-fresh-directory-green.log",
+      "artifact": "coverage-ci-fresh-directory-green.log.gz",
+      "raw_sha256": "bbe810a8d3f67567831da70ce352d4da7b45b2942531617e836f9259ec8be0fd",
+      "gzip_sha256": "3eff1a105dd427abe18ad3e157ca1073b241d6866e20ab9d8767d732d857f932"
+    }
+  ],
+  "validated_harness_source": "7a31fa573f99328946c6104b9de6fa7a82261d43",
+  "followup": "Missing target parents are now created while existing evidence leaves remain exclusive; two filesystem regressions pass. The real build/receipt rehearsal remains d5de48b8; build and semantic code is unchanged."
+}

@@ -3,12 +3,12 @@ id: prove-language-coverage-and-prevent-regressions
 title: Prove language coverage and prevent regressions
 status: active
 created: 2026-11-04T00:15:04.316Z
-updated: 2026-11-04T12:31:35.648Z
+updated: 2026-11-04T15:08:29.351Z
 tags: []
 ---
 
-Execute docs/plans/2026-11-03-language-coverage-goal.md to full acceptance. Local implementation is complete: 42 languages across 15 domains, 630 cells, 47 fixed extraction defects, 465 passing goldens, 11 retained consumer/context boundaries, a pinned CLI corpus and exact row allowances. Linux branch, certification, real-world, rebind and Windows gates pass. Final warm default median is 45.434524 seconds; writer batching passes.
+Finish docs/plans/2026-11-03-language-coverage-goal.md without lowering its acceptance criteria. Local extraction implementation is complete: 42 languages, 630 cells, 47 fixed defects, 465 goldens and 11 retained boundaries. Linux and Windows gates pass; warm default median is 45.434524 seconds. Three local controlled campaigns remain inconclusive; no further local timing run is permitted.
 
-The reviewed v3 harness uses a fixed four-second calibration target, unchanged two-second floor and budgets, and one retry that cannot reduce batch count. The final controlled campaign at clean e1d14ef1 passes four of six workloads. References fresh and update timings remain inconclusive after their repeats; correctness, health, latency-budget, RSS and size checks report no failures. The NOCOW experiment failed its adoption criterion and is rejected.
+The resumed goal prepared a concrete GitHub Actions route. It builds immutable baseline f9a1b6cf and candidate e1c18a1e with Rust 1.97.1/release/one Cargo job, records truthful new hashes, and proves every rebuilt baseline snapshot against the unchanged frozen receipt before timing. The original semantic baseline, manifest, allowance, budgets and one-repeat cap stay fixed. Untimed rehearsal reproduced both frozen binary hashes, passed all 42 corpus rows plus controls and all ten baseline snapshots. Nineteen runner contracts, 33 existing comparator contracts, actionlint and a mutation check pass. Harness pin is 7a31fa57.
 
-The goal remains open. Access to a quieter Linux reference host is required, using frozen baseline 79eb21fa, candidate c236e361 and unchanged inputs/budgets. Do not rerun or tune on this host or refresh the baseline. Preserve all three inconclusive campaigns. Work stays in .worktrees/language-coverage-plan on docs/language-coverage-plan; code matches the clean e1c18a1e build. The final evidence ledger records every gate and blocker. No resolver, context guessing, release, push or code-kb changes.
+The CI approval package is docs/evidence/2026-11-03-language-coverage/ci-reference-host/README.md with exact dispatch inputs. Explicit approval is required before pushing docs/language-coverage-plan and dispatching one CI comparison with new reference-host build identities. No push/dispatch or new timing has occurred. Keep the goal active and incomplete until the approved controlled comparison passes all six workloads. A supplied quiet Linux host remains an alternative. Work stays in the current task worktree; no release, resolver, context guessing or code-kb changes.
