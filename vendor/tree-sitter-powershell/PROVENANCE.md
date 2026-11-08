@@ -20,6 +20,11 @@ generator.
 The Rust build script is formatted with the workspace's Rust toolchain; this
 does not change the grammar, generated parser, or scanner.
 
+The scanner marks unused parameters with `(void)` casts, and its internal
+helpers take no `payload` argument. This removes C compiler warnings and does
+not change scanner behavior. `tree-sitter generate` does not write
+`src/scanner.c`, so the recorded hash covers this hand-maintained file.
+
 Generated files use Tree-sitter CLI 0.26.11. From this directory, the exact
 command is:
 
@@ -36,6 +41,6 @@ and after the repeat were identical:
 | `src/grammar.json` | `08bcc772bb04181d734c5d0ae87a6c0b61a98c3f0814987dad462fe4cb916d70` |
 | `src/node-types.json` | `110df696fb332be510f98e92ea7901b5584d8b7a7cd3ee622b806603375070fc` |
 | `src/parser.c` | `fc7ef4bf342c37df2ca2ec9771222ed3bd7e2e3a8fc2f3ce7fb5b162c282c297` |
-| `src/scanner.c` | `dab03ff73a44495c72e6b51f43fd2f5128a1a29344a29974f12fba250328cf99` |
+| `src/scanner.c` | `7455decc1e23e759d12394682470cad0ac552771ab169bd6f6e60e8372003784` |
 
 [parsing]: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_parsing#argument-mode

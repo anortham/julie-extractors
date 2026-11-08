@@ -30,7 +30,7 @@ void tree_sitter_sql_external_scanner_destroy(void *payload) {
   free(payload);
 }
 
-static char* add_char(char* text, size_t* text_size, char c, int index) {
+static char* add_char(char* text, size_t* text_size, char c, size_t index) {
   if (text == NULL) {
     text = malloc(sizeof(char) * MALLOC_STRING_SIZE);
     *text_size = MALLOC_STRING_SIZE;
@@ -52,7 +52,7 @@ static char* add_char(char* text, size_t* text_size, char c, int index) {
 
 static char* scan_dollar_string_tag(TSLexer *lexer) {
   char* tag = NULL;
-  int index = 0;
+  size_t index = 0;
   size_t* text_size = malloc(sizeof(size_t));
   *text_size = 0;
   if (lexer->lookahead == '$') {

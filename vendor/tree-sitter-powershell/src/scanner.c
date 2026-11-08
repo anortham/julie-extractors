@@ -25,7 +25,7 @@ bool tree_sitter_powershell_external_scanner_scan(void *payload, TSLexer *lexer,
 
 static void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
 
-static bool scan_statement_terminator(void *payload, TSLexer *lexer, const bool *valid_symbols)
+static bool scan_statement_terminator(TSLexer *lexer, const bool *valid_symbols)
 {
     if (valid_symbols[STATEMENT_TERMINATOR]) {
         lexer->result_symbol = STATEMENT_TERMINATOR;
@@ -52,7 +52,7 @@ static bool scan_statement_terminator(void *payload, TSLexer *lexer, const bool 
 // so the lexer cannot tell them apart by length or precedence: the token is
 // recognised only when the dashes are followed by whitespace or the end of the
 // command.
-static bool scan_bare_dashes(void *payload, TSLexer *lexer, const bool *valid_symbols)
+static bool scan_bare_dashes(TSLexer *lexer, const bool *valid_symbols)
 {
     if (!valid_symbols[BARE_DASHES]) return false;
 
@@ -84,10 +84,11 @@ static bool scan_bare_dashes(void *payload, TSLexer *lexer, const bool *valid_sy
 
 bool tree_sitter_powershell_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
 {
+    (void)payload;
     // The statement terminator consumes nothing, so it must be tried last: when
     // both are valid, a `--` has to win over the empty terminator.
-    if (scan_bare_dashes(payload, lexer, valid_symbols)) return true;
-    return scan_statement_terminator(payload, lexer, valid_symbols);
+    if (scan_bare_dashes(lexer, valid_symbols)) return true;
+    return scan_statement_terminator(lexer, valid_symbols);
 }
 
 void *tree_sitter_powershell_external_scanner_create()
@@ -97,13 +98,19 @@ void *tree_sitter_powershell_external_scanner_create()
 
 void tree_sitter_powershell_external_scanner_destroy(void *p)
 {
+    (void)p;
 }
 
 unsigned tree_sitter_powershell_external_scanner_serialize(void *payload, char *buffer)
 {
+    (void)payload;
+    (void)buffer;
     return 0;
 }
 
 void tree_sitter_powershell_external_scanner_deserialize(void *payload, const char *buffer, unsigned length)
 {
+    (void)payload;
+    (void)buffer;
+    (void)length;
 }

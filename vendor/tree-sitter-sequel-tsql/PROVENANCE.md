@@ -8,6 +8,10 @@ version `0.4.2-julie.1` identifies the grammar corrections maintained here.
 The Rust build script is formatted with the workspace's Rust toolchain; this
 does not change the grammar, generated parser, or scanner.
 
+The scanner uses `size_t` for the dollar-quote tag index, so the index and the
+buffer size compare with the same signedness. This removes a C compiler
+warning and does not change scanner behavior.
+
 The corrections extend T-SQL routine declarations and inline table-valued
 functions, system-time table syntax, sequence defaults, clustered primary keys,
 transaction statements, and scalar/compound `SET` assignments. The additional
