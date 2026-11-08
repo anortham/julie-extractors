@@ -684,7 +684,10 @@ class Money {
         .iter()
         .find(|id| id.name == "cents" && id.start_line == 5)
         .expect("cents read in the getter");
-    assert_eq!(read.containing_symbol_id.as_deref(), Some(getter.id.as_str()));
+    assert_eq!(
+        read.containing_symbol_id.as_deref(),
+        Some(getter.id.as_str())
+    );
 
     let setter = symbols
         .iter()
@@ -694,5 +697,8 @@ class Money {
         .iter()
         .find(|id| id.name == "print" && id.kind == IdentifierKind::Call)
         .expect("print call in the setter");
-    assert_eq!(call.containing_symbol_id.as_deref(), Some(setter.id.as_str()));
+    assert_eq!(
+        call.containing_symbol_id.as_deref(),
+        Some(setter.id.as_str())
+    );
 }

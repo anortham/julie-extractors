@@ -613,10 +613,16 @@ class AppContext:
         .iter()
         .find(|id| id.name == "_get_session" && id.kind == IdentifierKind::Call)
         .expect("_get_session call");
-    assert_eq!(call.containing_symbol_id.as_deref(), Some(property.id.as_str()));
+    assert_eq!(
+        call.containing_symbol_id.as_deref(),
+        Some(property.id.as_str())
+    );
     let write = identifiers
         .iter()
         .find(|id| id.name == "accessed" && id.kind == IdentifierKind::MemberAccess)
         .expect("accessed member access");
-    assert_eq!(write.containing_symbol_id.as_deref(), Some(property.id.as_str()));
+    assert_eq!(
+        write.containing_symbol_id.as_deref(),
+        Some(property.id.as_str())
+    );
 }
