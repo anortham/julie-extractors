@@ -7481,9 +7481,9 @@
           "expected": "fixtures/extraction/razor/members/expected.json"
         },
         {
-          "name": "error_recovery",
-          "source": "fixtures/extraction/razor/error_recovery/Panel.razor",
-          "expected": "fixtures/extraction/razor/error_recovery/expected.json"
+          "name": "comment_placement",
+          "source": "fixtures/extraction/razor/comment_placement/Panel.razor",
+          "expected": "fixtures/extraction/razor/comment_placement/expected.json"
         },
         {
           "name": "razor_pages",
@@ -7614,7 +7614,8 @@
         "doc_comments": {
           "supported": [
             "enum",
-            "import"
+            "import",
+          "property"
           ],
           "not_applicable": [],
           "open_gaps": []

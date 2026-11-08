@@ -84,6 +84,32 @@ artifacts and both dumps for inspection), `--max-diff-rows <n>`.
 In CI, the `Extractor Compatibility` job downloads the latest published release for
 `x86_64-unknown-linux-gnu` and runs the same command.
 
+## 3.12.1
+
+classification: compatible
+
+The SQLite schema remains 8, the report schema remains 3, and the extraction
+identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
+`razor-comment-extras-v1`. No table or column shape changes. A schema 8
+artifact written by 3.12.0 has the old capability snapshot fingerprint;
+refresh it with `julie-extract scan --root <project> --db <artifact.db>
+--force` before incremental use with 3.12.1.
+
+### `razor-comment-extras-v1`
+
+Razor, `.razor` and `.cshtml`: the pinned `tree-sitter-razor` commit
+(`81a0aaefb67a10cc5600ca207cfce1625e8ac66d`) reads a `@* … *@` comment as one
+token and as an extra in every parser state. With 3.12.0 a comment first in an
+`@if`, `else`, or `@foreach` block, first in an element, or first in a `@code`
+block made the whole file one `error` diagnostic from line 1, and the file
+kept only its component class and directives; a 1,300-line Blazor component
+dropped from 302 symbols to 10. A comment above the directives ended the
+directive section. Such a file now has no diagnostic, and every `@code` member,
+markup expression, call, and type fact of it is extracted as in a file without
+the comment. The `razor/comment_placement` fixture (formerly `error_recovery`,
+which recorded the defect) covers each position. Files without a Razor comment
+in these positions are unchanged.
+
 ## 3.12.0
 
 classification: compatible

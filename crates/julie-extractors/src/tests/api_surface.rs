@@ -91,6 +91,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "programming-parameter-body-v1",
         "language-coverage-corrections-v1",
         "syntax-aware-body-hash-v1",
+        "razor-comment-extras-v1",
     ] {
         assert!(
             version.contains(marker),

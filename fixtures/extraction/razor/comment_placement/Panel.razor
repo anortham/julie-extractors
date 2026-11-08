@@ -1,0 +1,27 @@
+@namespace App.Shared
+
+@* A comment after the directives, before the markup. *@
+<div class="panel">
+    @* A comment first in an element. *@
+    <h2>@Title</h2>
+    @if (Expanded)
+    {
+        @* A comment first in a control block. *@
+        <p class="panel-body">@Body</p>
+        @* A comment after an element in the block, with "quotes"; a semicolon, and a * star. *@
+    }
+    else
+    {
+        @* A comment first in an else block. *@
+        <button type="button" @onclick="Expand">Show</button>
+    }
+</div>
+
+@code {
+    @* A comment first in the code block. *@
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Body { get; set; } = "";
+    private bool Expanded;
+    private void Expand() => Expanded = true;
+    private void Close() => Hide();
+}

@@ -51,6 +51,34 @@ fn current_razor_syntax_valid_cases_have_no_parse_diagnostics() {
             "tag helper",
             "@addTagHelper My.TagHelpers.EmailTagHelper, My.Assembly",
         ),
+        (
+            "comment first in a block",
+            "@if (shown)\n{\n    @* c *@\n    <p>a</p>\n}",
+        ),
+        (
+            "comment first in an else block",
+            "@if (shown)\n{\n    <p>a</p>\n}\nelse\n{\n    @* c *@\n    <p>b</p>\n}",
+        ),
+        (
+            "comment first in a foreach block",
+            "@foreach (var item in items)\n{\n    @* c *@\n    <p>@item</p>\n}",
+        ),
+        (
+            "comment first in an element",
+            "<div>\n    @* c *@\n    <p>a</p>\n</div>",
+        ),
+        (
+            "comment first in a code block",
+            "@code {\n    @* c *@\n    private int count;\n}",
+        ),
+        (
+            "comment above the directives",
+            "@* c *@\n@page \"/items\"\n@inherits LayoutComponentBase\n<p>a</p>",
+        ),
+        (
+            "comment with stars and at signs",
+            "@* a * b ** c @ d **@\n<p>a</p>",
+        ),
     ];
 
     for (name, source) in cases {
@@ -152,5 +180,37 @@ fn current_razor_syntax_fixture_matches_reviewed_evidence() {
         evidence["parse_diagnostic_count"]
             .as_u64()
             .expect("parse_diagnostic_count must be an integer") as usize
+    );
+}
+
+#[test]
+fn razor_comment_first_in_a_block_keeps_the_code_members() {
+    let results = extract(
+        "comment in block keeps members",
+        "@page \"/items\"\n\n@if (shown)\n{\n    @* The Razor compiler accepts a comment here. *@\n    <p>@Count</p>\n}\n\n@code {\n    private bool shown;\n    private int Count { get; set; }\n    private async Task LoadAsync() => await Task.Yield();\n    private bool Invalid(string id) => id.Length == 0;\n}\n",
+    );
+
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "{:#?}",
+        results.parse_diagnostics
+    );
+    for name in ["shown", "Count", "LoadAsync", "Invalid"] {
+        assert!(
+            results.symbols.iter().any(|symbol| symbol.name == name),
+            "missing `{name}` in {:?}",
+            results
+                .symbols
+                .iter()
+                .map(|symbol| symbol.name.as_str())
+                .collect::<Vec<_>>()
+        );
+    }
+    assert!(
+        results
+            .symbols
+            .iter()
+            .any(|symbol| symbol.name == "@page" && symbol.start_line == 1),
+        "the directive above the block stays a directive"
     );
 }
