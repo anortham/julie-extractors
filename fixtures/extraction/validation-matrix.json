@@ -18526,6 +18526,12 @@
           "path": "fixtures/extraction/razor/cross_file/expected.json",
           "pointer": "#/symbols/2/doc_comment",
           "unit": "import"
+        },
+        {
+          "kind": "golden",
+          "path": "fixtures/extraction/razor/comment_placement/expected.json",
+          "pointer": "#/symbols/6/doc_comment",
+          "unit": "property"
         }
       ],
       "negative_or_boundary_evidence": [
@@ -18544,7 +18550,7 @@
           "assertion": "A Razor documentation comment attaches to the @page directive."
         }
       ],
-      "rationale": "Razor with embedded C# attaches language-specific documentation forms and leaves ordinary comments undocumented.",
+      "rationale": "Razor with embedded C# attaches language-specific documentation forms, including a @* *@ comment above a @code member, and leaves ordinary comments undocumented.",
       "local_defects": [],
       "retained_gap_ids": []
     },
