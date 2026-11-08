@@ -163,7 +163,7 @@ impl<'a> ContainingSymbolIndex<'a> {
             .into_iter()
             .map(|symbol| IndexedSymbol {
                 symbol,
-                priority: priority(&symbol.kind),
+                priority: container_priority(symbol, priority),
                 size: symbol.end_byte.saturating_sub(symbol.start_byte),
             })
             .collect();
@@ -270,6 +270,24 @@ pub(crate) fn symbol_priority(kind: &SymbolKind) -> u32 {
         SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Property => 10,
         _ => 5,
     }
+}
+
+/// The rank of `symbol` as a container. A property that is an accessor function (a Python
+/// `@property def`, a Dart getter or setter) holds code, so it ranks as a method; a property
+/// that holds a value keeps the rank of its kind, and the class around its initializer stays
+/// the container of a call in it.
+pub(crate) fn container_priority(symbol: &Symbol, priority: fn(&SymbolKind) -> u32) -> u32 {
+    if symbol.kind == SymbolKind::Property && is_accessor_function(symbol) {
+        return priority(&SymbolKind::Method);
+    }
+    priority(&symbol.kind)
+}
+
+fn is_accessor_function(symbol: &Symbol) -> bool {
+    symbol.metadata.as_ref().is_some_and(|metadata| {
+        (symbol.language == "python" && metadata.contains_key("decorators"))
+            || metadata.contains_key("accessorKind")
+    })
 }
 
 #[cfg(test)]

@@ -72,6 +72,14 @@ These cases record no fact, because the type would be a guess:
 - A chain that ends in any other method (`Type.create().load()`, `then()`),
   a `?.` call, or a property access.
 
+## Accessors
+
+A getter (`int get count => ...`) or a setter (`set count(int value) { ... }`)
+is a `property` symbol with `accessorKind` metadata. It holds code, so an
+identifier, a relationship, or a type fact inside it names the accessor as its
+containing symbol, like a method. A field keeps its class as the container of a
+call in its initializer.
+
 ## Library directives
 
 `library blog;` and `library app.models;` write one `namespace` row with the

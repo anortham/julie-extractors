@@ -90,7 +90,8 @@ classification: compatible
 
 The SQLite schema remains 8, the report schema remains 3, and the extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
-`razor-comment-extras-v1`. No table or column shape changes. A schema 8
+`razor-comment-extras-v1` and `property-accessor-container-v1`. No table or
+column shape changes. A schema 8
 artifact written by 3.12.0 has the old capability snapshot fingerprint;
 refresh it with `julie-extract scan --root <project> --db <artifact.db>
 --force` before incremental use with 3.12.1.
@@ -109,6 +110,24 @@ markup expression, call, and type fact of it is extracted as in a file without
 the comment. The `razor/comment_placement` fixture (formerly `error_recovery`,
 which recorded the defect) covers each position. Files without a Razor comment
 in these positions are unchanged.
+
+### `property-accessor-container-v1`
+
+Python and Dart: a `property` symbol that is an accessor function (a Python
+`@property def`, including `@x.setter` and `@cached_property`, or a Dart
+getter or setter) now ranks as a method when the containing symbol of an
+identifier, a relationship, or a type fact is chosen, so the code inside it
+belongs to the property. With 3.12.0 the class won, because a `property`
+ranked below every other kind, so a call or a member write inside such an
+accessor named the class as its container. A code-kb callers report named the
+class `AppContext` as the caller of the write `session.accessed = True` inside
+the Flask property `AppContext.session`, and its walk could not step from the
+property to its readers. A property that holds a value (a `self.x = ...`
+attribute, a Dart field, a Kotlin or C# property) keeps its rank, so the class
+around its initializer stays the container of a call in it. Rows whose
+position is inside such an accessor change their `containing_symbol_id`,
+`from_symbol_id`, or `symbol_id` (type facts); nothing else changes. The
+`python/declarations` fixture records the change.
 
 ## 3.12.0
 

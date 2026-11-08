@@ -589,3 +589,34 @@ def annotate(obj):
     assert!(!has_variable_ref_at(annotation_only));
     assert!(symbols.iter().any(|symbol| symbol.name == "only"));
 }
+
+#[test]
+fn code_inside_a_property_accessor_belongs_to_the_property() {
+    let code = r#"
+class AppContext:
+    def _get_session(self):
+        return self._session
+
+    @property
+    def session(self):
+        session = self._get_session()
+        session.accessed = True
+        return session
+"#;
+
+    let (symbols, identifiers, _extractor) = extract_all(code);
+    let property = symbols
+        .iter()
+        .find(|s| s.name == "session" && s.kind == crate::base::SymbolKind::Property)
+        .expect("session property");
+    let call = identifiers
+        .iter()
+        .find(|id| id.name == "_get_session" && id.kind == IdentifierKind::Call)
+        .expect("_get_session call");
+    assert_eq!(call.containing_symbol_id.as_deref(), Some(property.id.as_str()));
+    let write = identifiers
+        .iter()
+        .find(|id| id.name == "accessed" && id.kind == IdentifierKind::MemberAccess)
+        .expect("accessed member access");
+    assert_eq!(write.containing_symbol_id.as_deref(), Some(property.id.as_str()));
+}

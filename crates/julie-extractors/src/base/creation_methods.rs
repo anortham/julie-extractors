@@ -8,7 +8,7 @@ use tree_sitter::Node;
 use super::body::infer_body_span;
 use super::containing_symbol_index::{
     ContainingSymbolIndex, IndexedSymbol, is_better_containing_symbol, symbol_contains_position,
-    symbol_priority,
+    container_priority, symbol_priority,
 };
 use super::extractor::BaseExtractor;
 use super::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
@@ -393,7 +393,7 @@ impl BaseExtractor {
 
             let candidate = IndexedSymbol {
                 symbol,
-                priority: symbol_priority(&symbol.kind),
+                priority: container_priority(symbol, symbol_priority),
                 size: symbol.end_byte.saturating_sub(symbol.start_byte),
             };
 

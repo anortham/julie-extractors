@@ -652,3 +652,47 @@ void update(Marker marker, int count) {
             .is_none()
     );
 }
+
+#[test]
+fn code_inside_a_getter_belongs_to_the_getter() {
+    let code = r#"
+class Money {
+  final int cents;
+  Money(this.cents);
+  int get hashCode => cents.hashCode;
+  set rounded(int value) => print(value);
+}
+"#;
+
+    let mut parser = init_test_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = DartExtractor::new(
+        "dart".to_string(),
+        "test.dart".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    let getter = symbols
+        .iter()
+        .find(|s| s.name == "hashCode" && s.kind == crate::base::SymbolKind::Property)
+        .expect("hashCode getter");
+    let read = identifiers
+        .iter()
+        .find(|id| id.name == "cents" && id.start_line == 5)
+        .expect("cents read in the getter");
+    assert_eq!(read.containing_symbol_id.as_deref(), Some(getter.id.as_str()));
+
+    let setter = symbols
+        .iter()
+        .find(|s| s.name == "rounded" && s.kind == crate::base::SymbolKind::Property)
+        .expect("rounded setter");
+    let call = identifiers
+        .iter()
+        .find(|id| id.name == "print" && id.kind == IdentifierKind::Call)
+        .expect("print call in the setter");
+    assert_eq!(call.containing_symbol_id.as_deref(), Some(setter.id.as_str()));
+}

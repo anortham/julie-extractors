@@ -207,6 +207,11 @@ Imports, variables, constants, attributes, and parameters have no body span.
   apart from a class-level `x = ...`. A class-level declaration of the same
   name wins; otherwise the first `self.x` assignment in source order is the
   only row.
+- A `@property` method (also `@x.setter`, `@x.deleter`, `@cached_property`) is
+  a `property` symbol that holds code: an identifier, a relationship, or a type
+  fact inside it names the property as its containing symbol, like a method.
+  A `self.x = ...` property holds a value, so the method around it stays the
+  container of a call in its right-hand side.
 - Class visibility follows the same underscore rule as functions.
 - A docstring is the first statement of the body when it is a plain string.
   `r`/`u` prefixes and the quotes are stripped; f-strings and byte strings are
